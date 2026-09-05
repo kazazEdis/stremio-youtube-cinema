@@ -72,3 +72,127 @@ test('a title with no usable content falls back rather than returning empty', ()
   assert.equal(cleanTitle('FULL MOVIE', 'X'), 'FULL MOVIE');
   assert.ok(cleanTitle('🍕🍕🍕', 'X').length > 0);
 });
+
+test('a clickbait hook never beats the title it precedes', () => {
+  // These channels lead with a plot sentence and put the film second. Scoring
+  // by length picks the hook every time, which is how 1,496 Movie Central
+  // uploads resolved to nothing.
+  assert.equal(
+    cleanTitle('Single Mother Fights To Save Her Daughter From Armed Invaders | Warning Shot | Full Thriller', 'Movie Central'),
+    'Warning Shot');
+  assert.equal(
+    cleanTitle('The True Story Of WWII Ace Paddy Finucane | The Shamrock Spitfire | Full War Movie', 'Movie Central'),
+    'The Shamrock Spitfire');
+  assert.equal(
+    cleanTitle('Sasquatch Is On A Killing Rampage | Full Movie | Horror | Legend Of Sasquatch', 'Movie Central'),
+    'Legend Of Sasquatch');
+});
+
+test('trailing cast segments never win', () => {
+  assert.equal(
+    cleanTitle('Hunt Club | Full Movie | Action Survival | Mickey Rourke | Casper Van Dien', 'Movie Central'),
+    'Hunt Club');
+  assert.equal(
+    cleanTitle('Maze | Full Movie | Action Prison Drama | True Jailbreak Story', 'Movie Central'),
+    'Maze');
+});
+
+test('the year parenthetical may carry genre words after the year', () => {
+  assert.equal(cleanTitle('Docteur Justice (1975 Action film) with John Phillip Law', 'Cult Cinema Classics'),
+               'Docteur Justice');
+  assert.equal(cleanTitle('Silent Night, Bloody Night (1972 Horror) The night earth became an inferno', 'Cult Cinema Classics'),
+               'Silent Night, Bloody Night');
+});
+
+test('hook detection counts title words, not the marketing around them', () => {
+  // "Cavalry Command (1963) Full HD Movie" is three title words plus noise.
+  // Counting the noise pushed it past the hook threshold and lost the film.
+  assert.equal(cleanTitle('🍕Cavalry Command (1963) Full HD Movie | John Agar', 'PizzaFlix'),
+               'Cavalry Command');
+});
+
+test('a long title is not mistaken for a hook', () => {
+  // These are real films whose titles run past the hook length threshold. What
+  // distinguishes them is typesetting: a title keeps "to", "a", "in" lowercase,
+  // while a clickbait hook Title-Cases every word. Getting this wrong dropped
+  // 109 already-published films.
+  assert.equal(
+    cleanTitle('A Minute to Pray a Second to Die | WESTERN | English | Free Spaghetti Western', 'Grjngo'),
+    'A Minute to Pray a Second to Die');
+  assert.equal(
+    cleanTitle('ONE OF THE MOST AUDACIOUS BANK ROBBERIES OF ALL TIME | A Nightingale Sang in Berkeley Square', 'X'),
+    'A Nightingale Sang in Berkeley Square');
+});
+
+test('a parenthesised year outranks the hook and cast vetoes', () => {
+  // The segment carrying the year also carries the title, so it must win even
+  // when it looks like a hook or names a cast member.
+  assert.equal(
+    cleanTitle('THOU SHALT NOT KILL... ⚔️ Absolution (1978) | Classic Psychological Thriller', 'X'),
+    'Absolution');
+  assert.equal(
+    cleanTitle('All Tied Up (1993) with Teri Hatcher | Crime Movie', 'X'),
+    'All Tied Up');
+});
+
+test('short punctuated titles are not hooks', () => {
+  // Spaghetti westerns are full of titles that punctuate like clickbait.
+  // Length is what separates a punchy title from a plot summary.
+  assert.equal(cleanTitle("Don't Wait, Django... Shoot! | Spaghetti Western", 'Grjngo'),
+               "Don't Wait, Django... Shoot!");
+});
+
+test('a colon marks a title, not a hook', () => {
+  assert.equal(cleanTitle('Blood Hunters: Rise Of The Hybrids | Full Movie | Action Supernatural', 'X'),
+               'Blood Hunters: Rise Of The Hybrids');
+  assert.equal(cleanTitle('Buckaroo: The Winchester Does Not Forgive | English | Western', 'X'),
+               'Buckaroo: The Winchester Does Not Forgive');
+});
+
+test('cast names are identified by arriving in a run, not by shape', () => {
+  // "Warning Shot" and "Mickey Rourke" are both two capitalised words; shape
+  // cannot separate them. Cast credits come two or more together at the end.
+  assert.equal(
+    cleanTitle("Dig Your Grave Friend... Sabata's Coming | Richard Harrison | Fernando Sancho", 'X'),
+    "Dig Your Grave Friend... Sabata's Coming");
+  // A lone name-shaped segment between marketing is a title, not a credit.
+  assert.equal(
+    cleanTitle('Single Mother Fights To Save Her Daughter | Warning Shot | Full Thriller', 'X'),
+    'Warning Shot');
+  // Marketing is not a person even when shaped like one, or the whole list
+  // reads as one cast run and the title is lost.
+  assert.equal(
+    cleanTitle('Hunt Club | Full Movie | Action Survival | Mickey Rourke | Casper Van Dien', 'X'),
+    'Hunt Club');
+});
+
+test('the lead segment is never a cast credit', () => {
+  // "Doc Hooker's Bunch | DUB TAYLOR" opens with the title and follows with an
+  // actor; treating the pair as a cast run swallowed both.
+  assert.equal(cleanTitle("Doc Hooker's Bunch | DUB TAYLOR | Funny Western | Cowboy Movie", 'X'),
+               "Doc Hooker's Bunch");
+  assert.equal(cleanTitle('Gentleman Killer | Anthony Steffen | Spaghetti Western | English', 'X'),
+               'Gentleman Killer');
+});
+
+test('a segment untouched by the marketing strip beats a genre tag', () => {
+  // "Black Drama", "Funny Western" and "Aromanian Full Movie" all shrink under
+  // the strip; a real title rarely contains marketing words at all. Without
+  // this the genre tag won whenever the title looked like a hook.
+  assert.equal(
+    cleanTitle('Go Tell It On The Mountain | FULL MOVIE | Ving Rhames, Alfre Woodard | Black Drama', 'X'),
+    'Go Tell It On The Mountain');
+  assert.equal(
+    cleanTitle("I'm Not Famous But I'm Aromanian | Aromanian Full Movie | Comedy Drama Romance", 'X'),
+    "I'm Not Famous But I'm Aromanian");
+});
+
+test('ellipses and exclamation marks are not hook markers', () => {
+  // Titles of this era are full of them. Casing already catches the hooks that
+  // use them, so punctuation only produced false positives.
+  assert.equal(
+    cleanTitle('Have a Good Funeral, My Friend... Sartana Will Pay | Gianni Garko | Western Movie', 'X'),
+    'Have a Good Funeral, My Friend... Sartana Will Pay');
+  assert.equal(cleanTitle('God Made Them... I Kill Them | WESTERN MOVIE FOR FREE', 'X'),
+               'God Made Them... I Kill Them');
+});

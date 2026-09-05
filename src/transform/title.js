@@ -19,7 +19,9 @@ const MARKETING = /\b(full|free|hd|4k|1080p|720p|movie|film|subtitles?|subtitled
 const CAST_HINT = /\b(starring|with|feat\.?|ft\.?)\b/i;
 
 // "(1963)", "[1963]", "(MGM,1930)" — a parenthesised release year.
-const YEAR_PAREN = /[([]\s*(?:[A-Za-z.&]{2,}\s*,\s*)?(?:19\d{2}|20\d{2})\s*[)\]]/;
+// "(1963)", "(MGM,1930)", "(1975 Action film)", "(1972 Horror)" -- studios and
+// distributors precede the year, genre words follow it, and both appear.
+const YEAR_PAREN = /[([]\s*(?:[A-Za-z.&]{2,}\s*,\s*)?(?:19\d{2}|20\d{2})(?:\s+[A-Za-z][\w'-]*){0,3}\s*[)\]]/;
 
 // Symbols these channels use as separators: emoji, dingbats, and the shouty
 // punctuation that ends a clickbait hook.
@@ -73,19 +75,131 @@ function looksLikeCastList(s) {
  * nonsense. The release year is the dependable signal instead: channels attach
  * it to the title and never to the cast or the marketing tail.
  */
+/**
+ * True for a clickbait hook: "Single Mother Fights To Save Her Daughter From
+ * Armed Invaders", "She Married An Older Farmer... But Fell For The Farmhand!"
+ *
+ * These channels lead with a sentence describing the plot and put the actual
+ * title second. A hook is a clause -- it runs long and contains lowercase
+ * function words (to, her, from, is) that a title-cased film name does not.
+ */
+function looksLikeHook(s) {
+  // Count title words, not the marketing around them: "Cavalry Command (1963)
+  // Full HD Movie" is three words plus noise.
+  const words = s.replace(MARKETING, ' ').trim().split(/\s+/).filter(Boolean);
+  // Short is never a hook. Spaghetti westerns are full of titles like
+  // "Don't Wait, Django... Shoot!" whose punctuation would otherwise convict
+  // them; length is what separates a punchy title from a plot summary.
+  if (words.length < 6) return false;
+  // A colon is title punctuation ("Blood Hunters: Rise Of The Hybrids"),
+  // essentially never used in these channels' hooks.
+  if (s.includes(':')) return false;
+  // Punctuation is deliberately NOT a signal. Ellipses and exclamation marks
+  // are all over real titles of this era -- "Have a Good Funeral, My Friend...
+  // Sartana Will Pay", "God Made Them... I Kill Them" -- and casing already
+  // catches the hooks that use them ("She Married An Older Farmer... But Fell
+  // For The Farmhand!" Title-Cases every word).
+  // Typesetting is the signal: a title keeps its articles and
+  // prepositions lowercase, while a hook Title-Cases every word.
+  return !words.slice(1).some(w => /^[a-z]/.test(w));
+}
+
+/**
+ * Shaped like a bare performer name: "Richard Harrison", "Casper Van Dien".
+ *
+ * Shape alone cannot decide: "Warning Shot" and "Hunt Club" are real titles
+ * with the identical shape. See castIndices for what actually separates them.
+ */
+function looksLikePerson(s) {
+  // Marketing is not a person, even when it is shaped like one: "Full Movie"
+  // and "Action Survival" are two capitalised words apiece, and counting them
+  // made an entire title list look like a cast run.
+  if (s.replace(MARKETING, ' ').trim() !== s.trim()) return false;
+  const w = s.trim().split(/\s+/).filter(Boolean);
+  if (w.length < 2 || w.length > 3) return false;
+  return w.every(x => /^[A-Z][\p{L}'’.-]*$/u.test(x));
+}
+
+/**
+ * Choose which pipe-separated segment is the film.
+ *
+ * Scoring by length is wrong for the two commonest layouts, because in both the
+ * decoy is the longest segment: "Hunt Club | Full Movie | Action Survival |
+ * Casper Van Dien" ends in cast names, and "Single Mother Fights To Save Her
+ * Daughter | Warning Shot | Full Thriller" opens with a plot sentence.
+ *
+ * Position carries the signal instead: the title is the earliest segment that
+ * is neither marketing, nor a hook, nor a cast list. Falling back to length
+ * only when every segment fails that test.
+ */
+/**
+ * Indices of segments that are cast credits rather than titles.
+ *
+ * Shape is ambiguous -- "Warning Shot" and "Mickey Rourke" are both two
+ * capitalised words. What is not ambiguous is that cast names arrive in a run:
+ * channels list two or more of them together at the end. A lone name-shaped
+ * segment surrounded by marketing is a title.
+ */
+function castIndices(segments) {
+  // The lead segment is never a credit: "Doc Hooker's Bunch | DUB TAYLOR" and
+  // "Gentleman Killer | Anthony Steffen" both open with the title and follow
+  // with an actor, and treating the pair as a run swallowed both.
+  const shaped = segments.map((s, i) => i > 0 && looksLikePerson(s));
+  const out = new Set();
+  let run = 0;
+  for (let i = 0; i <= shaped.length; i++) {
+    if (shaped[i]) { run++; continue; }
+    if (run >= 2) for (let j = i - run; j < i; j++) out.add(j);
+    run = 0;
+  }
+  return out;
+}
+
 function pickSegment(segments) {
-  const withYear = segments.filter(s => YEAR_RE.test(s));
+  const body = s => s.replace(MARKETING, ' ').replace(/\s{2,}/g, ' ').trim();
+  const cast = castIndices(segments);
+  // A body with no letters is a bare year or a rating, never a title.
+  const usable = (s, i) => /\p{L}/u.test(body(s)) && !looksLikeHook(s)
+                      && !looksLikeCastList(s) && !CAST_HINT.test(s)
+                      && !cast.has(i);
+
+  // A parenthesised year beats every heuristic below, because titleBeforeYear
+  // can pull the title out of the segment carrying it -- even when the segment
+  // also holds a hook ("THOU SHALT NOT KILL... Absolution (1978)") or a cast
+  // credit ("All Tied Up (1993) with Teri Hatcher"), both of which the hook and
+  // cast tests would otherwise veto.
+  const parenYear = segments.filter(s => YEAR_PAREN.test(s));
+  if (parenYear.length === 1) return parenYear[0];
+
+  // A bare year only identifies the title segment when that segment survives
+  // the marketing strip: "... | 2025 Thriller Romance Movie" carries its year
+  // on a pure genre tag.
+  const withYear = segments.filter((s, i) => YEAR_RE.test(s) && usable(s, i));
   if (withYear.length === 1) return withYear[0];
 
   const pool = withYear.length ? withYear : segments;
-  const score = s => {
-    const body = s.replace(MARKETING, ' ').replace(/\s{2,}/g, ' ').trim();
-    if (!body) return -Infinity;
-    // Effectively exclude cast lists rather than merely penalise them: they are
-    // reliably the longest clean segment, so any length-based score picks them.
-    if (looksLikeCastList(s)) return -1000;
-    return body.length - (CAST_HINT.test(s) ? 25 : 0);
-  };
+
+  // A real title seldom contains marketing words, while a genre tag is made of
+  // them: "Black Drama", "Funny Western", "Aromanian Full Movie" all shrink
+  // under the strip, and each of them beat the actual film before this.
+  const intact = s => body(s) === s.trim();
+
+  const best = pool.find(s => usable(s, segments.indexOf(s)) && intact(s));
+  if (best) return best;
+
+  // Nothing clean survived the usable test, so trust an untouched segment even
+  // if it reads long -- "Go Tell It On The Mountain" is a title that happens to
+  // look like a hook, and the alternative here is always a genre tag.
+  const untouched = pool.find(s => /\p{L}/u.test(s) && intact(s)
+                                   && !looksLikeCastList(s) && !cast.has(segments.indexOf(s)));
+  if (untouched) return untouched;
+
+  const first = pool.find(s => usable(s, segments.indexOf(s)));
+  if (first) return first;
+
+  const score = s => (body(s) ? body(s).length : -Infinity)
+                     - (looksLikeCastList(s) ? 1000 : 0)
+                     - (CAST_HINT.test(s) ? 25 : 0);
   return pool.reduce((best, s) => (score(s) > score(best) ? s : best), pool[0]);
 }
 
