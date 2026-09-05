@@ -23,7 +23,10 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          # 24, not 20: the pipeline is built on node:sqlite, which does not
+          # exist before 22 and is only stable from 24. Pinned to what the
+          # tests actually run against.
+          node-version: '24'
 
       # The IMDb index is deliberately NOT cached.
       #

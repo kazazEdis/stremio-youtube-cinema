@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Stremio addon surfacing feature films from licensed and public-domain YouTube channels, resolved to IMDb ids.",
   "engines": {
-    "node": ">=18"
+    "node": ">=24"
   },
   "scripts": {
     "pipeline": "npm run extract && npm run stage && npm run transform && npm run publish",
