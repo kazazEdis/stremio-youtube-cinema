@@ -1,0 +1,23 @@
+{
+  "generated": "2026-09-05T18:00:00.000Z",
+  "region": "HR",
+  "imdbDataset": "Sat, 05 Sep 2026 00:51:40 GMT",
+  "count": 3,
+  "movies": [
+    { "ytId": "abc123", "imdbId": "tt0013442", "name": "Nosferatu", "year": 1922,
+      "confidence": 88, "margin": 20, "signals": {"title":50,"year":8,"runtime":20,"corroboration":10},
+      "ytRuntimeMin": 94, "imdbRuntimeMin": 95, "channel": "PizzaFlix", "group": "PublicDomain",
+      "poster": "https://i.ytimg.com/vi/abc123/maxresdefault.jpg", "genres": "Fantasy,Horror",
+      "firstSeen": "2026-09-05", "lastVerified": "2026-09-05" },
+    { "ytId": "def456", "imdbId": "tt0037824", "name": "Ivan the Terrible, Part I", "year": 1944,
+      "confidence": 86, "margin": 100, "signals": {"title":44,"year":20,"runtime":12,"corroboration":10},
+      "ytRuntimeMin": 99, "imdbRuntimeMin": 95, "channel": "Mosfilm", "group": "Archive/Soviet",
+      "poster": "https://i.ytimg.com/vi/def456/maxresdefault.jpg", "genres": "Biography,Drama",
+      "firstSeen": "2026-09-05", "lastVerified": "2026-09-05" },
+    { "ytId": "ghi789", "imdbId": "tt0053577", "name": "Aimless Bullet", "year": 1961,
+      "confidence": 100, "margin": 100, "signals": {"override":100},
+      "ytRuntimeMin": 107, "imdbRuntimeMin": 110, "channel": "Korean Classic Film", "group": "Archive/Korea",
+      "poster": null, "genres": "Drama",
+      "firstSeen": "2026-09-05", "lastVerified": "2026-09-05" }
+  ]
+}

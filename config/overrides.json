@@ -1,0 +1,4 @@
+{
+  "_comment": "Manual ytId -> imdbId pins. Consulted BEFORE scoring and trusted at confidence 100, so a wrong entry here is permanent and invisible. Promote from out/needs-review.json only after checking the film actually plays. Keep _note on every entry: the next person needs to know why the heuristics missed.",
+  "overrides": {}
+}

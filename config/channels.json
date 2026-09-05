@@ -1,0 +1,122 @@
+{
+  "_comment": "Whitelist of channels uploading full features under licence or public domain. 'ref' is an @handle or a UC... id. 'eu' flags general playability outside the US. Hindi/Bollywood channels were removed deliberately: they were 28% of indexed uploads for 6% of published films, because the titles are Devanagari with heavy marketing and the dubbed releases are frequently absent from IMDb under the dubbed name.",
+  "channels": [
+    {
+      "ref": "@themidnightscreening",
+      "group": "Licensed",
+      "eu": true
+    },
+    {
+      "ref": "UCGBzBkV-MinlBvHBzZawfLQ",
+      "name": "Movie Central",
+      "group": "Licensed",
+      "eu": true
+    },
+    {
+      "ref": "@FilmRise",
+      "group": "Licensed",
+      "eu": true
+    },
+    {
+      "ref": "@ShoutStudios",
+      "group": "Licensed",
+      "eu": true
+    },
+    {
+      "ref": "@ScreamFactoryTV",
+      "group": "Horror",
+      "eu": true
+    },
+    {
+      "ref": "@Popcornflix",
+      "group": "Licensed",
+      "eu": false
+    },
+    {
+      "ref": "@FreeMoviesByCONtv",
+      "group": "Licensed",
+      "eu": false
+    },
+    {
+      "ref": "@FlixForFree",
+      "group": "Horror",
+      "eu": false
+    },
+    {
+      "ref": "@gem-filmlibrary",
+      "group": "Licensed",
+      "eu": true
+    },
+    {
+      "ref": "@PizzaFlix",
+      "group": "PublicDomain",
+      "eu": true
+    },
+    {
+      "ref": "@TimelessClassicMovies",
+      "group": "PublicDomain",
+      "eu": true
+    },
+    {
+      "ref": "@CultCinemaClassics",
+      "group": "PublicDomain",
+      "eu": true
+    },
+    {
+      "ref": "@publicdomainmovies379",
+      "group": "PublicDomain",
+      "eu": true
+    },
+    {
+      "ref": "@TheBestFilmArchives",
+      "group": "PublicDomain",
+      "eu": true
+    },
+    {
+      "ref": "@Mosfilm_eng",
+      "group": "Archive/Soviet",
+      "eu": true
+    },
+    {
+      "ref": "@KoreanClassicFilm",
+      "group": "Archive/Korea",
+      "eu": true
+    },
+    {
+      "ref": "@chnclassic",
+      "group": "Archive/China",
+      "eu": true
+    },
+    {
+      "ref": "@CinemaMeiAh",
+      "group": "Archive/HK",
+      "eu": true
+    },
+    {
+      "ref": "UCUpbgPbDccjoB9PxI-nI7oA",
+      "name": "Wu Tang Collection",
+      "group": "MartialArts",
+      "eu": true
+    },
+    {
+      "ref": "@GrjngoWesternMovies",
+      "group": "Western",
+      "eu": true
+    },
+    {
+      "ref": "@CineMoChannel",
+      "group": "Filipino",
+      "eu": true
+    },
+    {
+      "ref": "@alefilmy",
+      "group": "Polish",
+      "eu": true
+    },
+    {
+      "ref": "@airbudtv",
+      "group": "Family",
+      "eu": false
+    }
+  ]
+}

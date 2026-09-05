@@ -1,0 +1,21 @@
+{
+  "name": "stremio-youtube-cinema",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Stremio addon surfacing feature films from licensed and public-domain YouTube channels, resolved to IMDb ids.",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "pipeline": "npm run extract && npm run stage && npm run transform && npm run publish",
+    "extract": "node --env-file-if-exists=.env src/dwh/extract.js --eu-only --max-per-channel 3000",
+    "stage": "node --max-old-space-size=1024 src/dwh/stage.js",
+    "transform": "node --max-old-space-size=1024 src/dwh/transform.js",
+    "publish": "node src/dwh/publish.js --region HR --out docs",
+    "serve": "node src/stremio.js",
+    "test": "node --test test/*.test.js",
+    "fetch": "node src/resolve/build-index.js --cache .cache --fetch-only",
+    "build-index": "node --max-old-space-size=1024 src/resolve/build-index.js --cache .cache"
+  }
+}

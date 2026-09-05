@@ -1,0 +1,90 @@
+name: build-catalog
+
+on:
+  schedule:
+    # Off-the-hour on purpose — GitHub queues cron heavily at :00.
+    - cron: '17 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-catalog
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # The IMDb index is deliberately NOT cached.
+      #
+      # It was keyed on the dataset's last-modified header, which is correct but
+      # useless here: IMDb republishes daily and this job runs weekly, so the key
+      # always misses and the 1.6 GB entry expires unread before the next run.
+      # Caching it would also be a wash on time -- compressing, uploading and
+      # restoring 1.6 GB costs about what rebuilding costs on a runner, and CI
+      # minutes are free on a public repo where correctness is not.
+      #
+      # Rebuilding every run also guarantees the index matches the dataset that
+      # produced it, which is the property fct_resolution.dataset relies on to
+      # decide whether a stored resolution is still valid.
+      - name: Build IMDb index
+        run: node src/resolve/build-index.js --cache .cache
+
+      # Landing must survive between runs or every build re-extracts from
+      # scratch. It holds the per-channel watermarks that make the extract
+      # incremental -- measured at roughly 60x fewer quota units on a quiet
+      # week. Rolling key: a new entry each run, restoring the most recent.
+      - name: Cache warehouse
+        uses: actions/cache@v4
+        with:
+          path: data
+          key: dwh-${{ github.run_id }}
+          restore-keys: dwh-
+
+      - name: Extract to landing
+        env:
+          YT_API_KEY: ${{ secrets.YT_API_KEY }}
+        run: npm run extract
+
+      - name: Stage
+        run: npm run stage
+
+      - name: Transform to core
+        run: npm run transform
+
+      # Publishing runs the quality gates itself and exits non-zero without
+      # writing anything if one fails, which is what the old jq sanity step did
+      # by hand. A partial catalog from an exhausted quota looks valid, so the
+      # check has to happen before any file is written, not after.
+      - name: Publish marts
+        run: npm run publish
+
+      - name: Upload warehouse for inspection
+        uses: actions/upload-artifact@v4
+        with:
+          name: warehouse
+          path: data/warehouse.sqlite
+          retention-days: 30
+
+      - name: Commit catalog
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs
+          if git diff --staged --quiet; then
+            echo "no changes"
+          else
+            COUNT=$(jq '.count' docs/catalog.json)
+            git commit -m "catalog: ${COUNT} films [skip ci]"
+            git push
+          fi

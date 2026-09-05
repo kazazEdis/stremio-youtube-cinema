@@ -1,0 +1,7 @@
+{
+  "_comment": "Catalog exclusions, applied before resolving. `scripts` drops uploads whose ORIGINAL YouTube title contains that writing system — the reliable signal for language, since the public IMDb datasets carry no language or country field. `groups` drops whole config/channels.json groups. `imdbIds` and `ytIds` are precise manual escape hatches. Everything here is reported in the run summary, so nothing disappears silently.",
+  "scripts": ["devanagari"],
+  "groups": [],
+  "imdbIds": [],
+  "ytIds": []
+}

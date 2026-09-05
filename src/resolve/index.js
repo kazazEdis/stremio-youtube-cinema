@@ -1,0 +1,419 @@
+/**
+ * index.js — candidate generation, scoring and the accept/review/reject call.
+ *
+ * Public surface is spec §8. The four score* functions are pure and exported
+ * individually because tuning the weights means calling them in isolation,
+ * without an index and without a network.
+ *
+ * The governing rule from the brief: a wrong match is worse than no match. A
+ * bad tconst makes every other addon in the user's stack confidently serve the
+ * wrong thing. When in doubt this module routes to review, never to accept.
+ */
+
+import fsp from 'node:fs/promises';
+import path from 'node:path';
+import { DatabaseSync } from 'node:sqlite';
+
+import { normalize, normVariants, similarity, stripTrailingYear } from './normalize.js';
+
+// §3 — beyond this the title is too generic to resolve safely.
+const MAX_CANDIDATES = 25;
+// §3 tier 3 — below this a fuzzy candidate is not worth scoring.
+const FUZZY_FLOOR = 0.85;
+
+export const THRESHOLDS = { accept: 85, margin: 12, review: 60 };
+
+// #region ---------------------------------------------------------- index
+/**
+ * Open the SQLite index built by build-index.js.
+ *
+ * Everything stays in SQLite and is reached through prepared statements. The
+ * box this runs on has under 4 GB and, on the Android VM, no balloon device to
+ * hand memory back with — so the one thing we must not do is pull the title
+ * table into a JS Map for convenience.
+ */
+export async function buildIndex({ cacheDir = '.cache', dbPath } = {}) {
+  const file = dbPath || path.join(cacheDir, 'imdb.sqlite');
+  await fsp.access(file).catch(() => {
+    throw new Error(`no index at ${file} — run: node src/resolve/build-index.js --cache ${cacheDir}`);
+  });
+
+  const db = new DatabaseSync(file, { readOnly: true });
+
+  const qExact = db.prepare(`
+    SELECT t.tconst, t.titleType, t.primaryTitle, t.originalTitle, t.isAdult,
+           t.startYear, t.runtimeMinutes, t.genres, n.source, n.region, n.language
+    FROM title_norm n JOIN titles t ON t.tconst = n.tconst
+    WHERE n.norm = ?`);
+
+  // The length bound is in SQL rather than JS on purpose. Dice similarity
+  // cannot reach the fuzzy floor between strings of very different lengths, so
+  // those rows are dead weight — and materialising a whole 3-year window of
+  // them is what exhausted a 1 GB heap on the first full catalog run.
+  const qYearWindow = db.prepare(`
+    SELECT DISTINCT n.norm, n.source, t.tconst, t.titleType, t.primaryTitle,
+           t.originalTitle, t.isAdult, t.startYear, t.runtimeMinutes, t.genres
+    FROM title_norm n JOIN titles t ON t.tconst = n.tconst
+    WHERE t.startYear BETWEEN ? AND ?
+      AND LENGTH(n.norm) BETWEEN ? AND ?`);
+
+  const qCredits = db.prepare(
+    `SELECT category, name, tokens FROM credits WHERE tconst = ?`);
+
+  const qMeta = db.prepare(`SELECT value FROM meta WHERE key = ?`);
+
+  return {
+    db,
+    dataset: qMeta.get('dataset')?.value ?? null,
+    built: qMeta.get('built')?.value ?? null,
+    titleCount: Number(qMeta.get('titles')?.value ?? 0),
+
+    exact(norm) {
+      return qExact.all(norm);
+    },
+
+    /** Streams rather than returning an array — see the note on qYearWindow. */
+    yearWindow(lo, hi, minLen, maxLen) {
+      return qYearWindow.iterate(lo, hi, minLen, maxLen);
+    },
+
+    credits(tconst) {
+      return qCredits.all(tconst);
+    },
+
+    close() { db.close(); },
+  };
+}
+// #endregion
+
+// #region ---------------------------------------------------------- scoring
+/**
+ * §4 title, max 50. `kind` is how the candidate was found, not how good it is:
+ * an exact hit on a localized aka is slightly weaker evidence than an exact hit
+ * on the primary title, because akas are noisier and more numerous.
+ */
+export function scoreTitle(kind, ratio = 1) {
+  if (kind === 'primary' || kind === 'original') return 50;
+  if (kind === 'aka') return 44;
+  return 50 * ratio;
+}
+
+/**
+ * §4 year, max 20. An absent year scores neutral rather than zero — plenty of
+ * legitimate uploads omit it, and punishing absence just pushes good matches
+ * under the floor where they cost a human a review instead.
+ */
+export function scoreYear(ytYear, imdbYear) {
+  if (ytYear == null || imdbYear == null) return 8;
+  const d = Math.abs(ytYear - imdbYear);
+  if (d === 0) return 20;
+  if (d === 1) return 14;
+  if (d === 2) return 6;
+  return 0;
+}
+
+/**
+ * §4 runtime, max 20. Returns null to mean "reject this candidate outright" —
+ * a delta that extreme says the upload is not this film at all.
+ *
+ * The PAL band is the one that looks like a bug and is not: 24fps film
+ * transferred at 25fps runs about 4% *short*, so a systematic negative delta
+ * around −4% is the signature of a normal European TV master.
+ */
+export function scoreRuntime(ytMin, imdbMin) {
+  if (!ytMin || !imdbMin) return 0;
+  const delta = (ytMin - imdbMin) / imdbMin;
+
+  if (delta < -0.45) return null;   // part 1 of a split upload
+  if (delta > 0.60) return null;    // double feature or compilation
+
+  if (delta >= -0.02 && delta <= 0.03) return 20;   // direct match + intro/outro
+  if (delta >= -0.06 && delta < -0.02) return 17;   // PAL speedup
+  if (delta > 0.03 && delta <= 0.12) return 12;     // restored / director's cut
+  if (delta >= -0.20 && delta < -0.06) return 6;    // TV edit or cut print
+  return 0;
+}
+
+/**
+ * §4 corroboration, max 10. Graded rather than binary: §4 caps this at 10 for a
+ * director hit, but the worked example in §6 shows a corroboration of 6, which
+ * only makes sense if a cast-only hit scores below a director hit. Directors
+ * are also the stronger signal — channels put "starring" names in descriptions
+ * far more loosely than they credit a director.
+ */
+export function scoreCorroboration(description, credits) {
+  if (!description || !credits?.length) return 0;
+  const hay = ` ${normalize(description)} `;
+
+  let best = 0;
+  for (const c of credits) {
+    // build-index.js already dropped tokens under 4 chars: "de", "van" and
+    // "kim" match ordinary prose and are not evidence of anything.
+    const tokens = (c.tokens || '').split(' ').filter(Boolean);
+    if (!tokens.length) continue;
+    if (!tokens.some(t => hay.includes(` ${t} `))) continue;
+    best = Math.max(best, c.category === 'director' ? 10 : 6);
+  }
+  return best;
+}
+// #endregion
+
+// #region ---------------------------------------------------------- candidates
+const rowToCandidate = (row, kind, ratio = 1) => ({
+  tconst: row.tconst,
+  titleType: row.titleType,
+  primaryTitle: row.primaryTitle,
+  originalTitle: row.originalTitle,
+  isAdult: Number(row.isAdult) === 1,
+  startYear: row.startYear ?? null,
+  runtimeMinutes: row.runtimeMinutes,
+  genres: row.genres ?? null,
+  region: row.region ?? null,
+  language: row.language ?? null,
+  kind,
+  ratio,
+});
+
+/**
+ * §3, in tiers, stopping at the first tier that yields anything. Tier 3 only
+ * runs when a year was extracted — an unfiltered fuzzy sweep over 1.1M titles
+ * is both slow and, worse, a reliable source of confident nonsense.
+ */
+export function generateCandidates(video, index) {
+  // Query-side only, and additive: we look up more keys, we do not normalize
+  // differently. The year has already been extracted into video.year, so the
+  // copy still sitting in the title text is noise that matches nothing.
+  const variants = [];
+  for (const v of normVariants(video.name || '')) {
+    variants.push(v);
+    const noYear = stripTrailingYear(v);
+    if (noYear) variants.push(noYear);
+  }
+  if (!variants.length) return { candidates: [], tier: 'none' };
+
+  // Tier 1 + 2 share a lookup; separate them by which source matched so the
+  // scorer can tell an exact primary hit from an exact aka hit.
+  const byTconst = new Map();
+  for (const v of variants) {
+    for (const row of index.exact(v)) {
+      const kind = row.source === 'aka' ? 'aka' : row.source;
+      const prev = byTconst.get(row.tconst);
+      // A tconst can match on several norm rows; keep the strongest source.
+      if (!prev || scoreTitle(kind) > scoreTitle(prev.kind)) {
+        byTconst.set(row.tconst, rowToCandidate(row, kind));
+      }
+    }
+  }
+  if (byTconst.size) {
+    const exact = [...byTconst.values()];
+    const tier = exact.some(c => c.kind !== 'aka') ? 'exact-primary' : 'exact-aka';
+    return { candidates: exact, tier };
+  }
+
+  if (video.year == null) return { candidates: [], tier: 'none' };
+
+  // Tier 3 — fuzzy, bounded to ±1 year per §3 and to a plausible length band.
+  const lens = variants.map(v => v.length).filter(Boolean);
+  if (!lens.length) return { candidates: [], tier: 'none' };
+  const bound = FUZZY_FLOOR - 0.05;
+  const minLen = Math.floor(Math.min(...lens) * bound);
+  const maxLen = Math.ceil(Math.max(...lens) / bound);
+
+  const fuzzy = new Map();
+  for (const row of index.yearWindow(video.year - 1, video.year + 1, minLen, maxLen)) {
+    for (const v of variants) {
+      const ratio = similarity(v, row.norm);
+      if (ratio < FUZZY_FLOOR) continue;
+      const prev = fuzzy.get(row.tconst);
+      if (!prev || ratio > prev.ratio) fuzzy.set(row.tconst, rowToCandidate(row, 'fuzzy', ratio));
+    }
+    // A title generic enough to fuzzy-match this much is not resolvable
+    // safely; stop early rather than build a huge set we will reject anyway.
+    if (fuzzy.size > MAX_CANDIDATES * 4) break;
+  }
+  return { candidates: [...fuzzy.values()], tier: fuzzy.size ? 'fuzzy' : 'none' };
+}
+// #endregion
+
+// #region ---------------------------------------------------------- resolve
+function scoreCandidate(video, candidate, index) {
+  const runtime = scoreRuntime(video.runtimeMin, candidate.runtimeMinutes);
+  if (runtime === null) return null;   // §4 hard reject band
+
+  const title = scoreTitle(candidate.kind, candidate.ratio);
+  const year = scoreYear(video.year, candidate.startYear);
+  const corroboration = scoreCorroboration(video.description, index.credits(candidate.tconst));
+
+  const signals = {
+    title: Number(title.toFixed(1)),
+    year,
+    runtime,
+    corroboration,
+  };
+  return {
+    ...candidate,
+    signals,
+    score: Number((title + year + runtime + corroboration).toFixed(1)),
+  };
+}
+
+/**
+ * §5 hard flags. These override the score and always route to review — a high
+ * score on a film that came out last year is a well-matched piracy upload, not
+ * a catalog entry.
+ */
+function hardFlag(candidate, score, now = new Date()) {
+  if (candidate.isAdult) return 'adult';
+  if (candidate.startYear != null && candidate.startYear >= now.getFullYear() - 5) {
+    return 'recent-year';
+  }
+  if (candidate.titleType === 'video' && score < 90) return 'video-type';
+  return null;
+}
+
+const publicShape = (video, best, margin, extra = {}) => ({
+  ytId: video.ytId,
+  imdbId: best.tconst,
+  name: best.primaryTitle,
+  // Spec §2: every record keeps rawTitle, accepted ones included. Without it
+  // an accepted-but-wrong match is undebuggable — you cannot see what the
+  // channel actually called the film.
+  rawTitle: video.rawTitle,
+  year: best.startYear,
+  confidence: best.score,
+  margin,
+  signals: best.signals,
+  ytRuntimeMin: video.runtimeMin,
+  imdbRuntimeMin: best.runtimeMinutes,
+  channel: video.channel,
+  group: video.group,
+  poster: video.poster ?? null,
+  genres: best.genres,
+  ...extra,
+});
+
+/**
+ * Resolve one video. Returns { status: 'accept' | 'review' | 'reject', ... }.
+ *
+ * `opts.overrides` is the human escape hatch from §6: a ytId -> imdbId map that
+ * is consulted before any scoring happens and is trusted absolutely.
+ */
+export function resolveOne(video, index, opts = {}) {
+  const { overrides = {}, now = new Date() } = opts;
+
+  const override = overrides[video.ytId];
+  if (override) {
+    const row = index.exact(normalize(video.name)).find(r => r.tconst === override)
+      ?? index.db.prepare(
+           `SELECT tconst, titleType, primaryTitle, originalTitle, isAdult,
+                   startYear, runtimeMinutes, genres FROM titles WHERE tconst = ?`
+         ).get(override);
+    if (row) {
+      const c = rowToCandidate(row, 'primary');
+      return {
+        status: 'accept',
+        ...publicShape(video, { ...c, score: 100, signals: { override: 100 } }, 100),
+        override: true,
+      };
+    }
+  }
+
+  const { candidates, tier } = generateCandidates(video, index);
+
+  if (!candidates.length) {
+    return { status: 'reject', ytId: video.ytId, name: video.name, rawTitle: video.rawTitle,
+             channel: video.channel, reason: 'no-candidates', candidates: [] };
+  }
+  if (candidates.length > MAX_CANDIDATES) {
+    return { status: 'review', ytId: video.ytId, name: video.name, rawTitle: video.rawTitle,
+             channel: video.channel, reason: 'too-many-candidates',
+             candidateCount: candidates.length, candidates: [] };
+  }
+
+  const scored = candidates
+    .map(c => scoreCandidate(video, c, index))
+    .filter(Boolean)
+    .sort((a, b) => b.score - a.score);
+
+  if (!scored.length) {
+    return { status: 'reject', ytId: video.ytId, name: video.name, rawTitle: video.rawTitle,
+             channel: video.channel, reason: 'runtime-rejected', candidates: [] };
+  }
+
+  const best = scored[0];
+  // §5 — a lone candidate has nothing to be confused with, so its margin is
+  // full. Two candidates at 88 and 86 is a coin flip dressed up as confidence.
+  const margin = scored.length > 1 ? Number((best.score - scored[1].score).toFixed(1)) : 100;
+
+  const top5 = scored.slice(0, 5).map(c => ({
+    imdbId: c.tconst, name: c.primaryTitle, year: c.startYear,
+    runtimeMinutes: c.runtimeMinutes, score: c.score, kind: c.kind, signals: c.signals,
+  }));
+
+  const flag = hardFlag(best, best.score, now);
+  if (flag) {
+    return { status: 'review', ...publicShape(video, best, margin),
+             rawTitle: video.rawTitle, reason: flag, tier, candidates: top5 };
+  }
+  if (best.score >= THRESHOLDS.accept && margin >= THRESHOLDS.margin) {
+    return { status: 'accept', ...publicShape(video, best, margin), tier };
+  }
+  if (best.score >= THRESHOLDS.review) {
+    return { status: 'review', ...publicShape(video, best, margin),
+             reason: best.score >= THRESHOLDS.accept ? 'narrow-margin' : 'low-score',
+             tier, candidates: top5 };
+  }
+  return { status: 'reject', ytId: video.ytId, name: video.name, rawTitle: video.rawTitle,
+           channel: video.channel, reason: 'low-score', score: best.score, candidates: top5 };
+}
+
+/**
+ * Resolve a whole catalog, then settle duplicates.
+ *
+ * Two videos landing on one tconst is common — channels re-upload, and two
+ * channels carry the same public-domain print. §5 says keep the higher score
+ * and flag the loser, which also keeps the published catalog keyed 1:1 on
+ * imdbId the way the Stremio handler and the report diff both assume.
+ */
+export function settleDuplicates(results) {
+  const accepted = new Map();   // tconst -> resolution
+  const review = [];
+  const rejected = [];
+
+  for (const r of results) {
+    if (r.status === 'accept') {
+      const prev = accepted.get(r.imdbId);
+      if (!prev) { accepted.set(r.imdbId, r); continue; }
+      // Ties must not be settled by iteration order. Two uploads of the same
+      // film frequently score identically, and letting whichever arrived first
+      // win makes the published ytId depend on how the rows happened to be
+      // read -- so the catalog churns between runs and report.js reports
+      // re-uploads that never happened. Measured: 156 of 2,102 films.
+      //
+      // ytId is an arbitrary but stable discriminator. Preferring the
+      // most-viewed upload would be a better answer and needs view_count
+      // threaded through the resolution shape; see docs/TODO.md.
+      const better = r.confidence !== prev.confidence
+        ? r.confidence > prev.confidence
+        : r.ytId < prev.ytId;
+      const [winner, loser] = better ? [r, prev] : [prev, r];
+      accepted.set(r.imdbId, winner);
+      review.push({ ...loser, status: 'review', reason: 'duplicate',
+                    duplicateOf: winner.ytId, candidates: [] });
+    } else if (r.status === 'review') {
+      review.push(r);
+    } else {
+      rejected.push(r);
+    }
+  }
+  return { resolved: [...accepted.values()], review, rejected };
+}
+
+export function resolveAll(catalog, index, opts = {}) {
+  const videos = catalog.movies || catalog;
+  // Duplicate settling is separated out so a caller that needs to checkpoint
+  // its way through a long catalog can drive resolveOne itself and still get
+  // identical duplicate handling at the end.
+  return settleDuplicates(videos.map(v => resolveOne(v, index, opts)));
+}
+// #endregion
