@@ -203,8 +203,13 @@ async function main() {
     await writeJson(path.join(args.out, 'stream', 'movie', `${m.imdbId}.json`),
                     { streams: [toStream(m)] });
   }
+  // No `generated` timestamp in either committed artifact. It is the only
+  // thing that changes on a run where the catalog did not, so writing it makes
+  // every scheduled run produce a commit, rebuild Pages, and bury the runs
+  // that genuinely changed something. Git's commit date already records when
+  // this was produced, and more trustworthily.
   await writeJson(path.join(args.out, 'catalog.json'),
-                  { generated: new Date().toISOString(), count: movies.length, movies });
+                  { count: movies.length, movies });
 
   // The health report. Built here rather than in a separate stage because this
   // is the only point where the previous catalog, the new one, the review queue
@@ -215,7 +220,6 @@ async function main() {
   const diff = diffCatalogs(prevCatalog.movies, movies);
   const reviewSummary = summarizeReview({ movies: review });
   const report = {
-    generated: new Date().toISOString(),
     run: { region: args.region, imdbDataset: getCoreMeta(wh, 'imdb_dataset') },
     counts: {
       scanned: scanned.length,
