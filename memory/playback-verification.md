@@ -53,3 +53,27 @@ mistake:
   film.
 - **region-blocked never votes.** It reflects wherever the probe ran, which in
   CI is a US datacenter.
+
+## What none of it proves, and how that was closed
+
+Every check above is a probe: the Data API's opinion, and yt-dlp's. Neither is
+a viewer. The chain a viewer actually walks — catalogue row -> IMDb id ->
+Cinemeta's metadata -> our stream file -> Stremio's own player -> picture on
+screen — went unverified for the whole life of the project, because it ends in
+tapping something in an app.
+
+Confirmed end to end on 2026-09-06, on an Android phone, HR variant:
+
+    catalogue    Operation 'Y' & Other Shurik's Adventures, tt0059550
+    detail page  Cinemeta supplied art, synopsis, director, cast, IMDb 8.4
+    stream tab   "YouTube Cinema — Mosfilm • 95 min • match 86", one stream
+    playback     Mosfilm logo, then the opening credits
+
+The detail page is the part worth dwelling on. Nothing in it comes from us —
+every frame of that metadata arrived because the tconst was right. It is the
+clearest statement of why a wrong id is the worst failure available here: the
+same mechanism that fills the page correctly would have filled it with a
+different film, confidently, and the stream would still have played.
+
+`match 86` is also visible to the viewer, which is deliberate — see
+[[resolver-scoring]] for what that number is and why 85 is the floor.
