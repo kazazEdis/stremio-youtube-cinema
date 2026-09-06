@@ -139,6 +139,14 @@ jobs:
           path: data/warehouse.sqlite
           retention-days: 30
 
+      # Walk the built addon the way Stremio does: every declared catalogue
+      # resolves, page two exists where page one is full, and a listed title has
+      # a stream at the id a client will actually ask for. The marts can be
+      # internally perfect and still unusable if the ids do not line up, and
+      # that failure is invisible from inside.
+      - name: Addon conformance
+        run: npm run conformance
+
       # Only the unrestricted tree is committed; docs/region=*/ is gitignored.
       # The artifact carries everything, so the repo stays diffable while the
       # site serves all 21 addons.
@@ -154,14 +162,6 @@ jobs:
             git commit -m "catalog: ${COUNT} films [skip ci]"
             git push
           fi
-
-      # Walk the built addon the way Stremio does: every declared catalogue
-      # resolves, page two exists where page one is full, and a listed title has
-      # a stream at the id a client will actually ask for. The marts can be
-      # internally perfect and still unusable if the ids do not line up, and
-      # that failure is invisible from inside.
-      - name: Addon conformance
-        run: npm run conformance
 
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
