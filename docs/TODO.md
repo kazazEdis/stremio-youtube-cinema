@@ -342,6 +342,39 @@ That is the gap between the 62 the simulation predicted and the 32 that shipped.
 Still held: 170 episodes with no corroboration at all, at 82. Two signals do
 not carry an episode any more than they carry a film.
 
+## DONE — the streams are actually checked now (2026-09-06)
+
+Everything else in this pipeline verifies our own reasoning: that a title
+resolved to the right film, that the mart holds what the catalogue promises.
+None of it asked the only question a viewer has — *does it play*. `extract.js`
+names the risk in its own comments:
+
+> a video deleted or newly geo-blocked since the last run is only noticed when
+> it is re-hydrated
+
+and offers `--full`, which re-hydrates all 22,453 uploads at 450 calls.
+`npm run verify-streams` asks the sharper question for a fraction of that: the
+published catalogue is ~3,000 ytIds, `videos.list` takes 50 at a time, so the
+whole thing is **62 quota units out of 10,000 a day**.
+
+First run, 2026-09-06: **3,085 of 3,085 playable.** Nothing deleted, nothing
+private, nothing un-embeddable, nothing geo-blocked for HR. Written to
+`docs/health.json`, and the 62 API responses are landed like every other call
+so the result stays explainable later.
+
+It reads the ytIds out of `docs/stream/**` rather than the warehouse on
+purpose. The warehouse holds what we believe; the marts hold what we published,
+and it is the published thing a viewer clicks. If those two ever disagree this
+is the tool that notices.
+
+It reports and does not act. A dead entry is a decision — quarantine it, drop
+it, or re-resolve to a different upload of the same film — and that decision
+wants numbers in front of it.
+
+**Not wired into CI yet**, deliberately: it spends quota and the weekly build
+does not currently ask for it. One step in `build-catalog.yml` after publish
+would make the answer weekly instead of whenever someone remembers.
+
 ## 3. Work the review queue
 
 2,404 entries, and the sampled ones are mostly *correct* matches sitting under
@@ -375,7 +408,12 @@ a yearless upload can never be published however good the match. §4 justifies
 the neutral 8 by saying absence should not push good matches under the floor —
 at 8 points it does exactly that.
 
-## 6. yt-dlp verification of the weekly diff
+## 6. yt-dlp verification of the weekly diff — partly answered
+
+`verify-streams` above now covers existence, privacy, embeddability and region
+for the whole catalogue at negligible cost. What it cannot see is what only a
+real client can: age-gating, the true maximum resolution (the API gives only
+`hd`/`sd`) and subtitle tracks. That is what is left of this item.
 
 `report.js` already computes added/changed entries — tens per week. At ~4.7s per
 video that is minutes, and buys what the API cannot supply:

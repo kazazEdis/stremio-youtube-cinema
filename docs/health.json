@@ -1,0 +1,11 @@
+{
+  "checkedAt": "2026-09-06T09:09:21.770Z",
+  "region": "HR",
+  "videos": 3085,
+  "entries": 3085,
+  "apiCalls": 62,
+  "verdicts": {
+    "ok": 3085
+  },
+  "problems": []
+}
