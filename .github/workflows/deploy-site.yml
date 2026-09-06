@@ -1,0 +1,85 @@
+name: deploy-site
+
+# Rebuild the marts from the warehouse and deploy, without extracting or
+# rebuilding the IMDb index.
+#
+# This exists because the site stopped updating on push. The regional trees are
+# 66,000 files and are not committed, so only a run can produce them — and going
+# through build-catalog for a one-line change to the configure page means
+# spending YouTube quota and thirteen minutes on an index rebuild to change some
+# HTML. Publish needs the warehouse and nothing else: it reads fct_resolution
+# and never touches .cache/imdb.sqlite, which is what makes this ~9 minutes
+# instead of ~40.
+#
+# It does not commit docs/. build-catalog owns the committed catalogue; this
+# only puts the same content in front of viewers sooner.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'src/dwh/publish.js'
+      - 'src/publish.js'
+      - 'src/report.js'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  # Shared with build-catalog: two Pages deployments at once is one of them
+  # losing, and the loser is whichever finished second regardless of which is
+  # newer.
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      # Restore-only: this workflow must never write the cache, or a deploy run
+      # would overwrite the warehouse that build-catalog spent its quota on.
+      - name: Restore warehouse
+        id: cache
+        uses: actions/cache/restore@v4
+        with:
+          path: data
+          key: dwh-none
+          restore-keys: dwh-
+
+      - name: Check the warehouse arrived
+        run: |
+          if [ ! -f data/warehouse.sqlite ]; then
+            echo "::error::no warehouse in the cache — run build-catalog first"
+            exit 1
+          fi
+          ls -la data/
+
+      - name: Test
+        run: npm test
+
+      - name: Publish marts
+        run: npm run publish
+
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

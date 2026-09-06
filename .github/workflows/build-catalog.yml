@@ -15,7 +15,10 @@ permissions:
   id-token: write
 
 concurrency:
-  group: build-catalog
+  # Shared with deploy-site: two Pages deployments at once is one of them
+  # losing, and the loser is whichever finished second regardless of which is
+  # newer.
+  group: pages
   cancel-in-progress: false
 
 jobs:
