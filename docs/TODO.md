@@ -497,6 +497,19 @@ What is left is a stable property of the upload. A later probe overwrites an
 earlier verdict, so a quarantine lifts by itself when a video is ungated —
 otherwise a film would be stranded on a worse copy for good.
 
+**A quarantine only fires when there is something to swap to.** Dropping the
+sole copy of a film deletes it from the catalogue, and "re-resolve to another
+upload" is not "delete when there is no other upload" — three of the first four
+gated films found had no spare at all. Those keep their stream and are marked
+`notWebReady: true` with "sign-in required" in the title, which is the truth
+about them: a signed-in viewer can play them on YouTube, and the embedded
+player is exactly where gating bites.
+
+    Ivan's Childhood     swapped to _TAvXRF5ZHc, notWebReady false
+    No Place Like Home   kept, no spare, sign-in required
+    Legend of the Muse   kept, no spare, sign-in required
+    What We've Become    kept, no spare, sign-in required
+
 **Coverage is the limit, not the mechanism.** 16.4% of published films have a
 spare upload to fall back on, and the probe only knows about what it has
 sampled. The seed now defaults to the ISO week, so each run probes a different

@@ -132,6 +132,7 @@ export function toResolutionShape(r) {
     poster: thumbUrl(r.ytId, r.thumb_tier),
     genres: r.genres ?? null,
   };
+  if (r.playback) shape.playback = r.playback;
   if (r.tier) shape.tier = r.tier;
   if (r.reason) shape.reason = r.reason;
   if (r.candidate_count != null) shape.candidateCount = r.candidate_count;
@@ -163,9 +164,23 @@ export function loadCore(wh, { region, rules }) {
   // from a gated Mosfilm upload while an ungated one of the same 95 minutes sat
   // second. 16.4% of published films have a spare, which is how much of this
   // the swap can actually fix.
+  // Quarantine only where there is something to swap to. Dropping the sole copy
+  // of a film deletes it from the catalogue, and "re-resolve to another upload"
+  // is not "delete when there is no other upload" — three of the first four
+  // gated films found had no spare at all. Those keep their stream and are
+  // marked `notWebReady` instead, which is the truth about them.
   const quarantine = quarantinedYtIds(wh);
-  const scanned = rows.filter(r => !quarantine.has(r.ytId)
-                                && playableIn(region, r.blocked_regions, r.allowed_regions));
+  const regional = rows.filter(r => playableIn(region, r.blocked_regions, r.allowed_regions));
+  const copies = new Map();
+  for (const r of regional) {
+    const id = r.published_id ?? r.imdb_id;
+    if (id) copies.set(id, (copies.get(id) ?? 0) + 1);
+  }
+  const replaceable = r => quarantine.has(r.ytId)
+    && (copies.get(r.published_id ?? r.imdb_id) ?? 0) > 1;
+
+  const scanned = regional.filter(r => !replaceable(r));
+  for (const r of scanned) if (quarantine.has(r.ytId)) r.playback = 'age-gated';
   const { resolved, review, rejected } = settleDuplicates(scanned.map(toResolutionShape));
 
   const movies = resolved.filter(m => !excludedByImdb(m.imdbId, rules));

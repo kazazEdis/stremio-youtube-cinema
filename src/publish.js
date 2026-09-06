@@ -76,14 +76,21 @@ export function toMeta(m, type = 'movie') {
  * user out to a browser. externalUrl is the fallback for clients that lack it.
  */
 export function toStream(m) {
+  // An age-gated upload we could not replace is still served, because a viewer
+  // signed in on YouTube can play it and no entry at all helps nobody. But
+  // `notWebReady: false` would be a lie about it: the embedded player is
+  // exactly where age-gating bites, so the honest hint sends Stremio to the
+  // external URL instead of failing silently inside the app.
+  const gated = m.playback === 'age-gated';
   return {
     ytId: m.ytId,
     name: 'YouTube Cinema',
     title: [m.channel, m.imdbRuntimeMin ? `${m.imdbRuntimeMin} min` : null,
-            m.confidence < 100 ? `match ${m.confidence}` : 'manual']
+            m.confidence < 100 ? `match ${m.confidence}` : 'manual',
+            gated ? 'sign-in required' : null]
            .filter(Boolean).join(' • '),
     externalUrl: `https://www.youtube.com/watch?v=${m.ytId}`,
-    behaviorHints: { notWebReady: false },
+    behaviorHints: { notWebReady: gated },
   };
 }
 
