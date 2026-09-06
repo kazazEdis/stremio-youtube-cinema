@@ -5,8 +5,8 @@ import fsp from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import { verifyMarts, streamsFor, playableIn, FREE } from '../src/dwh/publish.js';
-import { toStream } from '../src/publish.js';
+import { verifyMarts, streamsFor, playableIn, FREE, ORDERINGS } from '../src/dwh/publish.js';
+import { toStream, buildManifest, SORTS } from '../src/publish.js';
 
 function mart(entries) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mart-'));
@@ -120,4 +120,34 @@ test('the free region means unrestricted, not "playable here"', () => {
   assert.equal(playableIn('HR', null, 'US,CA'), false);
   assert.equal(playableIn('HR', 'DE,FR', null), true);
   assert.equal(playableIn('DE', 'DE,FR', null), false);
+});
+
+test('the sort chips the manifest offers are the ones the catalogue writes', () => {
+  // A genre option Stremio shows but no file answers is a chip that 404s — the
+  // catalogue looks empty and the viewer blames the addon. These two lists live
+  // in different modules and have to agree.
+  assert.deepEqual(SORTS, Object.keys(ORDERINGS));
+
+  const m = buildManifest([{}], ['PublicDomain'], '', ['PublicDomain'], 'HR');
+  for (const c of m.catalogs) {
+    const genre = c.extra?.find(e => e.name === 'genre');
+    assert.ok(genre, `${c.type}/${c.id} offers no genre extra`);
+    assert.deepEqual(genre.options, SORTS);
+    assert.ok(c.extra.some(e => e.name === 'skip'), `${c.type}/${c.id} cannot paginate`);
+  }
+});
+
+test('Popular and Year order by what they say, with a stable tiebreak', () => {
+  const rows = [
+    { name: 'B film', year: 1950, viewCount: 10 },
+    { name: 'A film', year: 1990, viewCount: 10 },
+    { name: 'C film', year: 1970, viewCount: 999 },
+    { name: 'D film', year: null, viewCount: null },
+  ];
+  assert.deepEqual([...rows].sort(ORDERINGS.Popular).map(r => r.name),
+                   ['C film', 'A film', 'B film', 'D film']);
+  assert.deepEqual([...rows].sort(ORDERINGS.Year).map(r => r.name),
+                   ['A film', 'C film', 'B film', 'D film']);
+  // A missing value sorts last rather than throwing or floating to the top.
+  assert.equal([...rows].sort(ORDERINGS.Year).at(-1).name, 'D film');
 });

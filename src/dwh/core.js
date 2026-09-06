@@ -191,6 +191,16 @@ const SCHEMA = [
      run_id     INTEGER
    ) WITHOUT ROWID;`,
 
+  // IMDb's rating for the titles we actually resolved to, copied out of the
+  // index so publish never has to open it. That is what keeps a deploy at two
+  // minutes instead of fifteen.
+  `CREATE TABLE IF NOT EXISTS dim_rating (
+     imdb_id TEXT PRIMARY KEY,
+     average REAL NOT NULL,
+     votes   INTEGER NOT NULL,
+     dataset TEXT
+   ) WITHOUT ROWID;`,
+
   `CREATE TABLE IF NOT EXISTS core_meta (key TEXT PRIMARY KEY, value TEXT) WITHOUT ROWID;`,
 ].join('\n');
 
@@ -314,6 +324,29 @@ export function recordPlayback(db, rows, runId) {
   }
   db.exec('COMMIT');
   return rows.length;
+}
+
+/**
+ * Copy the ratings of everything we resolved to out of the IMDb index.
+ *
+ * Only the tconsts in fct_resolution: the full ratings table is every rated
+ * title IMDb has, and the rest would be rows nothing joins to.
+ */
+export function syncRatings(wh, index, dataset) {
+  const ins = wh.prepare(`INSERT INTO dim_rating (imdb_id,average,votes,dataset)
+    VALUES (?,?,?,?)
+    ON CONFLICT(imdb_id) DO UPDATE SET
+      average=excluded.average, votes=excluded.votes, dataset=excluded.dataset`);
+  const read = index.prepare('SELECT average, votes FROM ratings WHERE tconst = ?');
+  const ids = wh.prepare('SELECT DISTINCT imdb_id FROM fct_resolution WHERE imdb_id IS NOT NULL').all();
+  let n = 0;
+  wh.exec('BEGIN');
+  for (const { imdb_id } of ids) {
+    const r = read.get(imdb_id);
+    if (r) { ins.run(imdb_id, r.average, r.votes, dataset ?? null); n++; }
+  }
+  wh.exec('COMMIT');
+  return { rated: n, of: ids.length };
 }
 
 export function migrateColumns(db) {

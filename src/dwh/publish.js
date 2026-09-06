@@ -176,6 +176,9 @@ export function toResolutionShape(r) {
     margin: r.margin ?? undefined,
     signals,
     ytRuntimeMin: r.runtime_min,
+    viewCount: r.view_count ?? null,
+    rating: r.rating ?? null,
+    votes: r.votes ?? null,
     imdbRuntimeMin: r.imdb_runtime ?? null,
     channel: r.channel_name,
     group: r.grp,
@@ -196,14 +199,15 @@ export function toResolutionShape(r) {
 export function loadCore(wh, { region, rules }) {
   const rows = wh.prepare(`
     SELECT u.ytId, u.channel_name, u.grp, u.raw_title, u.clean_title, u.runtime_min,
-           u.thumb_tier, u.blocked_regions, u.allowed_regions,
+           u.thumb_tier, u.blocked_regions, u.allowed_regions, u.view_count,
            r.status, r.reason, r.imdb_id, r.stremio_type, r.published_id,
            r.season, r.episode, r.match_name, r.imdb_year, r.imdb_runtime,
            r.genres, r.confidence, r.margin, r.candidate_count,
            r.sig_title, r.sig_year, r.sig_runtime, r.sig_corrob, r.is_override, r.tier,
-           p.max_height
+           p.max_height, d.average AS rating, d.votes
     FROM fct_upload u JOIN fct_resolution r ON r.ytId = u.ytId
     LEFT JOIN fct_playback p ON p.ytId = u.ytId
+    LEFT JOIN dim_rating d ON d.imdb_id = r.imdb_id
     WHERE u.drop_reason IS NULL`).all();
 
   // Region BEFORE settling, deliberately. A geo-blocked upload must not be
@@ -312,13 +316,100 @@ async function prune(outDir, kind, keep) {
   return removed;
 }
 
-async function writeCatalog(outDir, type, id, metas) {
-  await writeJson(path.join(outDir, 'catalog', type, `${id}.json`), { metas: metas.slice(0, PAGE) });
-  for (let skip = PAGE; skip < metas.length; skip += PAGE) {
-    await writeJson(path.join(outDir, 'catalog', type, id, `skip=${skip}.json`),
-                    { metas: metas.slice(skip, skip + PAGE) });
+/**
+ * The orderings offered as Stremio `genre` chips.
+ *
+ * `genre` is the only filter slot the protocol gives a catalogue, and using it
+ * for sort orders is the convention. Group names are still kept out of it —
+ * "Archive/Soviet" contains a slash, and Stremio hands the value back as a path
+ * segment, which any server reads as a directory. "Popular" and "Year" do not
+ * have that problem.
+ *
+ * Popularity is the YouTube view count of the upload we serve, which is the
+ * only popularity signal in the pipeline — IMDb's datasets carry no ratings.
+ * It measures the *upload*, not the film, so a famous picture with one obscure
+ * print sits below a minor one that went viral. That is worth knowing but it is
+ * still the honest answer to "what are people watching here".
+ */
+export const ORDERINGS = {
+  Popular: (a, b) => (b.viewCount ?? 0) - (a.viewCount ?? 0)
+                  || (a.name || '').localeCompare(b.name || ''),
+  Year:    (a, b) => (b.year ?? 0) - (a.year ?? 0)
+                  || (a.name || '').localeCompare(b.name || ''),
+  Rating:  (a, b) => (b.wr ?? -1) - (a.wr ?? -1)
+                  || (a.name || '').localeCompare(b.name || ''),
+};
+
+/**
+ * A rating you can sort on, rather than the raw average.
+ *
+ * Raw averages put a 9.6 from eleven votes above Nosferatu, and this catalogue
+ * is full of obscure prints with a handful of votes — the shape that breaks a
+ * naive sort. The standard weighting pulls a thinly-voted title toward the
+ * catalogue mean and leaves a well-voted one where it is:
+ *
+ *     wr = v/(v+m)·R + m/(v+m)·C
+ *
+ * C is the mean of the rated titles here, not of IMDb: this is a public-domain
+ * and licensed-upload catalogue and its middle sits lower than the site's. m is
+ * the vote count at which a title is trusted on its own — 500 rather than
+ * IMDb's 25,000, because almost nothing here would clear that.
+ *
+ * Unrated titles sort last with `wr` left undefined rather than 0, which would
+ * put them above genuinely bad films.
+ */
+export function weightRatings(metas, m = 500) {
+  const rated = metas.filter(x => x.rating != null && x.votes != null);
+  if (!rated.length) return metas;
+  const C = rated.reduce((t, x) => t + x.rating, 0) / rated.length;
+  for (const x of metas) {
+    if (x.rating == null || x.votes == null) continue;
+    const v = x.votes;
+    x.wr = (v / (v + m)) * x.rating + (m / (v + m)) * C;
   }
-  return Math.ceil(metas.length / PAGE);
+  return metas;
+}
+
+/**
+ * One page set per ordering, plus the default.
+ *
+ * Stremio asks for `/catalog/{type}/{id}/{extraArgs}.json` where extraArgs is a
+ * stringified query object — `genre=Year&skip=100`. The key order in that
+ * string is the client's to choose, so both orders are written: one duplicated
+ * small file beats a catalogue that stops dead at a hundred entries because we
+ * guessed wrong about which came first.
+ */
+async function writeCatalog(outDir, type, id, rows, toRow) {
+  const dir = path.join(outDir, 'catalog', type);
+  let pages = 0;
+
+  // Sort the rich rows and reduce to protocol shape only on the way out. The
+  // meta Stremio receives carries no view count, rating or numeric year — and
+  // padding every catalogue page with fields the client ignores, purely so we
+  // can sort what we already hold, would be the wrong trade.
+  const writeSet = async (prefix, ordered) => {
+    const metas = ordered.map(toRow);
+    const head = prefix ? path.join(dir, id, `${prefix}.json`) : path.join(dir, `${id}.json`);
+    await writeJson(head, { metas: metas.slice(0, PAGE) });
+    pages++;
+    for (let skip = PAGE; skip < metas.length; skip += PAGE) {
+      const body = { metas: metas.slice(skip, skip + PAGE) };
+      if (prefix) {
+        await writeJson(path.join(dir, id, `${prefix}&skip=${skip}.json`), body);
+        await writeJson(path.join(dir, id, `skip=${skip}&${prefix}.json`), body);
+      } else {
+        await writeJson(path.join(dir, id, `skip=${skip}.json`), body);
+      }
+      pages++;
+    }
+  };
+
+  weightRatings(rows);
+  await writeSet('', rows);
+  for (const [name, cmp] of Object.entries(ORDERINGS)) {
+    await writeSet(`genre=${name}`, [...rows].sort(cmp));
+  }
+  return pages;
 }
 
 /**
@@ -503,21 +594,21 @@ export async function writeTree(outDir, { movies, regional, quarantine, region }
   await writeJson(path.join(outDir, 'manifest.json'),
                   buildManifest(films, groups, '', seriesGroups, region));
 
-  let pages = await writeCatalog(outDir, 'movie', 'ytc-all', films.map(m => toMeta(m)));
+  let pages = await writeCatalog(outDir, 'movie', 'ytc-all', films, m => toMeta(m));
   for (const g of groups) {
     pages += await writeCatalog(outDir, 'movie', `ytc-${slug(g)}`,
-                                films.filter(m => m.group === g).map(m => toMeta(m)));
+                                films.filter(m => m.group === g), m => toMeta(m));
   }
 
   // Series: the catalogue lists shows, the streams are per episode.
   const shows = showRows(episodes);
   if (shows.length) {
     pages += await writeCatalog(outDir, 'series', 'ytc-all',
-                                shows.map(m => toMeta(m, 'series')));
+                                shows, m => toMeta(m, 'series'));
     for (const g of seriesGroups) {
       pages += await writeCatalog(outDir, 'series', `ytc-${slug(g)}`,
-                                  showRows(episodes.filter(m => m.group === g))
-                                    .map(m => toMeta(m, 'series')));
+                                  showRows(episodes.filter(m => m.group === g)),
+                                  m => toMeta(m, 'series'));
     }
   }
 

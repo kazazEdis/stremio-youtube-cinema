@@ -19,6 +19,7 @@ import fsp from 'node:fs/promises';
 
 import { openLanding, startRun, finishRun } from './landing.js';
 import {
+  syncRatings,
   openCore, upsertChannel, currentChannels, inputHash, hashObject,
   thumbUrl, STATUS, setCoreMeta,
 } from './core.js';
@@ -407,6 +408,17 @@ async function main() {
       overridesHash: hashObject(overridesDoc?.overrides ?? {}),
       now, runId,
     }, args);
+    // Ratings ride along with the index that is already open. Doing it here
+    // rather than in publish is what lets a deploy run without the 1.6 GB
+    // index at all.
+    try {
+      const r = syncRatings(wh, index.db, index.dataset);
+      console.log(`[rating]   ${r.rated.toLocaleString()} of ${r.of.toLocaleString()} matched titles have an IMDb rating`);
+    } catch (err) {
+      // An index built before the ratings pass simply has no table. Not fatal:
+      // the catalogue works without the sort, and the next index build adds it.
+      console.log(`[rating]   skipped (${String(err.message).slice(0, 60)})`);
+    }
     index.close();
   }
 

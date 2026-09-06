@@ -43,6 +43,10 @@ export const DATASETS = {
   akas: 'title.akas.tsv.gz',
   principals: 'title.principals.tsv.gz',
   names: 'name.basics.tsv.gz',
+  // ~25 MB against title.principals' 780 MB, and it is the only quality signal
+  // IMDb gives away: the datasets carry no genre popularity, no box office and
+  // no critic score.
+  ratings: 'title.ratings.tsv.gz',
 };
 
 // #region ---------------------------------------------------------- download
@@ -73,7 +77,10 @@ async function remoteStamp(file) {
 async function ensureLocal(file, cacheDir, { force = false, attempts = 8 } = {}) {
   const dest = path.join(cacheDir, file);
   const tmp = `${dest}.partial`;
-  const size = Number((await headers(file)).get('content-length') || 0);
+  const head = await headers(file);
+  const size = Number(head.get('content-length') || 0);
+  const etag = head.get('etag');
+  const lastModified = head.get('last-modified');
 
   if (force) {
     await fsp.rm(dest, { force: true });
@@ -117,11 +124,21 @@ async function ensureLocal(file, cacheDir, { force = false, attempts = 8 } = {})
     console.log(`[fetch]  ${file} (${where})${tries}`);
 
     try {
+      // If-Range is the whole point: it asks the server to honour the range
+      // *only if the file has not changed*, and to send the whole thing
+      // otherwise. Without it, resuming after IMDb republishes splices bytes
+      // from two different dumps into one file that is the right length and is
+      // not a valid gzip — which is exactly what happened, to four of five
+      // datasets at once, and only surfaced as "incorrect header check" from
+      // zlib a full download later. Content-length was never evidence that the
+      // bytes on disk came from the file now being served.
+      const validator = have ? (etag ?? lastModified) : null;
       const res = await fetch(`${BASE}/${file}`, {
-        headers: have ? { Range: `bytes=${have}-` } : {},
+        headers: have ? { Range: `bytes=${have}-`, ...(validator ? { 'If-Range': validator } : {}) } : {},
       });
-      // 206 means the range was honoured. A plain 200 to a ranged request means
-      // the server ignored it and is resending the whole file from byte zero.
+      // 206 means the range was honoured against the same file. A plain 200 to
+      // a ranged request means the server declined — either it ignores ranges
+      // or the validator no longer matches — and is resending from byte zero.
       let append = false;
       if (have && res.status === 206) append = true;
       else if (have && res.status === 200) await fsp.rm(tmp, { force: true });
@@ -143,9 +160,40 @@ async function ensureLocal(file, cacheDir, { force = false, attempts = 8 } = {})
     await sleep(Math.min(30_000, 2 ** attempt * 500));
   }
 
+  // The right number of bytes is not the right bytes. Read the first block back
+  // through gunzip before promoting the file: a spliced archive passes every
+  // length check and then fails deep inside a pass, minutes later, as an
+  // "incorrect header check" that says nothing about which file was wrong.
+  await assertGzip(tmp, file);
+
   await fsp.rename(tmp, dest);
   console.log(`[ok]     ${file} (${mb(size)})`);
   return dest;
+}
+
+/**
+ * Decompress the whole archive before trusting it.
+ *
+ * Checking only the first block was tried and is worthless here: a resumed
+ * download splices the tail of a *new* dump onto the head of an old one, so the
+ * gzip header is perfectly valid and the stream dies hundreds of megabytes in.
+ * All four corrupt files passed a header check and failed `gzip -t`.
+ *
+ * It costs one decompress per transfer — never on a cache hit — and turns an
+ * "incorrect header check" thrown from inside a pass, with no filename
+ * attached, into a named failure at the point the bytes arrived.
+ */
+async function assertGzip(filePath, label) {
+  try {
+    await pipeline(
+      fs.createReadStream(filePath),
+      zlib.createGunzip(),
+      async function* (source) { for await (const c of source) { void c.length; } },
+    );
+  } catch (err) {
+    await fsp.rm(filePath, { force: true });
+    throw new Error(`${label}: downloaded bytes are not a valid archive (${err.code ?? err.message}) — discarded`);
+  }
 }
 
 /** Line reader over a gzipped TSV, header row already consumed. */
@@ -196,6 +244,16 @@ CREATE TABLE IF NOT EXISTS title_norm (
   source   TEXT NOT NULL,          -- primary | original | aka
   region   TEXT,
   language TEXT
+);
+
+-- The only quality signal IMDb gives away: the datasets carry no genre
+-- popularity, no box office and no critic score. Added after the index was
+-- first built, which the IF NOT EXISTS above makes free — an existing file
+-- gains the table on its next run and only the ratings pass has to run.
+CREATE TABLE IF NOT EXISTS ratings (
+  tconst  TEXT PRIMARY KEY,
+  average REAL NOT NULL,
+  votes   INTEGER NOT NULL
 );
 
 -- Director + top-3 cast, flattened to what corroboration actually needs.
@@ -285,6 +343,25 @@ async function passBasics(db, file) {
   console.log(`[basics] ${seen.toLocaleString()} rows -> ${keep.size.toLocaleString()} titles`);
   markPass(db, 'basics');
   return keep;
+}
+
+async function passRatings(db, file, keep) {
+  const ins = db.prepare('INSERT OR REPLACE INTO ratings (tconst,average,votes) VALUES (?,?,?)');
+  let seen = 0, kept = 0;
+  db.exec('BEGIN');
+  for await (const [tconst, average, votes] of tsvRows(file)) {
+    seen++;
+    // Only titles the index already keeps: the full file is every tconst IMDb
+    // has, and the other 90% would be rows nothing can ever join to.
+    if (!keep.has(tconst)) continue;
+    const a = Number(average), v = Number(votes);
+    if (!Number.isFinite(a) || !Number.isFinite(v)) continue;
+    ins.run(tconst, a, v);
+    if (++kept % 200000 === 0) { db.exec('COMMIT'); db.exec('BEGIN'); }
+  }
+  db.exec('COMMIT');
+  console.log(`[ratings] ${seen.toLocaleString()} rows -> ${kept.toLocaleString()} rated titles`);
+  markPass(db, 'ratings');
 }
 
 async function passAkas(db, file, keep) {
@@ -485,6 +562,12 @@ export async function buildIndexFile({ cacheDir = '.cache', principals = true, f
 
   if (passDone(db, 'akas')) console.log('[resume] akas done');
   else await passAkas(db, files.akas, keep);
+
+  // Added after the first indexes were built, so it runs on its own against an
+  // existing file rather than forcing a rebuild — that is what the per-pass
+  // checkpoints are for.
+  if (passDone(db, 'ratings')) console.log('[resume] ratings done');
+  else await passRatings(db, files.ratings, keep);
 
   if (principals) {
     if (passDone(db, 'principals')) console.log('[resume] principals done');
