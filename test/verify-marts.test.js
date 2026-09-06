@@ -5,7 +5,7 @@ import fsp from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import { verifyMarts, streamsFor, playableIn, FREE, ORDERINGS } from '../src/dwh/publish.js';
+import { verifyMarts, streamsFor, playableIn, FREE, ORDERINGS, weightRatings } from '../src/dwh/publish.js';
 import { toStream, buildManifest, SORTS } from '../src/publish.js';
 
 function mart(entries) {
@@ -135,6 +135,36 @@ test('the sort chips the manifest offers are the ones the catalogue writes', () 
     assert.deepEqual(genre.options, SORTS);
     assert.ok(c.extra.some(e => e.name === 'skip'), `${c.type}/${c.id} cannot paginate`);
   }
+});
+
+test('a sort is only offered when it can actually sort', () => {
+  // An index built before the ratings pass has no ratings, and a Rating chip
+  // that silently orders by nothing reads as a broken addon. Publish decides
+  // which chips are honourable and the manifest declares exactly those.
+  const without = buildManifest([{}], ['G'], '', [], 'HR', ['Popular', 'Year']);
+  for (const c of without.catalogs) {
+    assert.deepEqual(c.extra.find(e => e.name === 'genre').options, ['Popular', 'Year']);
+  }
+  const withAll = buildManifest([{}], ['G'], '', [], 'HR', SORTS);
+  assert.ok(withAll.catalogs[0].extra.find(e => e.name === 'genre').options.includes('Rating'));
+});
+
+test('the weighted rating stops a 9.6 from eleven votes topping the list', () => {
+  // Raw averages are unusable here: the catalogue is full of obscure prints
+  // with a handful of votes. The weighting pulls a thinly-voted title toward
+  // the catalogue mean and leaves a well-voted one where it is.
+  const rows = [
+    { name: 'obscure', rating: 9.6, votes: 11 },
+    { name: 'classic', rating: 8.0, votes: 90000 },
+    { name: 'poor',    rating: 4.1, votes: 5000 },
+    { name: 'unrated', rating: null, votes: null },
+  ];
+  weightRatings(rows);
+  const order = [...rows].sort(ORDERINGS.Rating).map(r => r.name);
+  assert.equal(order[0], 'classic', 'a well-voted 8.0 must beat a 9.6 from eleven votes');
+  assert.equal(order.at(-1), 'unrated', 'no rating sorts last, not above a bad one');
+  assert.ok(rows.find(r => r.name === 'obscure').wr < 9.6);
+  assert.equal(rows.find(r => r.name === 'unrated').wr, undefined);
 });
 
 test('Popular and Year order by what they say, with a stable tiebreak', () => {

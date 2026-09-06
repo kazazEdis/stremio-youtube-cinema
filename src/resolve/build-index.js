@@ -95,9 +95,12 @@ async function ensureLocal(file, cacheDir, { force = false, attempts = 8 } = {})
       // A short file under the final name is a truncated download from before
       // this verification existed. The bytes are still good — resume onto them
       // rather than paying for the whole transfer again.
-      console.log(`[salvage] ${file} keeping ${mb(st.size)} of ${mb(size)}`);
+      // No recorded validator for these bytes, so they are only worth keeping
+      // if the fetch below can prove the dump has not moved. It cannot, so this
+      // now costs the transfer rather than risking a spliced archive.
+      console.log(`[stale]  ${file}: ${mb(st.size)} of ${mb(size)} with no validator, refetching`);
       await fsp.rm(tmp, { force: true });
-      await fsp.rename(dest, tmp);
+      await fsp.rm(dest, { force: true });
     } else if (st) {
       await fsp.rm(dest, { force: true });
     }
@@ -124,24 +127,42 @@ async function ensureLocal(file, cacheDir, { force = false, attempts = 8 } = {})
     console.log(`[fetch]  ${file} (${where})${tries}`);
 
     try {
-      // If-Range is the whole point: it asks the server to honour the range
-      // *only if the file has not changed*, and to send the whole thing
-      // otherwise. Without it, resuming after IMDb republishes splices bytes
-      // from two different dumps into one file that is the right length and is
-      // not a valid gzip — which is exactly what happened, to four of five
-      // datasets at once, and only surfaced as "incorrect header check" from
-      // zlib a full download later. Content-length was never evidence that the
-      // bytes on disk came from the file now being served.
-      const validator = have ? (etag ?? lastModified) : null;
+      // If-Range asks the server to honour the range *only if the file has not
+      // changed*, and to resend the whole thing otherwise. The validator has to
+      // be the one belonging to the bytes already on disk — sending the
+      // server's *current* ETag is the mistake that looks like a fix, because
+      // it matches by construction and every range is honoured.
+      //
+      // So the validator is written beside the partial when a transfer starts,
+      // and a partial without one is not resumed at all. Guessing is what
+      // spliced four datasets from two different dumps into files that were the
+      // right length and not valid gzip.
+      const had = await fsp.readFile(`${tmp}.validator`, 'utf8').catch(() => null);
+      if (have && !had) {
+        console.log(`[restart] ${file}: partial has no recorded validator, refetching`);
+        await fsp.rm(tmp, { force: true });
+        have = 0;
+      }
       const res = await fetch(`${BASE}/${file}`, {
-        headers: have ? { Range: `bytes=${have}-`, ...(validator ? { 'If-Range': validator } : {}) } : {},
+        headers: have ? { Range: `bytes=${have}-`, 'If-Range': had } : {},
       });
+      if (!have) {
+        const now = res.headers.get('etag') ?? res.headers.get('last-modified');
+        if (now) await fsp.writeFile(`${tmp}.validator`, now);
+      }
       // 206 means the range was honoured against the same file. A plain 200 to
       // a ranged request means the server declined — either it ignores ranges
       // or the validator no longer matches — and is resending from byte zero.
       let append = false;
       if (have && res.status === 206) append = true;
-      else if (have && res.status === 200) await fsp.rm(tmp, { force: true });
+      else if (have && res.status === 200) {
+        // The server declined the range: the dump changed under us. Start over
+        // and record the validator of what is arriving now.
+        console.log(`[restart] ${file}: server declined the range, dump has changed`);
+        await fsp.rm(tmp, { force: true });
+        const now = res.headers.get('etag') ?? res.headers.get('last-modified');
+        if (now) await fsp.writeFile(`${tmp}.validator`, now);
+      }
       else if (!res.ok) throw new Error(`GET ${file}: ${res.status}`);
 
       await pipeline(
@@ -167,6 +188,7 @@ async function ensureLocal(file, cacheDir, { force = false, attempts = 8 } = {})
   await assertGzip(tmp, file);
 
   await fsp.rename(tmp, dest);
+  await fsp.rm(`${tmp}.validator`, { force: true });
   console.log(`[ok]     ${file} (${mb(size)})`);
   return dest;
 }
@@ -192,6 +214,7 @@ async function assertGzip(filePath, label) {
     );
   } catch (err) {
     await fsp.rm(filePath, { force: true });
+    await fsp.rm(`${filePath}.validator`, { force: true });
     throw new Error(`${label}: downloaded bytes are not a valid archive (${err.code ?? err.message}) — discarded`);
   }
 }

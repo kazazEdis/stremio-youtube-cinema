@@ -21,7 +21,7 @@ import { openCore, seedFirstSeen, noteFirstSeen, thumbUrl, statusName, getCoreMe
 import { openLanding, startRun, finishRun } from './landing.js';
 import { settleDuplicates, THRESHOLDS } from '../resolve/index.js';
 import { loadExclusions, excludedByImdb } from '../resolve/exclude.js';
-import { toMeta, toStream, buildManifest } from '../publish.js';
+import { toMeta, toStream, buildManifest, SORTS } from '../publish.js';
 import {
   diffCatalogs, summarizeReview, perChannel, findSilentChannels,
 } from '../report.js';
@@ -379,7 +379,7 @@ export function weightRatings(metas, m = 500) {
  * small file beats a catalogue that stops dead at a hundred entries because we
  * guessed wrong about which came first.
  */
-async function writeCatalog(outDir, type, id, rows, toRow) {
+async function writeCatalog(outDir, type, id, rows, toRow, sorts) {
   const dir = path.join(outDir, 'catalog', type);
   let pages = 0;
 
@@ -406,8 +406,8 @@ async function writeCatalog(outDir, type, id, rows, toRow) {
 
   weightRatings(rows);
   await writeSet('', rows);
-  for (const [name, cmp] of Object.entries(ORDERINGS)) {
-    await writeSet(`genre=${name}`, [...rows].sort(cmp));
+  for (const name of sorts) {
+    await writeSet(`genre=${name}`, [...rows].sort(ORDERINGS[name]));
   }
   return pages;
 }
@@ -591,24 +591,29 @@ export async function writeTree(outDir, { movies, regional, quarantine, region }
   const groups = [...new Set(films.map(m => m.group).filter(Boolean))].sort();
   const seriesGroups = [...new Set(episodes.map(m => m.group).filter(Boolean))].sort();
 
-  await writeJson(path.join(outDir, 'manifest.json'),
-                  buildManifest(films, groups, '', seriesGroups, region));
+  // Only offer Rating where there is something to rank on. IMDb rates most of
+  // what we match, but an index built before the ratings pass has none, and a
+  // chip that silently sorts by nothing reads as a broken addon.
+  const sorts = SORTS.filter(n => n !== 'Rating' || movies.some(m => m.rating != null));
 
-  let pages = await writeCatalog(outDir, 'movie', 'ytc-all', films, m => toMeta(m));
+  await writeJson(path.join(outDir, 'manifest.json'),
+                  buildManifest(films, groups, '', seriesGroups, region, sorts));
+
+  let pages = await writeCatalog(outDir, 'movie', 'ytc-all', films, m => toMeta(m), sorts);
   for (const g of groups) {
     pages += await writeCatalog(outDir, 'movie', `ytc-${slug(g)}`,
-                                films.filter(m => m.group === g), m => toMeta(m));
+                                films.filter(m => m.group === g), m => toMeta(m), sorts);
   }
 
   // Series: the catalogue lists shows, the streams are per episode.
   const shows = showRows(episodes);
   if (shows.length) {
     pages += await writeCatalog(outDir, 'series', 'ytc-all',
-                                shows, m => toMeta(m, 'series'));
+                                shows, m => toMeta(m, 'series'), sorts);
     for (const g of seriesGroups) {
       pages += await writeCatalog(outDir, 'series', `ytc-${slug(g)}`,
                                   showRows(episodes.filter(m => m.group === g)),
-                                  m => toMeta(m, 'series'));
+                                  m => toMeta(m, 'series'), sorts);
     }
   }
 

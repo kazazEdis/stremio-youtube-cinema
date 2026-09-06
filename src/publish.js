@@ -102,12 +102,18 @@ export function toStream(m) {
   };
 }
 
-/** Sort chips offered on every catalogue; must match ORDERINGS in dwh/publish.js. */
+/**
+ * Sort chips a catalogue can offer. Must match ORDERINGS in dwh/publish.js.
+ *
+ * Which of them are actually declared is decided at publish time: a chip
+ * Stremio shows that does not really sort is worse than no chip, so Rating only
+ * appears once the warehouse has ratings to sort on.
+ */
 export const SORTS = ['Popular', 'Year', 'Rating'];
 
 const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
-export function buildManifest(movies, groups, baseUrl, seriesGroups = [], region = null) {
+export function buildManifest(movies, groups, baseUrl, seriesGroups = [], region = null, sorts = SORTS) {
   return {
     // A distinct id per region, because Stremio keys an installed addon on it:
     // share one and installing the second replaces the first, which is exactly
@@ -144,13 +150,13 @@ export function buildManifest(movies, groups, baseUrl, seriesGroups = [], region
         // hands the value back as a path segment, which any server reads as a
         // directory. The per-group catalogues below do that job with slug
         // filenames instead.
-        extra: [{ name: 'genre', options: SORTS, isRequired: false }, { name: 'skip' }],
+        extra: [{ name: 'genre', options: sorts, isRequired: false }, { name: 'skip' }],
       },
       ...groups.map(g => ({
         type: 'movie',
         id: `ytc-${slug(g)}`,
         name: region ? `YouTube Cinema ${region} — ${g}` : `YouTube Cinema — ${g}`,
-        extra: [{ name: 'genre', options: SORTS, isRequired: false }, { name: 'skip' }],
+        extra: [{ name: 'genre', options: sorts, isRequired: false }, { name: 'skip' }],
       })),
       // Series catalogues reuse the same ids under a different type; Stremio
       // keys a catalogue on (type, id), and the mart paths differ by type too.
@@ -158,13 +164,13 @@ export function buildManifest(movies, groups, baseUrl, seriesGroups = [], region
         type: 'series',
         id: 'ytc-all',
         name: region ? `YouTube Cinema ${region} — TV` : 'YouTube Cinema — TV',
-        extra: [{ name: 'genre', options: SORTS, isRequired: false }, { name: 'skip' }],
+        extra: [{ name: 'genre', options: sorts, isRequired: false }, { name: 'skip' }],
       }] : []),
       ...seriesGroups.map(g => ({
         type: 'series',
         id: `ytc-${slug(g)}`,
         name: region ? `YouTube Cinema ${region} TV — ${g}` : `YouTube Cinema TV — ${g}`,
-        extra: [{ name: 'genre', options: SORTS, isRequired: false }, { name: 'skip' }],
+        extra: [{ name: 'genre', options: sorts, isRequired: false }, { name: 'skip' }],
       })),
     ],
     // Torrentio's convention: the addon advertises that it has a configuration
