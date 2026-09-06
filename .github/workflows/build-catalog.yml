@@ -150,23 +150,48 @@ jobs:
       # Only the unrestricted tree is committed; docs/region=*/ is gitignored.
       # The artifact carries everything, so the repo stays diffable while the
       # site serves all 21 addons.
+      # The artifact goes up before anything that can fail. Committing docs/ is
+      # bookkeeping; deploying is the product, and bookkeeping must not gate
+      # delivery.
+      #
+      # It did once. A commit landed on main during a 40-minute run, this push
+      # was rejected as non-fast-forward, and because the commit step ran first
+      # the failure skipped Upload site, skipped the whole deploy job, and
+      # skipped the cache save — so a completed index build, extract, re-resolve
+      # and publish were all discarded, and viewers saw none of it.
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
       - name: Commit catalog
+        # Never fail the build over bookkeeping: the artifact is already up.
+        continue-on-error: true
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add docs
           if git diff --staged --quiet; then
-            echo "no changes"
-          else
-            COUNT=$(jq '.count' docs/catalog.json)
-            git commit -m "catalog: ${COUNT} films [skip ci]"
-            git push
+            echo "no changes"; exit 0
           fi
-
-      - name: Upload site
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: docs
+          COUNT=$(jq '.count' docs/catalog.json)
+          git commit -m "catalog: ${COUNT} films [skip ci]"
+          for attempt in 1 2 3; do
+            if git push; then exit 0; fi
+            echo "push rejected (attempt ${attempt}) — rebuilding the commit on origin/main"
+            # Deliberately not `pull --rebase`: during a rebase the -X ours/theirs
+            # senses inverse, which is how a generated tree gets silently
+            # reverted to the copy it was meant to replace. Moving HEAD instead
+            # leaves the working tree alone, so `git add docs` re-stages the
+            # docs this run actually built and nothing else is touched.
+            git fetch origin main || break
+            git reset --mixed origin/main
+            git add docs
+            git diff --staged --quiet && { echo "nothing left to commit"; exit 0; }
+            git commit -m "catalog: ${COUNT} films [skip ci]"
+          done
+          echo "::warning::could not push the catalogue commit; the deploy is unaffected"
+          exit 0
 
   deploy:
     needs: build
