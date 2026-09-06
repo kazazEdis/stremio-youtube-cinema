@@ -142,7 +142,11 @@ test('golden: three real collisions, separated on runtime alone', () => {
   const r = resolveOne(upload({ runtimeMin: 94 }), index);
   assert.equal(r.imdbId, 'tt0013442');       // discrimination is the point
   assert.equal(r.signals.runtime, 20);
-  assert.equal(r.signals.year, 8);           // absent, so neutral
+  // Absent, so neutral -- 12 rather than 8 because the runtime is top-band.
+  // The lift lands on the winner after the ranking and margin are settled, so
+  // it cannot promote a rival past the pick. That is the property the whole
+  // change rests on: it moves a match over the floor, never past another match.
+  assert.equal(r.signals.year, 12);
   assert.ok(r.margin >= THRESHOLDS.margin);
 
   // Point the same title at the 1979 runtime and the pick must move with it.
@@ -150,32 +154,53 @@ test('golden: three real collisions, separated on runtime alone', () => {
   assert.equal(resolveOne(upload({ runtimeMin: 63 }), index).imdbId, 'tt0116625');
 });
 
-test('KNOWN ISSUE: the §4 weights cannot accept a yearless upload', () => {
-  // Exact primary title (50) + absent year (8) + a *perfect* runtime (20) +
-  // no corroboration = 78, which is under the 85 floor. So a flawless match on
-  // a title like "Nosferatu FULL MOVIE" can never be published, only reviewed.
+test('a yearless upload still needs corroboration, but no longer needs luck', () => {
+  // Was KNOWN ISSUE: exact primary title (50) + absent year (8) + a *perfect*
+  // runtime (20) + no corroboration = 78, so a flawless match on a title like
+  // "Nosferatu FULL MOVIE" could never be published, only reviewed.
   //
-  // §4 justifies the neutral 8 by saying that penalising an absent year "just
-  // pushes good matches under the floor" — but at 8 points it does precisely
-  // that. The weights need tuning against the §7 labelled set before this
-  // resolver will publish anything from a channel that omits years, which is
-  // most of the public-domain ones. Pinned so the tuning is a deliberate act.
+  // The neutral is now 12 when the runtime corroborates, which is 82 — still
+  // under the floor, and deliberately so. A title and a runtime are two
+  // signals; the floor asks for a third. What changed is that the third can
+  // now be a *weak* one: a cast mention (6) reaches 88 where it used to reach
+  // 84 and fail. On the warehouse that is the difference between 1,194
+  // reviewed uploads and none, because 84 was where the commonest shape of a
+  // correct match landed.
   const index = stubIndex([title('tt0013442', 'nosferatu', 1922, 94)]);
   const r = resolveOne(upload({ runtimeMin: 94 }), index);
 
-  assert.equal(r.confidence, 78);
+  assert.equal(r.confidence, 82);
   assert.equal(r.status, 'review');
   assert.equal(r.reason, 'low-score');
 
-  // A single director credit in the description is currently the only thing
-  // that lifts the same match over the line: 78 + 10 = 88.
+  // A director credit in the description carries it over: 82 + 10 = 92.
   const withCredit = stubIndex(
     [title('tt0013442', 'nosferatu', 1922, 94)],
     { tt0013442: [{ category: 'director', name: 'friedrich murnau', tokens: 'friedrich murnau' }] });
   const ok = resolveOne(
     upload({ runtimeMin: 94, description: 'Directed by F. W. Murnau' }), withCredit);
-  assert.equal(ok.confidence, 88);
+  assert.equal(ok.confidence, 92);
   assert.equal(ok.status, 'accept');
+});
+
+test('the relaxed neutral is earned by the runtime, not handed out', () => {
+  // The year separates same-titled films of different eras. A top-band runtime
+  // has already pinned the era, so absence stops being evidence against. A
+  // loose runtime has not, and a fuzzy title has not matched in the first
+  // place, so both keep the strict neutral.
+  assert.equal(scoreYear(null, 1922), 8);
+  assert.equal(scoreYear(null, 1922, true), 12);
+  assert.equal(scoreYear(null, null, true), 12);
+
+  // Present years are untouched in every band.
+  assert.equal(scoreYear(1922, 1922, true), 20);
+  assert.equal(scoreYear(1923, 1922, true), 14);
+  assert.equal(scoreYear(1930, 1922, true), 0);
+
+  const idx = r => stubIndex([title('tt0013442', 'nosferatu', 1922, 94, { runtimeMinutes: r })]);
+  // 94 vs 94 is the top band; 84 vs 94 is -10.6%, the "TV edit" band at 6.
+  assert.equal(resolveOne(upload({ runtimeMin: 94 }), idx(94)).signals.year, 12);
+  assert.equal(resolveOne(upload({ runtimeMin: 84 }), idx(94)).signals.year, 8);
 });
 
 test('two close candidates go to review, not to a coin flip', () => {
@@ -318,3 +343,34 @@ test('episodes of one show are distinct entries, not duplicates', () => {
                    ['tt0052514:2:17', 'tt0052514:2:18', 'tt0052514:2:19']);
 });
 // #endregion
+
+test('the yearless lift moves a match over the floor, never past another match', () => {
+  // Applying it inside scoreCandidate read each candidate's own runtime, so a
+  // rival with a better runtime gained four points the winner did not. That is
+  // runtime re-weighted from 20 to 24 by the back door, and it cost four
+  // already-published films their acceptance: Expelled, The Clones, Scared to
+  // Death and The Dynamite Trio each fell from accept to narrow-margin at 9.
+  //
+  // Reproduced here. The winner matches on the primary title and sits in the
+  // PAL band; the rival matches on an aka and is top-band:
+  //
+  //   winner  50 + 8 + 17 + 10 = 85   accept, margin 13
+  //   rival   44 + 8 + 20 +  0 = 72
+  //
+  // Let the rival collect the lift on its own runtime and it reaches 76, the
+  // margin closes to 9, and a correct match that has not changed in any way
+  // drops out of the catalogue.
+  const index = stubIndex([
+    title('tt0000001', 'scared to death', 1980, 96),
+    { ...title('tt0000002', 'scared to death', 1947, 91), source: 'aka' },
+  ], {
+    tt0000001: [{ category: 'director', name: 'william malone', tokens: 'william malone' }],
+  });
+
+  const r = resolveOne(upload({ name: 'scared to death', runtimeMin: 91,
+                                description: 'directed by William Malone' }), index);
+  assert.equal(r.imdbId, 'tt0000001');
+  assert.equal(r.signals.year, 8);        // the winner is not top-band, so no lift
+  assert.equal(r.margin, 13);             // 85 - 72, untouched by the rival's runtime
+  assert.equal(r.status, 'accept');
+});

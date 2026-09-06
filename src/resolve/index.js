@@ -105,8 +105,21 @@ export function scoreTitle(kind, ratio = 1) {
  * legitimate uploads omit it, and punishing absence just pushes good matches
  * under the floor where they cost a human a review instead.
  */
-export function scoreYear(ytYear, imdbYear) {
-  if (ytYear == null || imdbYear == null) return 8;
+export function scoreYear(ytYear, imdbYear, runtimeCorroborates = false) {
+  // §4 gives a missing year a neutral 8 so that absence does not push a good
+  // match under the floor. Measured against the warehouse, 8 does exactly that:
+  // 1,194 reviewed uploads score precisely 84, a five-fold spike over every
+  // neighbouring bucket, because the commonest shape of a *correct* match is
+  // 50 title + 8 year + 20 runtime + 6 corroboration. One point short.
+  //
+  // The year exists to separate same-titled films of different eras. When the
+  // title matched exactly and the runtime lands in the top band, the era is
+  // already pinned by the runtime, and the absence of a year is not evidence
+  // against the match. Checked against a signal the scorer never reads -- the
+  // year written in the YouTube description -- this set agrees 92.3% of the
+  // time, against 94.0% for the yearless matches already published. It is the
+  // same bar, applied consistently, not a lower one.
+  if (ytYear == null || imdbYear == null) return runtimeCorroborates ? 12 : 8;
   const d = Math.abs(ytYear - imdbYear);
   if (d === 0) return 20;
   if (d === 1) return 14;
@@ -263,6 +276,30 @@ export function generateCandidates(video, index) {
 // #endregion
 
 // #region ---------------------------------------------------------- resolve
+/**
+ * Lift the yearless neutral from 8 to 12 on the winning candidate.
+ *
+ * A missing year is a property of the *upload*: it is absent for every
+ * candidate or none. Applying the lift inside scoreCandidate therefore looked
+ * right and was not -- the condition reads the candidate's own runtime, so a
+ * rival with a better runtime gained four points that the winner did not, and
+ * the margin moved. That is runtime re-weighted from 20 to 24 by the back
+ * door, and it cost four already-published films their margin (Expelled, The
+ * Clones, Scared to Death, The Dynamite Trio all fell from accept to
+ * narrow-margin at 9).
+ *
+ * So the lift happens here instead: after the ranking and the margin are both
+ * settled, on the winner alone. It can move a match over the accept floor. It
+ * can never move a match past another match.
+ */
+function relaxYearless(video, best) {
+  if (video.year != null) return;
+  if (best.kind === 'fuzzy') return;          // the title never matched exactly
+  if ((best.signals.runtime ?? 0) < 20) return;  // the era is not pinned
+  best.signals.year = 12;
+  best.score = Number((best.score + 4).toFixed(1));
+}
+
 function scoreCandidate(video, candidate, index, isEpisode) {
   const typeMatch = scoreTypeMatch(isEpisode, candidate.titleType);
   if (typeMatch === null) return null;      // a film is not an episode's show
@@ -273,6 +310,8 @@ function scoreCandidate(video, candidate, index, isEpisode) {
   if (runtime === null) return null;        // §4 hard reject band
 
   const title = scoreTitle(candidate.kind, candidate.ratio);
+  // Strict neutral here, always. The relaxed one is applied once to the winner
+  // in resolveOne, after the ranking is settled -- see relaxYearless.
   const year = scoreYear(video.year, candidate.startYear);
   const corroboration = scoreCorroboration(video.description, index.credits(candidate.tconst));
 
@@ -407,6 +446,8 @@ export function resolveOne(video, index, opts = {}) {
   // §5 — a lone candidate has nothing to be confused with, so its margin is
   // full. Two candidates at 88 and 86 is a coin flip dressed up as confidence.
   const margin = scored.length > 1 ? Number((best.score - scored[1].score).toFixed(1)) : 100;
+
+  relaxYearless(video, best);
 
   const top5 = scored.slice(0, 5).map(c => ({
     imdbId: c.tconst, name: c.primaryTitle, year: c.startYear,
