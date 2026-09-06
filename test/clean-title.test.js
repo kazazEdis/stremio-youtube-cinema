@@ -233,3 +233,40 @@ test('a title that ends in a lone star keeps the hook-first layout intact', () =
     cleanTitle('Sasquatch Is On A Killing Rampage | Full Movie | Horror Movie | Legend Of Sasquatch', 'X'),
     'Legend Of Sasquatch');
 });
+
+test('"with" is read three ways, and length is what tells them apart', () => {
+  // A credit ("with Teri Hatcher"), a title joining two noun phrases, and a
+  // clickbait clause hanging a phrase off the end. Vetoing every "with" cost
+  // the titles; vetoing none of them cost eleven hooks, because looksLikeHook
+  // floors at six words and these run five. A title spends its words on the two
+  // nouns and stays short; a hook has already said something before it gets
+  // there.
+  assert.equal(cleanTitle('Poker with Pistols | GEORGE HILTON | Full Western Movie | Cowboy Film', 'X'),
+               'Poker with Pistols');
+  assert.equal(cleanTitle('Roll With It | FULL MOVIE | Chondra Pierce | Comedy', 'X'),
+               'Roll With It');
+  assert.equal(cleanTitle('Go with God, Gringo | 8K UHD-2 | English | Western Movie', 'X'),
+               'Go with God, Gringo');
+
+  assert.equal(cleanTitle('Trapped With A Killer Dog | Unchained | Adrien Brody | Crime Thriller Movie', 'X'),
+               'Unchained');
+  assert.equal(cleanTitle('Justice Comes With A Price | Final Instinct | Full Free Action Movie', 'X'),
+               'Final Instinct');
+  assert.equal(cleanTitle('Trapped in the Arctic With Sharks | Ice Sharks | Shark Month Movie | Full Survival Thriller', 'X'),
+               'Ice Sharks');
+});
+
+test('the six-word hook floor is load-bearing and stays', () => {
+  // Lowering it to five is worth +55 exact index matches across the corpus and
+  // is still wrong: a five-word Title-Cased segment is the commonest shape a
+  // real film of this era has, and these are indistinguishable from a hook.
+  // Convicting them drops the pick through to whatever follows, which on these
+  // channels is the star. Measured losses included "The Last Man On Earth" ->
+  // "Vincent Price" and "The Hunchback Of Notre Dame" -> "Lon Chaney".
+  assert.equal(cleanTitle('The Last Man On Earth | FULL MOVIE | Vincent Price | Sci-Fi Horror', 'X'),
+               'The Last Man On Earth');
+  assert.equal(cleanTitle('The Hunchback Of Notre Dame | Full Movie | Lon Chaney | Silent Drama', 'X'),
+               'The Hunchback Of Notre Dame');
+  assert.equal(cleanTitle('Attack Of The Crab Monsters | FULL MOVIE | Roger Corman | Horror', 'X'),
+               'Attack Of The Crab Monsters');
+});

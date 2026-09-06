@@ -68,9 +68,62 @@ all 22,453 uploads scored by exact index hits:
 | treat a trailing name-shaped segment as a credit | −37 | `… \| Action Western Movie \| Michael Paré` and `… \| Free Movie \| Caged Birds` are the same shape; shape alone cannot tell a star from a title |
 | stop treating bare `with` as a cast hint | −11 | it was accidentally vetoing hooks (`Trapped With A Killer Dog`) that `looksLikeHook` misses below its six-word floor |
 
-The last one is *correct in principle* — `with` is ordinary title English, and
-the veto costs `Poker with Pistols`. It stays only because `looksLikeHook`
-cannot yet carry the load. Fixing that hook floor is the way to collect it.
+The last one has since been taken — see below. The other two stand rejected.
+
+## DONE — "with" separated into its three jobs (2026-09-06)
+
+`with` does three things on these channels: it introduces a credit ("All Tied
+Up (1993) with Teri Hatcher"), it joins two noun phrases in an ordinary title
+("Poker with Pistols", "Roll With It", "Go with God, Gringo"), and it hangs a
+prepositional phrase off a clickbait clause ("Trapped With A Killer Dog",
+"Husband's Secret Meetings with Mobsters"). Vetoing every one cost the titles;
+vetoing none cost eleven hooks.
+
+**Length separates them, and cleanly**: a title spends its words on the two
+nouns and stays under five, while a hook has already said something before it
+reaches `with`. All eleven hooks are five words or more; none of the titles
+below five is a hook. **+5 exact index matches, zero losses.**
+
+### The hook floor was the obvious fix, and it is wrong
+
+Lowering `looksLikeHook`'s six-word floor to five is worth **+55** exact index
+matches across all 22,453 uploads, and it must not be taken. A five-word
+Title-Cased segment is the commonest shape a real film of this era has, and it
+is indistinguishable from a hook — convicting it drops the pick through to
+whatever follows, which on these channels is the star:
+
+    The Last Man On Earth        ->  Vincent Price
+    The Hunchback Of Notre Dame  ->  Lon Chaney
+    Attack Of The Crab Monsters  ->  Roger Corman
+    The Day Of The Triffids      ->  Thriller Action Movies
+
+Seventy-five losses of that kind against 130 gains of mostly modern clickbait.
+The count says take it; the catalogue says don't. Pinned in
+`test/clean-title.test.js` so the next person does not rediscover it.
+
+Deprioritising a lone name-shaped segment so the fallback stops landing on
+actors was tried as a rescue and measured **−137**: `Warning Shot`,
+`Caged Birds`, `Final Instinct`, `Moving Parts`, `Rear View` and `Ice Sharks`
+are all name-shaped, so the rule hands their uploads to the hook instead. That
+is the third independent confirmation that person-shape and title-shape cannot
+be told apart here, after the trailing-credit rule (−37) and the two channel
+layouts that are shape-identical.
+
+### New evidence for the §4 weights
+
+The three recovered titles resolve **correctly** and are all held in review
+just under the 85 floor, which is item 5 below, not a title problem:
+
+| title | match | year | runtime | score | margin |
+|---|---|---|---|---|---|
+| Poker with Pistols | `tt0062139` Un poker di pistole | 1967 | 86 vs 86 | 82 | 100 |
+| Go with God, Gringo | `tt0136595` | 1966 | 83 vs 79 | 80 | 100 |
+| Roll With It | `tt10622260` | 2023 | 97 vs 115 | 70 | held on `recent-year` |
+
+The first two have an exact runtime, an exact or exact-aka title, and **no
+competing candidate at all** (`margin` 100). They fail only on the yearless
+neutral 8. That is the KNOWN ISSUE in `test/scoring.test.js` measured on real
+films rather than a fixture.
 
 ## DONE — one override no longer re-resolves the warehouse (2026-09-06)
 

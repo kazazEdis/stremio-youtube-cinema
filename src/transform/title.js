@@ -28,8 +28,29 @@ const GENRE = /\b(sci-?fi|science\s+fiction|crime|mystery|adventure|fantasy|war|
 // six words. Narrowing this to a following capitalised name gained a handful
 // of real titles ("Poker with Pistols") and lost eleven hooks, so the blunt
 // version stays until looksLikeHook can carry its own weight.
-const CAST_HINT = /\b(starring|with|feat\.?|ft\.?)\b/i;
-const castHint = s => CAST_HINT.test(s);
+const CAST_HINT = /\b(starring|feat\.?|ft\.?)\b/i;
+// "with" carries three jobs on these channels and needs all three separated.
+// It introduces a credit ("All Tied Up (1993) with Teri Hatcher"), it joins two
+// noun phrases in an ordinary title ("Poker with Pistols", "Roll With It", "Go
+// with God, Gringo"), and it hangs a prepositional phrase off a clickbait
+// clause ("Trapped With A Killer Dog", "Husband's Secret Meetings with
+// Mobsters"). looksLikeHook cannot reach the third: its six-word floor is
+// load-bearing -- lowering it convicts "The Last Man On Earth" and "Attack Of
+// The Crab Monsters", which are the same shape as a hook and Title-Cased the
+// same way.
+//
+// Length separates the remaining two. A title spends its words on the two
+// nouns, so the whole segment is short; a hook has already said something
+// before it reaches "with". Five words is where the corpus splits, and it
+// splits cleanly: every one of the eleven hooks is at least five words, and
+// none of the titles under five is a hook.
+const WITH_NAME = /\bwith\s+[A-Z][\p{L}'\u2019.-]+\s+[A-Z]/u;
+const WITH_CLAUSE = /\bwith\b/i;
+const castHint = (s) => {
+  if (CAST_HINT.test(s) || WITH_NAME.test(s)) return true;
+  if (!WITH_CLAUSE.test(s)) return false;
+  return s.trim().split(/\s+/).filter(Boolean).length >= 5;
+};
 
 // "(1963)", "[1963]", "(MGM,1930)" — a parenthesised release year.
 // "(1963)", "(MGM,1930)", "(1975 Action film)", "(1972 Horror)" -- studios and
