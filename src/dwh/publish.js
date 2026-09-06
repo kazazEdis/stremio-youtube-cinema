@@ -405,7 +405,9 @@ ${rows}
    anything needing a YouTube sign-in last.</p>
 
 <script>
-  const base = location.origin + location.pathname.replace(/\/configure\/?$/, '');
+  const base = location.origin + location.pathname
+    .replace(/\\/configure\\/?$/, '')
+    .replace(/\\/region=[a-z]{2}$/i, '');
   const url = document.getElementById('url');
   const set = () => {
     const v = document.querySelector('input[name=region]:checked').value;
@@ -422,6 +424,35 @@ ${rows}
 `;
   await fsp.mkdir(path.join(outDir, 'configure'), { recursive: true });
   await fsp.writeFile(path.join(outDir, 'configure', 'index.html'), html);
+  // `/` was a 404. Torrentio serves its wizard at the root and so do we.
+  await fsp.writeFile(path.join(outDir, 'index.html'), html);
+}
+
+/**
+ * A redirect, not a copy.
+ *
+ * `behaviorHints.configurable` makes Stremio link the gear to
+ * `<manifest base>/configure`, which for a regional install is
+ * `/region=hr/configure` — and that 404'd for anyone who tapped it, the one
+ * button the whole scheme depends on. But there is only one wizard: it is
+ * global, it lists every region, and twenty copies of it would be twenty things
+ * to drift. So each tree points at the canonical page instead of holding one.
+ */
+async function writeConfigureRedirect(outDir) {
+  // The two files sit at different depths and cannot share one relative target:
+  // from region=hr/configure/ the wizard is two levels up, from region=hr/ it is
+  // one. Getting that wrong points the page at itself, which is a redirect loop
+  // rather than a 404 and reads to a viewer as the app hanging.
+  const page = up => `<!doctype html>
+<meta charset="utf-8">
+<title>YouTube Cinema \u2014 configure</title>
+<meta http-equiv="refresh" content="0; url=${up}configure/">
+<link rel="canonical" href="${up}configure/">
+<p>Taking you to <a href="${up}configure/">the configuration page</a>\u2026</p>
+`;
+  await fsp.mkdir(path.join(outDir, 'configure'), { recursive: true });
+  await fsp.writeFile(path.join(outDir, 'configure', 'index.html'), page('../../'));
+  await fsp.writeFile(path.join(outDir, 'index.html'), page('../'));
 }
 
 /**
@@ -529,6 +560,9 @@ async function main() {
     console.log(`[regions]  ${regionCounts.map(([r, f]) => `${r} ${f.toLocaleString()}`).join('  ')}`);
   }
   await writeConfigure(args.out, { films: films.length, eps: episodes.length }, regionCounts);
+  for (const region of args.regions) {
+    await writeConfigureRedirect(path.join(args.out, `region=${region.toLowerCase()}`));
+  }
   // No `generated` timestamp in either committed artifact. It is the only
   // thing that changes on a run where the catalog did not, so writing it makes
   // every scheduled run produce a commit, rebuild Pages, and bury the runs
