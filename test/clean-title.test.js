@@ -270,3 +270,37 @@ test('the six-word hook floor is load-bearing and stays', () => {
   assert.equal(cleanTitle('Attack Of The Crab Monsters | FULL MOVIE | Roger Corman | Horror', 'X'),
                'Attack Of The Crab Monsters');
 });
+
+test('the print label is not part of the film name', () => {
+  // Channels carrying several dubs of one film label the print in the title.
+  // Left in, it goes into the normalized key and matches nothing — 470 Wu Tang
+  // uploads reached no candidate at all for this reason alone.
+  assert.equal(cleanTitle('The Shaolin Invincibles WIDESCREEN', 'X'), 'The Shaolin Invincibles');
+  assert.equal(cleanTitle('Kung Fu King DUTCH', 'X'), 'Kung Fu King');
+  assert.equal(cleanTitle('New big Boss (English Dub)', 'X'), 'New big Boss');
+  // Accents must not hide a tag from a word list spelled without them.
+  assert.equal(cleanTitle('Shaolin Vs Manchu (Subtítulos en Español)', 'X'), 'Shaolin Vs Manchu');
+});
+
+test('a language in the middle of a title is part of the title', () => {
+  // Only a trailing run counts, and only a bracket holding nothing else.
+  assert.equal(cleanTitle('The English Patient', 'X'), 'The English Patient');
+  assert.equal(cleanTitle('Spanish Harlem', 'X'), 'Spanish Harlem');
+  assert.equal(cleanTitle('Subway', 'X'), 'Subway');
+  assert.equal(cleanTitle('The Sub (1994)', 'X'), 'The Sub');
+});
+
+test('a print label is never allowed to eat the title', () => {
+  // "The Korean" ends in a language and is not labelled with one. Stripping it
+  // left "The", which then matched whatever it pleased. An article on its own
+  // is not a title, so it cannot be what a strip leaves behind.
+  assert.equal(
+    cleanTitle('The Korean FULL MOVIE | Action Movies | Josiah D. Lee | The Midnight Screening', 'X'),
+    'The Korean');
+  assert.equal(cleanTitle('Django ITALIAN', 'X'), 'Django');
+  // "Uncut" and "Uncensored" are title words as often as labels, so they only
+  // count inside a bracket: this one lost its second word and matched the 1929
+  // New Orleans instead.
+  assert.equal(cleanTitle('New Orleans Uncensored | English Full Movie | Film-Noir Crime Drama', 'X'),
+               'New Orleans Uncensored');
+});

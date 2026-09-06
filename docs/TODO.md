@@ -186,6 +186,65 @@ instead. Harmless today, but it is the column the weight tuning in item 5 will
 want to read, and a NULL there will look like "no data" rather than "wrong
 column". Cheap to fix while the schema is still moving.
 
+## DONE — the titles that never reached the scorer (2026-09-06)
+
+`no-candidates` was the largest bucket in the warehouse — 3,632 uploads whose
+title matched nothing at all, so the weights never saw them. Two channel habits
+account for most of it, and both are query-side problems rather than scoring
+ones.
+
+**The print label.** Channels carrying several dubs of one film label the print
+in the title: `The Shaolin Invincibles WIDESCREEN`, `Kung Fu King DUTCH`,
+`New big Boss (English Dub)`, `Shaolin Vs Manchu (Subtítulos en Español)`. The
+language of the print is not part of the film's name, and left in it goes into
+the normalized key and matches nothing — 470 Wu Tang uploads for this reason
+alone. Only a *trailing* run is stripped, and only a bracket holding nothing
+else, so `The English Patient` and `Spanish Harlem` keep their languages.
+
+**The name inside the brackets.** Cinema Mei Ah writes the Chinese title and
+puts the English release title in parentheses; the westerns hang marketing off
+the title the same way:
+
+    笑傲江湖II東方不敗 (Swordsman II)｜李連杰、關之琳｜粵語中字｜美亞影院
+    The Taste Of The Savage (Eye For An Eye) Western Movie in Full Length
+
+So the text before the first bracket, and each parenthetical, are tried as
+additional lookup keys — still query-side and still additive. They are labelled
+`exact-derived` so a bad match from a bracket is visible in the review queue
+instead of hiding among the ordinary exact hits: 321 accepted, 202 in review.
+
+Reaching for a bracket only happens **after the title as written finds
+nothing**. Offering both at once cost a film: `Ever After (Reloaded)` is its own
+real title, and `Reloaded` pulled in a rival that closed the margin to 10.
+
+Rejected on measurement: `<name> in <title>` (71 uploads, roughly half wrong —
+`Shaolin Roar In The Woods` → *The Woods*, `He Fights the Yakuza in Brazil` →
+*Brazil*); and dropping single-word parentheticals to save the film above,
+which would have cost 37 correct alternate titles (`(Maternal)`, `(Ruslan)`,
+`(Otryv)`) to save one.
+
+    rejects       3,826 -> 3,000
+    films         2,727 -> 2,923      +196 added, 0 removed
+    Cinema Mei Ah     0 ->    82      0% -> 53.6%, from a channel that published nothing
+    Cult Cinema     385 ->   462      32.5% -> 39.0%
+    Wu Tang         275 ->   313      11.6% -> 13.2%
+
+### The fuzzy tier was dead for a whole pipeline pass
+
+Wrapping the lookup keys in `{v, derived}` objects left one line reading
+`v.length` off the wrapper. It is `undefined` on an object, the length band
+emptied, and `generateCandidates` returned early **for every upload in the
+catalogue** — no error, no warning. Fourteen published films went to
+`no-candidates`: *Cathy's Curse*, *Bulldog Drummond's Peril*, *Steamboat Bill,
+Jr.*, *Robot Monster* and others, all of them channels that type titles by hand
+and drop apostrophes, which is precisely the case only the fuzzy tier ever
+caught.
+
+The `-19 dead` line in the publish diff is the only thing that showed it. There
+is now a test that resolves `cathys curse` against an indexed `cathy s curse`
+and asserts the tier is `fuzzy`, because a tier that silently stops running
+looks exactly like a tier that finds nothing.
+
 ## 3. Work the review queue
 
 2,404 entries, and the sampled ones are mostly *correct* matches sitting under

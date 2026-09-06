@@ -11,6 +11,11 @@
  * cases are pinned in test/clean-title.test.js.
  */
 
+// normalize is shared with the resolver on purpose: the guard below asks "is
+// anything left of this title?", and that question has to be answered the same
+// way the index answers it.
+import { normalize } from '../resolve/normalize.js';
+
 const YEAR_RE = /\b(?:19\d{2}|20\d{2})\b/;
 // Genre words belong here: channels lead with them ("Bollywood COMEDY Movie |
 // Fool N Final"), and leaving them in lets a marketing segment outscore the
@@ -59,6 +64,46 @@ const castHint = (s) => {
 // Studios and broadcast markers precede the year separated by a comma or a
 // hyphen; genre words follow it. All four forms occur in the catalogue.
 const YEAR_PAREN = /[([]\s*(?:[A-Za-z.&]{2,}\s*[,\-]\s*)?(?:19\d{2}|20\d{2})(?:\s+[A-Za-z][\w'-]*){0,3}\s*[)\]]/;
+
+// Channels that carry several dubs of the same film label the print in the
+// title: "The Shaolin Invincibles WIDESCREEN", "Kung Fu King DUTCH", "Exposed
+// to Danger (ENGLISH )", "Shaolin Vs Manchu (Subtítulos en Español)". The
+// language of the print is not part of the film's name, and left in place it
+// goes into the normalized key and matches nothing -- 470 Wu Tang uploads
+// reached no candidate at all for this reason alone.
+//
+// Only a *trailing* run is stripped, and only a bracket that holds nothing
+// else. "The English Patient" keeps its language, because that is where the
+// language belongs.
+const PRINT_TAG = /^(?:widescreen|fullscreen|uncut|uncensored|dub(?:bed)?|sub(?:bed|s|titulos?|titulado|titles?)?|multisub|espanol|english|spanish|french|german|italian|portuguese|dutch|russian|mandarin|cantonese|tagalog|korean|japanese|arabic|turkish|greek|polish|colou?rized|restored|version|audio|en|de|la|el|y)$/i;
+// An article on its own is not a title, so it cannot be what a strip leaves.
+const BARE_ARTICLE = /^(?:the|a|an|le|la|les|el|los|der|die|das|il|lo)$/i;
+const TRAILING_TAG = /[\s,\-–—|]*\b(widescreen|fullscreen|dub(?:bed)?|subbed|multisub|english|spanish|french|german|italian|portuguese|dutch|russian|mandarin|cantonese|tagalog|korean|japanese|arabic|turkish|greek|polish|colou?rized)\b[\s.]*$/i;
+
+/** Drop the print label a channel appended, in either place it appears. */
+export function stripPrintTag(t) {
+  // A bracket made entirely of tag words is a label, not an alternate title.
+  let out = t.replace(/[（([]\s*([^)）\]]{0,44})\s*[)）\]]/g, (whole, inner) => {
+    // Accents must not hide a tag: "Subtítulos en Español" is the same label
+    // as "Subtitulos en Espanol", and only one of them is spelled the way a
+    // word list expects.
+    const words = String(inner).normalize('NFD').replace(/\p{M}+/gu, '')
+      .split(/[\s,+/&·-]+/).filter(Boolean);
+    return words.length && words.every(w => PRINT_TAG.test(w)) ? ' ' : whole;
+  });
+  // Never strip a title down to nothing. "The Korean" ends in a language and
+  // is not labelled with one; taking the word left "The", which then matched
+  // whatever it liked. If an article is all that survives, the word was the
+  // title.
+  for (let prev = null; prev !== out; ) {
+    prev = out;
+    const next = out.replace(TRAILING_TAG, '');
+    if (next === out) break;
+    if (!normalize(next).split(' ').some(w => w && !BARE_ARTICLE.test(w))) break;
+    out = next;
+  }
+  return out.replace(/\s{2,}/g, ' ').trim();
+}
 
 // Symbols these channels use as separators: emoji, dingbats, and the shouty
 // punctuation that ends a clickbait hook.
@@ -315,6 +360,7 @@ export function cleanTitle(raw, channel = '') {
 
   t = t.replace(/\s{2,}/g, ' ').trim();
   t = t.replace(/^[-–—:,\s]+|[-–—:,\s]+$/g, '');
+  t = stripPrintTag(t) || t;
   return t || input.trim() || raw.trim();
 }
 

@@ -112,7 +112,12 @@ function stubIndex(rows, credits = {}) {
   return {
     db: { prepare: () => ({ get: id => rows.find(r => r.tconst === id) }) },
     exact: k => norm.get(k) || [],
-    yearWindow: () => [],
+    // Every indexed norm inside the year and length bounds, which is what the
+    // real one streams out of title_norm.
+    yearWindow: (lo, hi, minLen, maxLen) => rows.flatMap(r =>
+      (r.startYear >= lo && r.startYear <= hi)
+        ? r.norms.filter(n => n.length >= minLen && n.length <= maxLen).map(n => ({ ...r, norm: n }))
+        : []),
     credits: t => credits[t] || [],
     close() {},
   };
@@ -373,4 +378,21 @@ test('the yearless lift moves a match over the floor, never past another match',
   assert.equal(r.signals.year, 8);        // the winner is not top-band, so no lift
   assert.equal(r.margin, 13);             // 85 - 72, untouched by the rival's runtime
   assert.equal(r.status, 'accept');
+});
+
+test('the fuzzy tier is reachable, and catches a channel that drops apostrophes', () => {
+  // These channels type titles by hand: "Cathys Curse", "Bulldog Drummonds
+  // Peril", "Fathers Little Dividend". normalize() turns an apostrophe into a
+  // space, so "Cathy's Curse" indexes as "cathy s curse" and the upload's
+  // "cathys curse" is not an exact hit — the fuzzy tier is the only thing that
+  // ever matched them, and fourteen published films depended on it.
+  //
+  // It broke in exactly the way a silent tier does: generateCandidates started
+  // wrapping its lookup keys in {v, derived} objects, and the line reading
+  // `v.length` off each key kept running, now on an object, producing an empty
+  // length band and an early return for every upload in the catalogue.
+  const index = stubIndex([title('tt0075820', "cathy s curse", 1977, 82)]);
+  const r = resolveOne(upload({ name: 'cathys curse', year: 1977, runtimeMin: 82 }), index);
+  assert.equal(r.imdbId, 'tt0075820');
+  assert.equal(r.tier, 'fuzzy');
 });

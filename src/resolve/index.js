@@ -224,36 +224,80 @@ export function generateCandidates(video, index) {
   // differently. The year has already been extracted into video.year, so the
   // copy still sitting in the title text is noise that matches nothing.
   const variants = [];
-  for (const v of normVariants(video.name || '')) {
-    variants.push(v);
-    const noYear = stripTrailingYear(v);
-    if (noYear) variants.push(noYear);
-  }
+  const push = (raw, derived) => {
+    for (const v of normVariants(raw || '')) {
+      variants.push({ v, derived });
+      const noYear = stripTrailingYear(v);
+      if (noYear) variants.push({ v: noYear, derived });
+    }
+  };
+  push(video.name, false);
+
+  // Two channel habits put the film's name inside brackets rather than beside
+  // them, and neither survives a straight lookup:
+  //
+  //   The Taste Of The Savage (Eye For An Eye) Western Movie in Full Length
+  //   笑傲江湖II東方不敗 (Swordsman II)｜李連杰、關之琳｜粵語中字｜美亞影院
+  //
+  // The first hangs marketing off the title; the second is Cinema Mei Ah,
+  // which writes the Chinese title and puts the English release title in
+  // parentheses -- 151 uploads, and the channel published nothing at all.
+  // So try the text before the first bracket, and each parenthetical, as
+  // additional keys. Still query-side and still additive: more lookups, not a
+  // different normalization.
+  const derive = () => {
+    const name = video.name || '';
+    const cut = name.search(/[（([]/);
+    if (cut > 3) push(name.slice(0, cut), true);
+    for (const m of name.matchAll(/[（([]([^)）\]]{3,60})[)）\]]/g)) {
+      if (!/^[\d\s.,-]+$/.test(m[1])) push(m[1], true);
+    }
+  };
   if (!variants.length) return { candidates: [], tier: 'none' };
 
   // Tier 1 + 2 share a lookup; separate them by which source matched so the
   // scorer can tell an exact primary hit from an exact aka hit.
   const byTconst = new Map();
-  for (const v of variants) {
-    for (const row of index.exact(v)) {
-      const kind = row.source === 'aka' ? 'aka' : row.source;
-      const prev = byTconst.get(row.tconst);
-      // A tconst can match on several norm rows; keep the strongest source.
-      if (!prev || scoreTitle(kind) > scoreTitle(prev.kind)) {
-        byTconst.set(row.tconst, rowToCandidate(row, kind));
+  const lookup = () => {
+    for (const { v, derived } of variants) {
+      for (const row of index.exact(v)) {
+        const kind = row.source === 'aka' ? 'aka' : row.source;
+        const prev = byTconst.get(row.tconst);
+        // A tconst can match on several norm rows; keep the strongest source.
+        if (!prev || scoreTitle(kind) > scoreTitle(prev.kind)) {
+          byTconst.set(row.tconst, { ...rowToCandidate(row, kind), derived });
+        }
       }
     }
-  }
+  };
+  lookup();
+
+  // Only reach into the brackets when the title as written found nothing. A
+  // rebuilt key must never dilute a direct hit: "Ever After (Reloaded)" is its
+  // own real title, and offering "Reloaded" alongside it pulled in a rival
+  // that closed the margin to 10 and dropped a published film.
+  if (!byTconst.size) { derive(); lookup(); }
+
   if (byTconst.size) {
     const exact = [...byTconst.values()];
-    const tier = exact.some(c => c.kind !== 'aka') ? 'exact-primary' : 'exact-aka';
+    // A title we had to reconstruct scores the same but is labelled apart, so
+    // a bad match from a bracket is visible in the review queue instead of
+    // hiding among the ordinary exact hits.
+    const tier = exact.every(c => c.derived) ? 'exact-derived'
+      : exact.some(c => c.kind !== 'aka') ? 'exact-primary' : 'exact-aka';
     return { candidates: exact, tier };
   }
 
   if (video.year == null) return { candidates: [], tier: 'none' };
 
   // Tier 3 — fuzzy, bounded to ±1 year per §3 and to a plausible length band.
-  const lens = variants.map(v => v.length).filter(Boolean);
+  // Read off the keys, not the wrappers. When `variants` became {v, derived}
+  // objects this line kept saying `v.length`, which is undefined on an object,
+  // so `lens` emptied and the whole fuzzy tier returned early -- silently, and
+  // for every upload. Fourteen published films went to no-candidates before
+  // the publish diff caught it.
+  const keys = variants.map(x => x.v);
+  const lens = keys.map(v => v.length).filter(Boolean);
   if (!lens.length) return { candidates: [], tier: 'none' };
   const bound = FUZZY_FLOOR - 0.05;
   const minLen = Math.floor(Math.min(...lens) * bound);
@@ -261,7 +305,7 @@ export function generateCandidates(video, index) {
 
   const fuzzy = new Map();
   for (const row of index.yearWindow(video.year - 1, video.year + 1, minLen, maxLen)) {
-    for (const v of variants) {
+    for (const v of keys) {
       const ratio = similarity(v, row.norm);
       if (ratio < FUZZY_FLOOR) continue;
       const prev = fuzzy.get(row.tconst);

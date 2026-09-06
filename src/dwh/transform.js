@@ -31,7 +31,10 @@ import { buildIndex, resolveOne } from '../resolve/index.js';
  * Bump when resolve/index.js changes scoring semantics. Stored on every
  * resolution so a stale one is recomputed rather than silently trusted.
  */
-export const RESOLVER_VERSION = 5;   // 5: that lift moved to the winner alone, so margins do not shift
+export const RESOLVER_VERSION = 8;   // 8: derived keys only when the title as written finds nothing
+                                     // 7: fuzzy tier repaired after 6 silently disabled it
+                                     // 6: bracket-derived lookup keys, and print labels stripped
+                                     // 5: that lift moved to the winner alone, so margins do not shift
                                      // 4: a missing year is neutral-12 when the runtime corroborates
                                      // 3: type filter applied before the candidate cap
 
