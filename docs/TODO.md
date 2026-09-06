@@ -436,8 +436,20 @@ unrestricted. None has a second copy, so nothing can be swapped in. The API's
 metadata record simply outlives the video, which is the whole reason this probe
 exists alongside `verify-streams`.
 
-Nothing acts on them. Removing a film is a policy decision and wants the
-owner's call, the way the age-gate swap did.
+**Dropped, on the owner's call (2026-09-06).** `unreachable`, `private` and
+`members-only` now remove the upload outright, because unlike a gated one there
+is no viewer who can play it — an entry that always fails costs the click and
+the trust, which is worse than no entry.
+
+`unreachable` needs seeing **twice**: yt-dlp reports a throttled request and a
+deleted video in much the same breath, and one bad minute must not delete a
+film. `private` and `members-only` are unambiguous from a single probe. A single
+success clears the count and the film returns.
+
+Two films left the catalogue and one was rescued: *The Little Princess* had a
+second copy, so the dead upload went and the film stayed on a 360p print.
+
+    2,736 -> 2,734 films      -2 dead, 0 added
 
 ### Throttling is not a verdict
 

@@ -4,26 +4,24 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import { openCore, recordPlayback, quarantinedYtIds, UNPLAYABLE } from '../src/dwh/core.js';
+import { openCore, recordPlayback, quarantinedYtIds, deadYtIds, UNPLAYABLE } from '../src/dwh/core.js';
 
 const core = () => openCore(path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'q-')), 'core.sqlite'));
 
-test('only the verdicts a viewer can never get past are quarantined', () => {
+test('a region verdict never votes, because it is about the prober', () => {
   // region-blocked reflects wherever the probe ran — CI is in the US, the dev
-  // box is not — and unreachable can be a dropped connection as easily as a
-  // dead video. Neither is a stable property of the upload, so neither votes.
-  assert.deepEqual([...UNPLAYABLE].sort(), ['age-gated', 'members-only', 'private']);
-
+  // box is not — so it says nothing about the region we publish for and must
+  // not reach either set.
   const db = core();
   recordPlayback(db, [
     { ytId: 'gated',  verdict: 'age-gated', maxHeight: null, durationSec: null, subtitles: [] },
-    { ytId: 'priv',   verdict: 'private' },
     { ytId: 'region', verdict: 'region-blocked' },
-    { ytId: 'flaky',  verdict: 'unreachable' },
     { ytId: 'fine',   verdict: 'ok', maxHeight: 1080, durationSec: 5400, subtitles: ['en'] },
   ], 1);
+  recordPlayback(db, [{ ytId: 'region', verdict: 'region-blocked' }], 2);
 
-  assert.deepEqual([...quarantinedYtIds(db)].sort(), ['gated', 'priv']);
+  assert.deepEqual([...quarantinedYtIds(db)], ['gated']);
+  assert.deepEqual([...deadYtIds(db)], [], 'twice region-blocked is still not dead');
   db.close();
 });
 
@@ -77,4 +75,32 @@ test('the fail_count column reaches a warehouse that predates it', () => {
   recordPlayback(reopened, [{ ytId: 'y', verdict: 'unreachable' }], 1);
   assert.equal(reopened.prepare('SELECT fail_count FROM fct_playback WHERE ytId=?').get('y').fail_count, 1);
   reopened.close();
+});
+
+test('gated and dead are different problems and get different treatment', () => {
+  // A gated upload still works for a viewer signed in on YouTube, which is why
+  // it is kept and labelled when it is the only copy. Nothing else that fails
+  // to play has that property, so nothing else belongs in UNPLAYABLE.
+  assert.deepEqual([...UNPLAYABLE], ['age-gated']);
+
+  const db = core();
+  recordPlayback(db, [
+    { ytId: 'gated',  verdict: 'age-gated' },
+    { ytId: 'priv',   verdict: 'private' },
+    { ytId: 'once',   verdict: 'unreachable' },
+    { ytId: 'region', verdict: 'region-blocked' },
+    { ytId: 'fine',   verdict: 'ok', maxHeight: 720 },
+  ], 1);
+
+  assert.deepEqual([...quarantinedYtIds(db)], ['gated']);
+  // One unreachable probe is not enough to delete a film; private is.
+  assert.deepEqual([...deadYtIds(db)].sort(), ['priv']);
+
+  recordPlayback(db, [{ ytId: 'once', verdict: 'unreachable' }], 2);
+  assert.deepEqual([...deadYtIds(db)].sort(), ['once', 'priv']);
+
+  // And it lets go: one success clears the count and the film comes back.
+  recordPlayback(db, [{ ytId: 'once', verdict: 'ok', maxHeight: 480 }], 3);
+  assert.deepEqual([...deadYtIds(db)].sort(), ['priv']);
+  db.close();
 });

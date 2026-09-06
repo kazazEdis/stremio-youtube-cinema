@@ -17,7 +17,7 @@ import fsp from 'node:fs/promises';
 import path from 'node:path';
 
 import { openCore, seedFirstSeen, noteFirstSeen, thumbUrl, statusName, getCoreMeta,
-         quarantinedYtIds } from './core.js';
+         quarantinedYtIds, deadYtIds } from './core.js';
 import { openLanding, startRun, finishRun } from './landing.js';
 import { settleDuplicates, THRESHOLDS } from '../resolve/index.js';
 import { loadExclusions, excludedByImdb } from '../resolve/exclude.js';
@@ -206,7 +206,16 @@ export function loadCore(wh, { region, rules }) {
   // gated films found had no spare at all. Those keep their stream and are
   // marked `notWebReady` instead, which is the truth about them.
   const quarantine = quarantinedYtIds(wh);
-  const regional = rows.filter(r => playableIn(region, r.blocked_regions, r.allowed_regions));
+
+  // A confirmed-dead upload is removed before anything else looks at it. Unlike
+  // a gated one there is no viewer who can play it, so keeping it would serve a
+  // click that always fails, and a film left with no copy at all leaves the
+  // catalogue. Three did: The Little Princess, The Brave One and Gulliver's
+  // Travels, each reproducibly "This video is not available" while the Data API
+  // reported them public and embeddable.
+  const dead = deadYtIds(wh);
+  const regional = rows.filter(r => !dead.has(r.ytId)
+                                 && playableIn(region, r.blocked_regions, r.allowed_regions));
   const copies = new Map();
   for (const r of regional) {
     const id = r.published_id ?? r.imdb_id;
