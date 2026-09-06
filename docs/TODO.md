@@ -494,6 +494,44 @@ are *Rocky Jones, Space Ranger*, which was serialised in three-part chapters and
 whose uploads carry a whole story under its first episode's number. A viewer
 clicking E19 gets E19 and then some, which is not a wrong match.
 
+## DONE — unrestricted root, twenty regional addons (2026-09-06)
+
+Torrentio's convention, adapted to a static host: configuration rides in a path
+segment before `manifest.json`. Torrentio parses that per request because it is
+a live server; on Pages each value has to be a real directory, which is only
+affordable because the config here is one key with twenty values rather than
+providers × qualities × debrid keys.
+
+    /manifest.json              2,202 films + 349 episodes, no restrictions
+    /region=us/manifest.json    3,372
+    /region=hr/manifest.json    2,736
+    /configure/                 pick a country, get the link
+
+**The root is the unrestricted set**, and that is a decision about honesty. Its
+films carry no country restriction at all, so a viewer anywhere can install one
+URL and have every stream work. `FREE` is not "playable where I am" — an upload
+allowed only in the US passes `playableIn('US')` and must not pass this.
+
+Two-thirds of the catalogue turned out to be region-free; only 1,412 films
+needed a region to decide. The US unlocks 1,170 of them that the root cannot
+offer — mostly licensed uploads gated to North America, which is why *Joe 90*
+resolved 30 episodes correctly and published none while the catalogue was
+Croatia-only. It publishes now, under `region=us`.
+
+The configure page is generated from the trees that were actually built. A
+region offered there that does not exist is a 404 a viewer reads as a broken
+addon.
+
+**Deployment changed with it.** Twenty regional trees are 66,000 files and
+280 MB, ~85% identical to the root, so committing them weekly would bury the one
+commit that matters. `docs/region=*/` is gitignored and the site deploys as a
+Pages artifact (`build_type` switched from `legacy` to `workflow`); the repo
+keeps the unrestricted tree, which stays diffable. Job timeout 45 → 90 minutes.
+
+`publishedStreams` walks every tree now — reading only the root would have
+quietly stopped covering the uploads that exist *because* of a region, which are
+the ones a rights holder is most likely to gate or pull.
+
 ## 3. Work the review queue
 
 2,404 entries, and the sampled ones are mostly *correct* matches sitting under
@@ -657,10 +695,11 @@ an index a few days stale. Right now the step is neither.
 
 ## Deferred, deliberately
 
-**Multi-region.** Currently region is filtered at *index* time, so blocked films
-are discarded rather than recorded — 2,779 of them. Serving other regions means
-recording `blocked[]`/`allowed[]` and filtering at serve time, plus per-region
-catalogs. Scope is Croatia until that changes.
+**~~Multi-region.~~ Done 2026-09-06.** The note above described the pre-DWH
+path, where region was filtered at *index* time and blocked films were thrown
+away. The warehouse has kept `blocked_regions`/`allowed_regions` on every upload
+since the cutover, so this turned out to be a publish-time loop rather than a
+re-architecture, and nobody had updated the note.
 
 **A different serialization format.** See `docs/FORMATS.md`.
 
