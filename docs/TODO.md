@@ -396,7 +396,15 @@ it, or re-resolve to a different upload of the same film — and that decision
 wants numbers in front of it.
 
 Wired into `build-catalog.yml` after publish, so `docs/health.json` is rebuilt
-and committed with every weekly catalogue. The step is `continue-on-error`
+and committed with every weekly catalogue. `probe-playback` runs there too, at
+150 a week — enough to cover anything new immediately and refresh all 3,893
+streams roughly every six months. The publish is repeated after it, so a
+quarantine or a dead upload takes effect the same run rather than a week later.
+
+A runner is a datacenter IP and YouTube bot-checks those far more often than a
+home connection. That is survivable rather than fatal: a throttled probe is
+classified apart and never written, so a blocked run learns nothing instead of
+recording a healthy film as dead. The step is `continue-on-error`
 **on purpose**: it is diagnostic, and a quota error or a network blip must not
 throw away a catalogue that published cleanly. Problems surface as a
 `::warning::` in the Actions summary, the same way a silent channel does.

@@ -1,24 +1,67 @@
 {
-  "probedAt": "2026-09-06T12:02:43.988Z",
+  "probedAt": "2026-09-06T12:09:55.584Z",
   "seed": 2957,
-  "sampled": 1,
-  "population": 3893,
+  "sampled": 3,
+  "population": 3890,
   "verdicts": {
-    "unreachable": 1
+    "ok": 3
   },
   "maxHeight": {
-    "undefined": 1
+    "1080": 1,
+    "2160": 2
   },
-  "realSubtitles": 0,
+  "realSubtitles": 3,
   "results": [
     {
-      "ytId": "RI_dXneWm6I",
-      "imdbId": "tt0049030",
-      "name": "The Brave One",
-      "channel": "PizzaFlix",
-      "expectedMin": 100,
-      "verdict": "unreachable",
-      "error": "ERROR: [youtube] RI_dXneWm6I: This video is not available "
+      "ytId": "8KYUSLtXJyo",
+      "durationSec": 4797,
+      "ageLimit": 0,
+      "availability": "public",
+      "liveStatus": "not_live",
+      "maxHeight": 1080,
+      "subtitles": [
+        "live_chat"
+      ],
+      "autoCaptions": 157,
+      "imdbId": "tt0060584",
+      "name": "Kidnapping, Caucasian Style",
+      "channel": "Mosfilm",
+      "expectedMin": 80,
+      "verdict": "ok"
+    },
+    {
+      "ytId": "rvMoOym4OaE",
+      "durationSec": 4944,
+      "ageLimit": 0,
+      "availability": "public",
+      "liveStatus": "not_live",
+      "maxHeight": 2160,
+      "subtitles": [
+        "en"
+      ],
+      "autoCaptions": 157,
+      "imdbId": "tt0060628",
+      "name": "My Gun Is the Law",
+      "channel": "Grjngo - Western Movies",
+      "expectedMin": 82,
+      "verdict": "ok"
+    },
+    {
+      "ytId": "Vl0uzTY0M9Y",
+      "durationSec": 4628,
+      "ageLimit": 0,
+      "availability": "public",
+      "liveStatus": "not_live",
+      "maxHeight": 2160,
+      "subtitles": [
+        "live_chat"
+      ],
+      "autoCaptions": 157,
+      "imdbId": "tt0060747",
+      "name": "The Elusive Avengers",
+      "channel": "Mosfilm",
+      "expectedMin": 77,
+      "verdict": "ok"
     }
   ]
 }

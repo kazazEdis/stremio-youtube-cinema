@@ -72,6 +72,41 @@ jobs:
       - name: Publish marts
         run: npm run publish
 
+      # What only a real client knows: age-gating, which the Data API reports as
+      # embeddable; a video that is simply gone while videos.list still returns
+      # its metadata; and the resolution shown to the viewer. Nothing else keeps
+      # fct_playback current, and both the quarantine and the dead-upload rule
+      # read it — without this a video that gets ungated stays quarantined for
+      # good, and one that dies is never noticed.
+      #
+      # It reads the marts, so it has to come after publish; the second publish
+      # below is what applies whatever it just learned, rather than leaving the
+      # catalogue a week behind its own findings.
+      #
+      # 150 a run at ~3.6s each is about two minutes, and refreshes the whole
+      # 3,893 streams roughly every six months while covering anything new
+      # first. Raise --sample to go faster.
+      #
+      # A runner is a datacenter IP, so YouTube will bot-check it far more often
+      # than a home connection does. That is survivable rather than fatal: a
+      # throttled probe is classified apart and never written, so a blocked run
+      # learns nothing instead of recording a healthy film as dead. The step is
+      # continue-on-error for the same reason — it is diagnostic, and must not
+      # throw away a catalogue that published cleanly.
+      - name: Probe playback
+        continue-on-error: true
+        run: |
+          # The documented install, unpinned on purpose: YouTube changes often
+          # enough that a pinned yt-dlp is a broken one within months.
+          sudo curl -sSL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp \
+            -o /usr/local/bin/yt-dlp
+          sudo chmod a+rx /usr/local/bin/yt-dlp
+          yt-dlp --version
+          npm run probe-playback -- --sample 150
+
+      - name: Republish with what the probe found
+        run: npm run publish
+
       # Asks YouTube whether the videos we just published still play — deleted,
       # private, un-embeddable or newly geo-blocked. The extract is incremental,
       # so a video pulled since it was last hydrated is invisible until someone
