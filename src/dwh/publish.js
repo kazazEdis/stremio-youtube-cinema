@@ -536,6 +536,15 @@ export async function writeTree(outDir, { movies, regional, quarantine, region }
     await prune(outDir, 'series', new Set(episodes.map(m => `${m.id}.json`)));
   if (orphans) console.log(`[publish]  pruned ${orphans} stream files no longer in ${outDir}`);
 
+  // Which episode ids this tree actually publishes, keyed by show. Stremio does
+  // not need it — it learns the episode list from Cinemeta — but nothing else
+  // can tell from outside whether a listed show has any episode behind it, and
+  // the full catalog.json dump only exists in the root. Ten kilobytes per tree
+  // makes every variant checkable remotely instead of only the one.
+  const byShow = {};
+  for (const e of episodes) (byShow[e.imdbId] ??= []).push(e.id);
+  await writeJson(path.join(outDir, 'episodes.json'), byShow);
+
   await verifyMarts(outDir, movies);
   return { films, episodes, groups, seriesGroups, shows, pages };
 }

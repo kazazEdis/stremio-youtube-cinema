@@ -155,6 +155,14 @@ jobs:
             git push
           fi
 
+      # Walk the built addon the way Stremio does: every declared catalogue
+      # resolves, page two exists where page one is full, and a listed title has
+      # a stream at the id a client will actually ask for. The marts can be
+      # internally perfect and still unusable if the ids do not line up, and
+      # that failure is invisible from inside.
+      - name: Addon conformance
+        run: npm run conformance
+
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
         with:

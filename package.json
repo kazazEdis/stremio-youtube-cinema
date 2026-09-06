@@ -18,6 +18,7 @@
     "fetch": "node src/resolve/build-index.js --cache .cache --fetch-only",
     "build-index": "node --max-old-space-size=1024 src/resolve/build-index.js --cache .cache",
     "verify-streams": "node --env-file-if-exists=.env src/dwh/verify-streams.js --region HR --out docs",
-    "probe-playback": "node src/dwh/probe-playback.js --sample 300 --concurrency 8"
+    "probe-playback": "node src/dwh/probe-playback.js --sample 300 --concurrency 8",
+    "conformance": "node src/conformance.js --base docs --regions us,ca,gb,au,ie,nz,de,fr,it,es,nl,pl,hr,rs,br,in,jp,mx,se,tr"
   }
 }
