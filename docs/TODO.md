@@ -9,6 +9,26 @@ Status as of 2026-09-05: 8,276 films indexed (Croatia), 2,102 published,
 
 ---
 
+## DONE — TV series (2026-09-06)
+
+317 episodes across 15 public-domain shows, live alongside 2,285 films.
+`src/transform/episode.js` parses the marker, `scoreTypeMatch` in
+`src/resolve/index.js` rejects a type mismatch outright, and the marts carry a
+`series` type with `tt<series>:<season>:<episode>` stream ids.
+
+Open follow-ups from that work:
+
+- **The fuzzy tier's early break is order-dependent.** `generateCandidates`
+  stops at `MAX_CANDIDATES * 4`, so a larger index can fill the year window
+  before reaching a good match. Cost one film (`Get Christie Love!`) when the
+  index grew by 377k series. Scoring every candidate would fix it and is
+  expensive; an override is the cheap escape hatch.
+- **`Sapphire and Steel` resolves to nothing** despite being in the catalogue —
+  worth a probe, it may be an aka-coverage gap.
+- **Series scoring is unmeasured.** The 20-point type signal was reasoned, not
+  tuned. 405 episodes sit in review; that queue is the evidence for a first
+  tuning pass.
+
 ## DONE 2026-09-05 — items 1 and 2
 
 `cleanTitle` now runs in `src/dwh/transform.js`, not during the fetch, and the
