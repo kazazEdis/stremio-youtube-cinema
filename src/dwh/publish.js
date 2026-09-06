@@ -317,6 +317,47 @@ async function prune(outDir, kind, keep) {
 }
 
 /**
+ * Delete catalogue pages the current run did not write.
+ *
+ * `prune` above does this for streams, and the catalogue side was missed —
+ * which is the half that ships wrong *listings* rather than wrong links. Three
+ * generations of leftovers were found in one tree: `skip=2200` from a publish
+ * six hours earlier, `skip=2800..3000` from the 3,055-film catalogue before the
+ * Wu Tang channel was pulled, and a complete `ytc-martialarts` catalogue for a
+ * channel that no longer exists — 18 files still being served and committed.
+ *
+ * Only reachable when a catalogue shrinks past a page boundary, because Stremio
+ * stops paging on a short page. That is what made it invisible: every count in
+ * the run was right, conformance passed, and the addon still carried a
+ * catalogue the pipeline had deliberately removed.
+ *
+ * Recursive rather than flat: an obsolete catalogue is both `ytc-x.json` and a
+ * whole `ytc-x/` directory beside it.
+ */
+async function pruneCatalogs(outDir, written) {
+  const sweep = async dir => {
+    let entries;
+    try { entries = await fsp.readdir(dir, { withFileTypes: true }); } catch { return 0; }
+    let removed = 0;
+    for (const e of entries) {
+      const full = path.join(dir, e.name);
+      if (e.isDirectory()) {
+        removed += await sweep(full);
+        // A catalogue that is gone entirely leaves its directory behind empty.
+        await fsp.rmdir(full).catch(() => {});
+      } else if (e.name.endsWith('.json') && !written.has(path.resolve(full))) {
+        await fsp.rm(full, { force: true });
+        removed++;
+      }
+    }
+    return removed;
+  };
+  let removed = 0;
+  for (const type of ['movie', 'series']) removed += await sweep(path.join(outDir, 'catalog', type));
+  return removed;
+}
+
+/**
  * The orderings offered as Stremio `genre` chips.
  *
  * `genre` is the only filter slot the protocol gives a catalogue, and using it
@@ -379,9 +420,15 @@ export function weightRatings(metas, m = 500) {
  * small file beats a catalogue that stops dead at a hundred entries because we
  * guessed wrong about which came first.
  */
-async function writeCatalog(outDir, type, id, rows, toRow, sorts) {
+async function writeCatalog(outDir, type, id, rows, toRow, sorts, written) {
   const dir = path.join(outDir, 'catalog', type);
   let pages = 0;
+
+  // Record every page written, so writeTree can delete the ones it did not.
+  const put = async (file, data) => {
+    await writeJson(file, data);
+    written?.add(path.resolve(file));
+  };
 
   // Sort the rich rows and reduce to protocol shape only on the way out. The
   // meta Stremio receives carries no view count, rating or numeric year — and
@@ -390,15 +437,15 @@ async function writeCatalog(outDir, type, id, rows, toRow, sorts) {
   const writeSet = async (prefix, ordered) => {
     const metas = ordered.map(toRow);
     const head = prefix ? path.join(dir, id, `${prefix}.json`) : path.join(dir, `${id}.json`);
-    await writeJson(head, { metas: metas.slice(0, PAGE) });
+    await put(head, { metas: metas.slice(0, PAGE) });
     pages++;
     for (let skip = PAGE; skip < metas.length; skip += PAGE) {
       const body = { metas: metas.slice(skip, skip + PAGE) };
       if (prefix) {
-        await writeJson(path.join(dir, id, `${prefix}&skip=${skip}.json`), body);
-        await writeJson(path.join(dir, id, `skip=${skip}&${prefix}.json`), body);
+        await put(path.join(dir, id, `${prefix}&skip=${skip}.json`), body);
+        await put(path.join(dir, id, `skip=${skip}&${prefix}.json`), body);
       } else {
-        await writeJson(path.join(dir, id, `skip=${skip}.json`), body);
+        await put(path.join(dir, id, `skip=${skip}.json`), body);
       }
       pages++;
     }
@@ -599,21 +646,22 @@ export async function writeTree(outDir, { movies, regional, quarantine, region }
   await writeJson(path.join(outDir, 'manifest.json'),
                   buildManifest(films, groups, '', seriesGroups, region, sorts));
 
-  let pages = await writeCatalog(outDir, 'movie', 'ytc-all', films, m => toMeta(m), sorts);
+  const writtenPages = new Set();
+  let pages = await writeCatalog(outDir, 'movie', 'ytc-all', films, m => toMeta(m), sorts, writtenPages);
   for (const g of groups) {
     pages += await writeCatalog(outDir, 'movie', `ytc-${slug(g)}`,
-                                films.filter(m => m.group === g), m => toMeta(m), sorts);
+                                films.filter(m => m.group === g), m => toMeta(m), sorts, writtenPages);
   }
 
   // Series: the catalogue lists shows, the streams are per episode.
   const shows = showRows(episodes);
   if (shows.length) {
     pages += await writeCatalog(outDir, 'series', 'ytc-all',
-                                shows, m => toMeta(m, 'series'), sorts);
+                                shows, m => toMeta(m, 'series'), sorts, writtenPages);
     for (const g of seriesGroups) {
       pages += await writeCatalog(outDir, 'series', `ytc-${slug(g)}`,
                                   showRows(episodes.filter(m => m.group === g)),
-                                  m => toMeta(m, 'series'), sorts);
+                                  m => toMeta(m, 'series'), sorts, writtenPages);
     }
   }
 
@@ -631,6 +679,9 @@ export async function writeTree(outDir, { movies, regional, quarantine, region }
     await prune(outDir, 'movie', new Set(films.map(m => `${m.imdbId}.json`))) +
     await prune(outDir, 'series', new Set(episodes.map(m => `${m.id}.json`)));
   if (orphans) console.log(`[publish]  pruned ${orphans} stream files no longer in ${outDir}`);
+
+  const stale = await pruneCatalogs(outDir, writtenPages);
+  if (stale) console.log(`[publish]  pruned ${stale} catalogue pages no longer in ${outDir}`);
 
   // Which episode ids this tree actually publishes, keyed by show. Stremio does
   // not need it — it learns the episode list from Cinemeta — but nothing else

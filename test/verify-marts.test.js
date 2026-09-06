@@ -5,7 +5,7 @@ import fsp from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import { verifyMarts, streamsFor, playableIn, FREE, ORDERINGS, weightRatings } from '../src/dwh/publish.js';
+import { verifyMarts, streamsFor, playableIn, FREE, ORDERINGS, weightRatings, writeTree } from '../src/dwh/publish.js';
 import { toStream, buildManifest, SORTS } from '../src/publish.js';
 
 function mart(entries) {
@@ -180,4 +180,40 @@ test('Popular and Year order by what they say, with a stable tiebreak', () => {
                    ['A film', 'C film', 'B film', 'D film']);
   // A missing value sorts last rather than throwing or floating to the top.
   assert.equal([...rows].sort(ORDERINGS.Year).at(-1).name, 'D film');
+});
+
+test('a catalogue the run did not write is pruned', async () => {
+  // Three generations of leftovers were found live in docs/: skip=2200 from a
+  // publish six hours earlier, skip=2800..3000 from the 3,055-film catalogue
+  // before the Wu Tang channel was pulled, and a whole ytc-martialarts
+  // catalogue for a channel that no longer exists. Streams were already pruned;
+  // catalogue pages were not, so the addon went on serving listings the
+  // pipeline had deliberately removed. Invisible because Stremio stops paging
+  // on a short page, so nothing ever requested them.
+  const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'tree-'));
+  const movies = [
+    { imdbId: 'tt1', ytId: 'a', name: 'One', year: 1950, group: 'Public Domain' },
+    { imdbId: 'tt2', ytId: 'b', name: 'Two', year: 1955, group: 'Public Domain' },
+  ];
+  const tree = () => writeTree(dir, { movies, regional: [], quarantine: new Set(), region: null });
+  await tree();
+
+  const live = path.join(dir, 'catalog', 'movie', 'ytc-all.json');
+  const stalePage = path.join(dir, 'catalog', 'movie', 'ytc-all', 'skip=2200.json');
+  const staleHead = path.join(dir, 'catalog', 'movie', 'ytc-martialarts.json');
+  const staleDir = path.join(dir, 'catalog', 'movie', 'ytc-martialarts');
+  await fsp.mkdir(staleDir, { recursive: true });
+  await fsp.mkdir(path.dirname(stalePage), { recursive: true });
+  for (const f of [stalePage, staleHead, path.join(staleDir, 'skip=100.json')]) {
+    await fsp.writeFile(f, JSON.stringify({ metas: [{ id: 'tt9', name: 'Gone' }] }));
+  }
+
+  await tree();
+
+  assert.ok(fs.existsSync(live), 'the live catalogue survives');
+  for (const f of [stalePage, staleHead]) {
+    assert.ok(!fs.existsSync(f), `${path.basename(f)} should have been pruned`);
+  }
+  // The whole catalogue is gone, so its directory goes with it.
+  assert.ok(!fs.existsSync(staleDir), 'an emptied catalogue directory is removed');
 });
