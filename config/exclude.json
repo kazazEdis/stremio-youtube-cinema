@@ -1,7 +1,11 @@
 {
-  "_comment": "Catalog exclusions, applied before resolving. `scripts` drops uploads whose ORIGINAL YouTube title contains that writing system — the reliable signal for language, since the public IMDb datasets carry no language or country field. `groups` drops whole config/channels.json groups. `imdbIds` and `ytIds` are precise manual escape hatches. Everything here is reported in the run summary, so nothing disappears silently.",
-  "scripts": ["devanagari"],
-  "groups": [],
+  "_comment": "Catalog exclusions, applied before resolving. `scripts` drops uploads whose ORIGINAL YouTube title contains that writing system — the reliable signal for language, since the public IMDb datasets carry no language or country field. `groups` drops whole config/channels.json groups. `imdbIds` and `ytIds` are precise manual escape hatches. Everything here is reported in the run summary, so nothing disappears silently. groups currently holds MartialArts, whose only channel is the Wu Tang Collection: 2,372 features resolving at 13.4%, and its 888 unresolved uploads are per-distributor English release names that IMDb carries under no aka. Dropped by the owner's decision on 2026-09-06, not by a heuristic.",
+  "scripts": [
+    "devanagari"
+  ],
+  "groups": [
+    "MartialArts"
+  ],
   "imdbIds": [],
   "ytIds": []
 }

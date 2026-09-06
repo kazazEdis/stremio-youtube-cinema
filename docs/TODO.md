@@ -272,14 +272,42 @@ no lowercase at all took it to 27 for 27.
     Cult Cinema          462 ->   611     51.5%
     derived tier         321 ->   576 accepted
 
-## Wu Tang Collection: no further tuning (2026-09-06)
+## DONE — Wu Tang Collection dropped (2026-09-06)
 
-Decided by the owner. The channel is 2,372 features and resolves at 13.4%; the
-888 uploads still at `no-candidates` are the largest single block left, and
-they are titles like `Right Overcomes Might`, `My Blade my Life` and
-`Black Belt The Roaming Hero` — English release names invented per-distributor
-that IMDb does not carry under any aka. The channel stays in the catalogue for
-the 319 films it does resolve; it is simply not the place to spend effort.
+The owner's call. The channel was 2,372 features resolving at 13.4%, and its
+888 remaining `no-candidates` were the largest single block left in the
+warehouse — titles like `Right Overcomes Might`, `My Blade my Life` and
+`Black Belt The Roaming Hero`, English release names invented per-distributor
+that IMDb carries under no aka. Nothing built today reached them and nothing
+was going to.
+
+Dropped through `config/exclude.json` (`groups: ["MartialArts"]`, whose only
+channel it is) rather than by deleting anything: the uploads keep their landing
+rows, transform gives them a `drop_reason`, and `fct_resolution` sheds their
+2,383 rows on the next run. Reversible by removing one line.
+
+    films        3,055 -> 2,736     -319
+    resolve rate  36.7% ->  44.8%   the denominator lost 2,383 hard uploads
+
+The run warns `silent channels: Wu Tang Collection` exactly once, which is
+correct — a channel that was publishing 319 and now publishes none is worth
+saying out loud. `findSilentChannels` compares against the previous report, so
+the following run has no row to compare and stays quiet.
+
+## DONE — a publish can no longer lie about what it wrote (2026-09-06)
+
+A publish left `docs/stream/movie/tt0317268.json` at **zero bytes**. The host VM
+was killed mid-run, and a kill here is power loss — the page cache went with it.
+The catalogue still listed the film, so Stremio would have shown it and then
+offered no stream at all, and **nothing in the pipeline would ever have said
+so**. It surfaced only because a determinism check happened to diff two
+consecutive publishes.
+
+`verifyMarts` now reads back every stream file the catalogue promises and
+checks it parses and carries the ytId just written, failing the build
+otherwise. Three thousand small reads cost under a second. Pinned in
+`test/verify-marts.test.js` against an empty file, a missing file, a stale
+ytId, and an episode's composite id.
 
 ## 3. Work the review queue
 

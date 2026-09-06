@@ -45,6 +45,41 @@ const readJson = (p, fb = null) =>
     if (e.code === 'ENOENT') return fb; throw e;
   });
 
+/**
+ * Read back every stream file the catalogue promises, and fail loudly if one
+ * of them is not there, is empty, or does not carry the ytId we just wrote.
+ *
+ * This exists because a publish once left a zero-byte tt0317268.json: the host
+ * VM was killed mid-run, and a kill here is power loss -- the page cache went
+ * with it. The catalogue still listed the film, so Stremio would have shown it
+ * and then offered no stream at all, and nothing in the pipeline would ever
+ * have said so. It was found by a determinism check, by accident.
+ *
+ * Re-reading three thousand small files costs under a second, which is nothing
+ * against a mart that is silently missing a title.
+ */
+export async function verifyMarts(outDir, movies) {
+  const bad = [];
+  for (const m of movies) {
+    const type = m.stremioType === 'series' ? 'series' : 'movie';
+    const file = path.join(outDir, 'stream', type, `${m.id ?? m.imdbId}.json`);
+    try {
+      const text = await fsp.readFile(file, 'utf8');
+      if (!text.trim()) { bad.push(`${file}: empty`); continue; }
+      const got = JSON.parse(text)?.streams?.[0]?.ytId;
+      if (got !== m.ytId) bad.push(`${file}: ytId ${got ?? '(none)'} != ${m.ytId}`);
+    } catch (err) {
+      bad.push(`${file}: ${err.code ?? err.message}`);
+    }
+  }
+  if (bad.length) {
+    console.error(`[publish]  ${bad.length} stream file(s) the catalogue promises are wrong:`);
+    for (const b of bad.slice(0, 20)) console.error(`   ${b}`);
+    throw new Error(`publish wrote ${bad.length} unusable stream file(s)`);
+  }
+  console.log(`[verify]   ${movies.length.toLocaleString()} stream files read back and match`);
+}
+
 async function writeJson(file, data) {
   await fsp.mkdir(path.dirname(file), { recursive: true });
   await fsp.writeFile(file, JSON.stringify(data));
@@ -312,6 +347,8 @@ async function main() {
     },
   };
   await writeJson(path.join(args.out, 'report.json'), report);
+
+  await verifyMarts(args.out, movies);
 
   finishRun(landing, runId, { status: 'ok', rowsIn: scanned.length, rowsOut: movies.length });
   console.log(`[publish]  ${films.length.toLocaleString()} films` +
