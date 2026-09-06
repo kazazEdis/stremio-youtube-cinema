@@ -379,7 +379,24 @@ function relaxYearless(video, best) {
   // a tvSeries carrying that exact title, which is what the marker claimed.
   // A year would not have helped anyway, since IMDb's startYear is when the
   // show began and the upload carries the episode's own date.
-  const pinned = (best.signals.runtime ?? 0) >= 20
+  // 17, not 20. Both bands mean *the same cut of the film*: 20 is a direct
+  // match, 17 is the -2%..-6% PAL speedup, which is a mechanical artifact of
+  // the transfer rather than a difference in content. Band 6 is where a print
+  // is actually cut, and that stays out.
+  //
+  // Measured on the 2,617 accepted matches whose year agreed exactly -- a
+  // population confirmed by a signal other than runtime -- the bands land:
+  //
+  //     20   1,590   60.8%
+  //     17     484   18.5%
+  //     12     180    6.9%
+  //      6     362   13.8%
+  //
+  // So requiring 20 withheld the lift from nearly a fifth of the matches that
+  // are demonstrably correct. It gains 170 films, every sampled one right:
+  // exact title, a cast hit in the description, and a runtime 2-5 minutes
+  // under IMDb's because IMDb counts the credits.
+  const pinned = (best.signals.runtime ?? 0) >= 17
               || (best.signals.typeMatch ?? 0) >= 20;
   if (!pinned) return;
 

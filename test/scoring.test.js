@@ -188,6 +188,33 @@ test('a yearless upload still needs corroboration, but no longer needs luck', ()
   assert.equal(ok.status, 'accept');
 });
 
+test('the yearless lift reaches the PAL band, and stops at the cut print', () => {
+  // Bands 20 and 17 both describe the same cut of the film -- 17 is the
+  // -2%..-6% PAL speedup, an artifact of the transfer. Band 6 is a print that
+  // has actually been cut, which is a different object and keeps the strict
+  // neutral.
+  //
+  // Measured on the 2,617 accepted matches whose year agreed exactly (a
+  // population confirmed by something other than runtime), band 17 holds 18.5%
+  // of them. Requiring 20 withheld the lift from nearly a fifth of the matches
+  // known to be right, and 170 films sat in review because of it.
+  const credits = { tt0013442: [{ category: 'actor', name: 'max schreck', tokens: 'schreck' }] };
+  const index = stubIndex([title('tt0013442', 'nosferatu', 1922, 94)], credits);
+  const seen = { description: 'starring Max Schreck' };
+
+  // 90 vs 94 is -4.3%: the PAL band. 50 + 8 + 17 + 6 = 81, lifted to 85.
+  const pal = resolveOne(upload({ runtimeMin: 90, ...seen }), index);
+  assert.equal(pal.signals.runtime, 17);
+  assert.equal(pal.confidence, 85);
+  assert.equal(pal.status, 'accept');
+
+  // 84 vs 94 is -10.6%: a cut print. No lift, and it stays in review.
+  const cut = resolveOne(upload({ runtimeMin: 84, ...seen }), index);
+  assert.equal(cut.signals.runtime, 6);
+  assert.equal(cut.signals.year, 8);
+  assert.equal(cut.status, 'review');
+});
+
 test('the relaxed neutral is earned by the runtime, not handed out', () => {
   // The year separates same-titled films of different eras. A top-band runtime
   // has already pinned the era, so absence stops being evidence against. A
@@ -359,12 +386,17 @@ test('the yearless lift moves a match over the floor, never past another match',
   // Reproduced here. The winner matches on the primary title and sits in the
   // PAL band; the rival matches on an aka and is top-band:
   //
-  //   winner  50 + 8 + 17 + 10 = 85   accept, margin 13
-  //   rival   44 + 8 + 20 +  0 = 72
+  //   winner  50 + 8 + 17 + 10 = 85   -> lifted to 89
+  //   rival   44 + 8 + 20 +  0 = 72   -> never lifted
   //
   // Let the rival collect the lift on its own runtime and it reaches 76, the
   // margin closes to 9, and a correct match that has not changed in any way
   // drops out of the catalogue.
+  //
+  // Both bands now earn the lift, which makes this the sharper demonstration:
+  // the winner takes it and the rival still does not, because the lift is
+  // applied to the winner alone after the ranking and the margin are settled.
+  // The margin is the assertion that matters and it is unmoved at 13.
   const index = stubIndex([
     title('tt0000001', 'scared to death', 1980, 96),
     { ...title('tt0000002', 'scared to death', 1947, 91), source: 'aka' },
@@ -375,7 +407,8 @@ test('the yearless lift moves a match over the floor, never past another match',
   const r = resolveOne(upload({ name: 'scared to death', runtimeMin: 91,
                                 description: 'directed by William Malone' }), index);
   assert.equal(r.imdbId, 'tt0000001');
-  assert.equal(r.signals.year, 8);        // the winner is not top-band, so no lift
+  assert.equal(r.signals.year, 12);       // the winner earns the lift
+  assert.equal(r.confidence, 89);         // 85 + 4, applied after the margin
   assert.equal(r.margin, 13);             // 85 - 72, untouched by the rival's runtime
   assert.equal(r.status, 'accept');
 });

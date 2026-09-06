@@ -32,7 +32,7 @@ import { buildIndex, resolveOne } from '../resolve/index.js';
  * Bump when resolve/index.js changes scoring semantics. Stored on every
  * resolution so a stale one is recomputed rather than silently trusted.
  */
-export const RESOLVER_VERSION = 11;  // 11: score/candidate_count actually written (diagnostic only)
+export const RESOLVER_VERSION = 12;  // 12: the yearless lift reaches the 17 runtime band
                                      // 10: episodes earn the yearless lift from type agreement
                                      // 9: dash segments and a shouted "<cast> in <TITLE>" as derived keys
                                      // 8: derived keys only when the title as written finds nothing
