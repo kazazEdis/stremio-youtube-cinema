@@ -100,3 +100,14 @@ test('an age-gated video is told apart from a dead one', () => {
   assert.equal(verdictFromError('ERROR: [youtube] x: Video unavailable'), 'unreachable');
   assert.equal(verdictFromError(''), 'unreachable');
 });
+
+test('the batch is drawn from what has never been probed', () => {
+  // Sampling the whole catalogue blind re-probes what is already known, and the
+  // wasted share grows with coverage. seededPick over the unprobed remainder is
+  // what makes coverage monotonic rather than asymptotic.
+  const all = Array.from({ length: 30 }, (_, i) => ({ ytId: `v${i}`, grp: 'G' }));
+  const seen = new Set(['v0', 'v1', 'v2', 'v3', 'v4']);
+  const picked = seededPick(all.filter(r => !seen.has(r.ytId)), 10, 3).map(r => r.ytId);
+  assert.equal(picked.length, 10);
+  assert.equal(picked.filter(id => seen.has(id)).length, 0);
+});

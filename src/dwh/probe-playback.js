@@ -191,12 +191,26 @@ async function main() {
     WHERE r.status = 0`).all().map(r => [r.ytId, r]));
   const published = served.map(s => ({ ytId: s.ytId, ...(meta.get(s.ytId) ?? {}) }));
 
+  // Coverage first, refresh second. Sampling the whole catalogue blind re-probes
+  // what is already known — at 269 of 3,085 that is a tenth of every batch
+  // wasted, and the share only grows. So unprobed videos are drawn first, and
+  // the batch tops up with the oldest verdicts once they run out. That keeps a
+  // quarantine from becoming permanent: a video that gets ungated is eventually
+  // re-probed and released.
+  const probed = new Map(wh.prepare('SELECT ytId, probed_at FROM fct_playback').all()
+    .map(r => [r.ytId, r.probed_at]));
+  const fresh = published.filter(r => !probed.has(r.ytId));
+  const stale = published.filter(r => probed.has(r.ytId))
+    .sort((a, b) => String(probed.get(a.ytId)).localeCompare(String(probed.get(b.ytId))));
+
   const chosen = args.ids
     ? published.filter(r => args.ids.includes(r.ytId))
-    : seededPick(published, args.sample, args.seed);
+    : [...seededPick(fresh, args.sample, args.seed),
+       ...stale.slice(0, Math.max(0, args.sample - fresh.length))];
 
   console.log(`[probe]    ${chosen.length} of ${published.length.toLocaleString()} published videos, ` +
-              `${args.concurrency} at a time, seed ${args.seed}`);
+              `${args.concurrency} at a time, seed ${args.seed} ` +
+              `(${fresh.length.toLocaleString()} never probed)`);
 
   const results = [];
   const queue = [...chosen];
