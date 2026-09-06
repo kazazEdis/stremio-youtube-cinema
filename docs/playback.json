@@ -1,12 +1,10 @@
 {
-  "probedAt": "2026-09-06T13:18:33.370Z",
+  "probedAt": "2026-09-06T13:45:54.125Z",
   "seed": 2957,
   "sampled": 150,
   "population": 4838,
   "verdicts": {
-    "throttled": 136,
-    "unreachable": 13,
-    "age-gated": 1
+    "throttled": 150
   },
   "maxHeight": {
     "undefined": 150
@@ -102,6 +100,15 @@
       "expectedMin": 73,
       "verdict": "throttled",
       "error": "ERROR: [youtube] n2M1SFrqMto: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies for the authentication. See https://github.com/yt-dlp"
+    },
+    {
+      "ytId": "Gq4PaJfod4w",
+      "imdbId": "tt0029850",
+      "name": "Alexander Nevsky",
+      "channel": "Mosfilm",
+      "expectedMin": 108,
+      "verdict": "throttled",
+      "error": "ERROR: [youtube] Gq4PaJfod4w: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies for the authentication. See https://github.com/yt-dlp"
     },
     {
       "ytId": "U53Z4ycTxyA",
@@ -257,6 +264,15 @@
       "error": "ERROR: [youtube] 7pEGjLHnIFc: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies for the authentication. See https://github.com/yt-dlp"
     },
     {
+      "ytId": "q5mPY_iTAhE",
+      "imdbId": "tt0047495",
+      "name": "Silver Lode",
+      "channel": "Grjngo - Western Movies",
+      "expectedMin": 77,
+      "verdict": "throttled",
+      "error": "ERROR: [youtube] q5mPY_iTAhE: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies for the authentication. See https://github.com/yt-dlp"
+    },
+    {
       "ytId": "YwwvGWXfcTA",
       "imdbId": "tt0049351",
       "name": "I Killed Wild Bill Hickok",
@@ -318,6 +334,15 @@
       "expectedMin": 104,
       "verdict": "throttled",
       "error": "ERROR: [youtube] HE7xK54H1sw: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies for the authentication. See https://github.com/yt-dlp"
+    },
+    {
+      "ytId": "4A3m_xhBigw",
+      "imdbId": "tt0052646",
+      "name": "The Brain That Wouldn't Die",
+      "channel": "Public Domain Movies",
+      "expectedMin": 80,
+      "verdict": "throttled",
+      "error": "ERROR: [youtube] 4A3m_xhBigw: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies for the authentication. See https://github.com/yt-dlp"
     },
     {
       "ytId": "OQyQra0NtF0",
@@ -482,6 +507,15 @@
       "error": "ERROR: [youtube] 0px7w8PYbYU: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies for the authentication. See https://github.com/yt-dlp"
     },
     {
+      "ytId": "1PvWp5t9Wj0",
+      "imdbId": "tt0062573",
+      "name": "Joe 90",
+      "channel": "Shout! Studios",
+      "expectedMin": 25,
+      "verdict": "throttled",
+      "error": "ERROR: [youtube] 1PvWp5t9Wj0: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies for the authentication. See https://github.com/yt-dlp"
+    },
+    {
       "ytId": "vdm4bButUoQ",
       "imdbId": "tt0063008",
       "name": "Gentleman Killer",
@@ -516,6 +550,15 @@
       "expectedMin": 82,
       "verdict": "throttled",
       "error": "ERROR: [youtube] 0cSEgAHVhDY: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies for the authentication. See https://github.com/yt-dlp"
+    },
+    {
+      "ytId": "if1NPz2avX4",
+      "imdbId": "tt0065019",
+      "name": "I Am Sartana, Your Angel of Death",
+      "channel": "Grjngo - Western Movies",
+      "expectedMin": 103,
+      "verdict": "throttled",
+      "error": "ERROR: [youtube] if1NPz2avX4: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies for the authentication. See https://github.com/yt-dlp"
     },
     {
       "ytId": "6XR-qN44En0",
@@ -572,6 +615,15 @@
       "error": "ERROR: [youtube] r_fOakbPjyQ: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies for the authentication. See https://github.com/yt-dlp"
     },
     {
+      "ytId": "Z8ZhQPaw4rE",
+      "imdbId": "tt0069293",
+      "name": "Solaris",
+      "channel": "Mosfilm",
+      "expectedMin": 167,
+      "verdict": "throttled",
+      "error": "ERROR: [youtube] Z8ZhQPaw4rE: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies for the authentication. See https://github.com/yt-dlp"
+    },
+    {
       "ytId": "O6384GcI1Jw",
       "imdbId": "tt0069924",
       "name": "Craze",
@@ -615,6 +667,15 @@
       "expectedMin": 157,
       "verdict": "throttled",
       "error": "ERROR: [youtube] gOxKScK1KOU: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies for the authentication. See https://github.com/yt-dlp"
+    },
+    {
+      "ytId": "lmVvzNXIEkE",
+      "imdbId": "tt0073686",
+      "name": "Seven Alone",
+      "channel": "Cult Cinema Classics",
+      "expectedMin": 97,
+      "verdict": "throttled",
+      "error": "ERROR: [youtube] lmVvzNXIEkE: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies for the authentication. See https://github.com/yt-dlp"
     },
     {
       "ytId": "PDhXaqIvkpg",
@@ -678,6 +739,15 @@
       "expectedMin": 87,
       "verdict": "throttled",
       "error": "ERROR: [youtube] bD_tyBy3I3Q: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies for the authentication. See https://github.com/yt-dlp"
+    },
+    {
+      "ytId": "CmhALfPiQAw",
+      "imdbId": "tt0080928",
+      "name": "Inside Moves",
+      "channel": "Shout! Studios",
+      "expectedMin": 113,
+      "verdict": "throttled",
+      "error": "ERROR: [youtube] CmhALfPiQAw: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies for the authentication. See https://github.com/yt-dlp"
     },
     {
       "ytId": "kgvQeX41P-s",
@@ -806,6 +876,15 @@
       "error": "ERROR: [youtube] 5DVdIaZzn0c: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies for the authentication. See https://github.com/yt-dlp"
     },
     {
+      "ytId": "sarPSYYXiJg",
+      "imdbId": "tt0113354",
+      "name": "Die Harder",
+      "channel": "美亞影院 Cinema Mei Ah - 香港電影 (HK Movie)",
+      "expectedMin": 89,
+      "verdict": "throttled",
+      "error": "ERROR: [youtube] sarPSYYXiJg: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies for the authentication. See https://github.com/yt-dlp"
+    },
+    {
       "ytId": "MuDxWNXx5Sc",
       "imdbId": "tt0115951",
       "name": "Cosi",
@@ -822,6 +901,15 @@
       "expectedMin": 95,
       "verdict": "throttled",
       "error": "ERROR: [youtube] UmzjoSnGLKg: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies for the authentication. See https://github.com/yt-dlp"
+    },
+    {
+      "ytId": "UoVVmf40V1s",
+      "imdbId": "tt0120474",
+      "name": "Walk In",
+      "channel": "美亞影院 Cinema Mei Ah - 香港電影 (HK Movie)",
+      "expectedMin": 101,
+      "verdict": "throttled",
+      "error": "ERROR: [youtube] UoVVmf40V1s: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies for the authentication. See https://github.com/yt-dlp"
     },
     {
       "ytId": "zcFqz_yxFCk",
@@ -887,15 +975,6 @@
       "error": "ERROR: [youtube] P_wxcbEYfHU: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies for the authentication. See https://github.com/yt-dlp"
     },
     {
-      "ytId": "-rg5GhmZ5zo",
-      "imdbId": "tt0209144",
-      "name": "Memento",
-      "channel": "alefilmy",
-      "expectedMin": 109,
-      "verdict": "unreachable",
-      "error": "ERROR: [youtube] -rg5GhmZ5zo: Video unavailable "
-    },
-    {
       "ytId": "sBY9c2LsWFk",
       "imdbId": "tt0240896",
       "name": "Beach Girl",
@@ -912,15 +991,6 @@
       "expectedMin": 89,
       "verdict": "throttled",
       "error": "ERROR: [youtube] nkSVfy-mNj4: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies for the authentication. See https://github.com/yt-dlp"
-    },
-    {
-      "ytId": "aONyVrMxmYk",
-      "imdbId": "tt0267129",
-      "name": "Yamakasi",
-      "channel": "alefilmy",
-      "expectedMin": 87,
-      "verdict": "unreachable",
-      "error": "ERROR: [youtube] aONyVrMxmYk: Video unavailable "
     },
     {
       "ytId": "n2jSm63-N1g",
@@ -1013,13 +1083,13 @@
       "error": "ERROR: [youtube] xnKzmBIFdS0: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies for the authentication. See https://github.com/yt-dlp"
     },
     {
-      "ytId": "0s7PGb-Ub1A",
-      "imdbId": "tt0865559",
-      "name": "My Life in Ruins",
-      "channel": "alefilmy",
-      "expectedMin": 95,
-      "verdict": "unreachable",
-      "error": "ERROR: [youtube] 0s7PGb-Ub1A: Video unavailable "
+      "ytId": "cEwd16zKdTI",
+      "imdbId": "tt0471243",
+      "name": "Dragon Reloaded",
+      "channel": "美亞影院 Cinema Mei Ah - 香港電影 (HK Movie)",
+      "expectedMin": 101,
+      "verdict": "throttled",
+      "error": "ERROR: [youtube] cEwd16zKdTI: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies for the authentication. See https://github.com/yt-dlp"
     },
     {
       "ytId": "RaW1jjhw4hI",
@@ -1040,24 +1110,6 @@
       "error": "ERROR: [youtube] 1f1GHxjXLRE: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies for the authentication. See https://github.com/yt-dlp"
     },
     {
-      "ytId": "owr2GsZMIJ8",
-      "imdbId": "tt1109624",
-      "name": "Paddington",
-      "channel": "alefilmy",
-      "expectedMin": 91,
-      "verdict": "unreachable",
-      "error": "ERROR: [youtube] owr2GsZMIJ8: Video unavailable "
-    },
-    {
-      "ytId": "ERt2hI-vwS8",
-      "imdbId": "tt1185431",
-      "name": "My One and Only",
-      "channel": "alefilmy",
-      "expectedMin": 108,
-      "verdict": "unreachable",
-      "error": "ERROR: [youtube] ERt2hI-vwS8: Video unavailable "
-    },
-    {
       "ytId": "AcOX3iCaOlE",
       "imdbId": "tt1186829",
       "name": "Man Overboard",
@@ -1065,24 +1117,6 @@
       "expectedMin": 91,
       "verdict": "throttled",
       "error": "ERROR: [youtube] AcOX3iCaOlE: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies for the authentication. See https://github.com/yt-dlp"
-    },
-    {
-      "ytId": "bZZ3uQbFpEQ",
-      "imdbId": "tt1247690",
-      "name": "Serena",
-      "channel": "alefilmy",
-      "expectedMin": 104,
-      "verdict": "unreachable",
-      "error": "ERROR: [youtube] bZZ3uQbFpEQ: Video unavailable "
-    },
-    {
-      "ytId": "r_YS0jeJQ8E",
-      "imdbId": "tt1289406",
-      "name": "Harry Brown",
-      "channel": "alefilmy",
-      "expectedMin": 99,
-      "verdict": "unreachable",
-      "error": "ERROR: [youtube] r_YS0jeJQ8E: Video unavailable "
     },
     {
       "ytId": "Ko4s-xkrj_k",
@@ -1112,40 +1146,13 @@
       "error": "ERROR: [youtube] nS6NWbFfUe0: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies for the authentication. See https://github.com/yt-dlp"
     },
     {
-      "ytId": "3ESA1VYp3aY",
-      "imdbId": "tt1592525",
-      "name": "Lockout",
-      "channel": "alefilmy",
-      "expectedMin": 95,
-      "verdict": "unreachable",
-      "error": "ERROR: [youtube] 3ESA1VYp3aY: Video unavailable "
-    },
-    {
-      "ytId": "xGL9CtpkYKk",
-      "imdbId": "tt1592873",
-      "name": "LOL",
-      "channel": "alefilmy",
-      "expectedMin": 93,
-      "verdict": "unreachable",
-      "error": "ERROR: [youtube] xGL9CtpkYKk: Video unavailable "
-    },
-    {
-      "ytId": "i9tEhYxOxGM",
-      "imdbId": "tt1718903",
-      "name": "StreetDance 2",
-      "channel": "alefilmy",
-      "expectedMin": 85,
-      "verdict": "unreachable",
-      "error": "ERROR: [youtube] i9tEhYxOxGM: Video unavailable "
-    },
-    {
-      "ytId": "EbtTr9WTDi4",
-      "imdbId": "tt1839654",
-      "name": "The Magic of Belle Isle",
-      "channel": "alefilmy",
-      "expectedMin": 109,
-      "verdict": "unreachable",
-      "error": "ERROR: [youtube] EbtTr9WTDi4: Video unavailable "
+      "ytId": "idhZBYR4Luc",
+      "imdbId": "tt1699498",
+      "name": "Lake Effects",
+      "channel": "Movie Central",
+      "expectedMin": 96,
+      "verdict": "throttled",
+      "error": "ERROR: [youtube] idhZBYR4Luc: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies for the authentication. See https://github.com/yt-dlp"
     },
     {
       "ytId": "EAnoKWDVWeY",
@@ -1191,6 +1198,15 @@
       "expectedMin": 100,
       "verdict": "throttled",
       "error": "ERROR: [youtube] WQtIGiGhDJM: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies for the authentication. See https://github.com/yt-dlp"
+    },
+    {
+      "ytId": "PL_u-UFK3Hw",
+      "imdbId": "tt2303110",
+      "name": "Rise of the Dinosaurs",
+      "channel": "Movie Central",
+      "expectedMin": 84,
+      "verdict": "throttled",
+      "error": "ERROR: [youtube] PL_u-UFK3Hw: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies for the authentication. See https://github.com/yt-dlp"
     },
     {
       "ytId": "KayTSaJhCdg",
@@ -1247,15 +1263,6 @@
       "error": "ERROR: [youtube] Aka7yRdVyVc: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies for the authentication. See https://github.com/yt-dlp"
     },
     {
-      "ytId": "XfRkrHy9N1M",
-      "imdbId": "tt3221936",
-      "name": "Bump in the Road",
-      "channel": "美亞影院 Cinema Mei Ah - 香港電影 (HK Movie)",
-      "expectedMin": 95,
-      "verdict": "unreachable",
-      "error": "ERROR: [youtube] XfRkrHy9N1M: Video unavailable "
-    },
-    {
       "ytId": "5OfUvJg2-AI",
       "imdbId": "tt3451956",
       "name": "Viking: The Berserkers",
@@ -1301,22 +1308,13 @@
       "error": "ERROR: [youtube] LVvwUiDfmkw: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies for the authentication. See https://github.com/yt-dlp"
     },
     {
-      "ytId": "JSwklobWwGY",
-      "imdbId": "tt4693716",
-      "name": "Mr D's No Thing Tales",
-      "channel": "GEM: Film Library",
-      "expectedMin": 82,
-      "verdict": "age-gated",
-      "error": "ERROR: [youtube] JSwklobWwGY: Sign in to confirm your age. Use --cookies-from-browser or --cookies for the authentication. See https://github.com/yt-dlp/yt-dlp/"
-    },
-    {
-      "ytId": "mNRBLzWOUF0",
-      "imdbId": "tt4694518",
-      "name": "Domain",
-      "channel": "The Midnight Screening",
-      "expectedMin": 97,
-      "verdict": "unreachable",
-      "error": "ERROR: [youtube] mNRBLzWOUF0: Video unavailable "
+      "ytId": "_jHn3BLh5mI",
+      "imdbId": "tt4897124",
+      "name": "The Margarita Man",
+      "channel": "Movie Central",
+      "expectedMin": 95,
+      "verdict": "throttled",
+      "error": "ERROR: [youtube] _jHn3BLh5mI: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies for the authentication. See https://github.com/yt-dlp"
     },
     {
       "ytId": "_EHWG_9Cvt0",
