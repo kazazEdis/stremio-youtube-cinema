@@ -434,12 +434,52 @@ a yearless upload can never be published however good the match. §4 justifies
 the neutral 8 by saying absence should not push good matches under the floor —
 at 8 points it does exactly that.
 
-## 6. yt-dlp verification of the weekly diff — partly answered
+## DONE — the part of playability only a real client sees (2026-09-06)
 
-`verify-streams` above now covers existence, privacy, embeddability and region
-for the whole catalogue at negligible cost. What it cannot see is what only a
-real client can: age-gating, the true maximum resolution (the API gives only
-`hd`/`sd`) and subtitle tracks. That is what is left of this item.
+`verify-streams` covers existence, privacy, embeddability and region for the
+whole catalogue at 62 quota units. `npm run probe-playback` covers what the
+Data API does not carry, on a seeded sample spread across channels — at ~3.6s a
+video, sampling is the only honest option.
+
+**First run, 40 of 3,085: 39 play as published (97.5%).**
+
+The one failure is the case this exists for. *Ivan's Childhood* (Mosfilm) is
+**age-gated** — "Sign in to confirm your age" — and the Data API reports it as
+`public` and `embeddable: true`, so `verify-streams` passes it and a viewer
+still gets nothing. One in forty puts roughly 77 films in that state across the
+catalogue, which is worth knowing and is a separate decision to act on.
+
+Resolution, which the API grades only as `hd`/`sd`:
+
+    2160   5      1080  23      752  1      480  7      ≤360  3
+
+    PizzaFlix              480, 480, 480          (1,106 films, all SD)
+    Mosfilm                2160 ×3, 1080 ×3, 480
+    Grjngo                 2160, 1080 ×6, 342
+    Cinema Mei Ah          1080 ×4, 480 ×3
+
+Real subtitle tracks, as opposed to auto-captions: **10 of 40**.
+
+### Two bugs it found in itself first
+
+**A bare ytId is not safe to pass to yt-dlp.** 79 of the 4,868 published ids
+begin with a dash, and yt-dlp reads `-rg5GhmZ5zo` as the `-r` rate-limit flag
+and dies with a usage error — recorded as "unreachable". Ids go as watch URLs
+now.
+
+**The population was wrong.** The probe sampled the 4,868 *accepted*
+resolutions when only 3,085 are *served*; the HR region filter and duplicate
+settling both run at publish time. It duly reported two geo-blocked videos as
+unreachable, which was true and irrelevant — publish had already dropped them.
+It reads `docs/stream/**` now, which is the rule `verify-streams` states in its
+own docstring and this script broke in the very next file.
+
+### Left over
+
+Nothing acts on any of this yet. An age-gated film could be re-resolved to
+another upload of the same title rather than served as a dead click, and
+`duration-drift` — a video re-cut since we matched its runtime — has never been
+seen because this is the first run. Both want a policy decision, not more code.
 
 `report.js` already computes added/changed entries — tens per week. At ~4.7s per
 video that is minutes, and buys what the API cannot supply:
