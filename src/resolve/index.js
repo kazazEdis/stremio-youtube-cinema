@@ -219,6 +219,19 @@ const rowToCandidate = (row, kind, ratio = 1) => ({
  * runs when a year was extracted — an unfiltered fuzzy sweep over 1.1M titles
  * is both slow and, worse, a reliable source of confident nonsense.
  */
+// A dash with space on both sides separates segments; a hyphen inside a word
+// does not, so "Spider-Man" survives.
+const DASH_SPLIT = /\s+[-–—]\s+/;
+
+/**
+ * A segment that is a label rather than a title: a bare year, or one shouted
+ * word. Both reached the index and both were wrong -- "1952 - Invasion, U.S.A."
+ * offered `1952`, and "Fist Of Shaolin - ENGLISH - RIP" offered `ENGLISH`,
+ * which is a real film.
+ */
+const isLabel = s => /^[\d\s.,'-]+$/.test(s)
+  || (!/[a-z]/.test(s) && s.trim().split(/\s+/).length === 1);
+
 export function generateCandidates(video, index) {
   // Query-side only, and additive: we look up more keys, we do not normalize
   // differently. The year has already been extracted into video.year, so the
@@ -252,6 +265,23 @@ export function generateCandidates(video, index) {
     for (const m of name.matchAll(/[（([]([^)）\]]{3,60})[)）\]]/g)) {
       if (!/^[\d\s.,-]+$/.test(m[1])) push(m[1], true);
     }
+
+    // Public Domain Movies files its uploads as "<year> - <title> - <tagline>",
+    // and the martial-arts channels put the English and the Spanish title on
+    // either side of a dash. Every dash segment is a key, and the scorer sorts
+    // out which one is the film: "Roy Rogers - 1946 - My Pal Trigger - ..."
+    // offers both the star and the picture, and runtime decides.
+    for (const seg of name.split(DASH_SPLIT)) {
+      const t = seg.trim();
+      if (t.length >= 4 && !isLabel(t)) push(t, true);
+    }
+
+    // "Jason Statham, Ben Foster in THE MECHANIC". Shouting is what makes this
+    // safe: matched case-insensitively, "in" is an ordinary preposition and
+    // this rule sent "Shaolin Roar In The Woods" to The Woods. Requiring the
+    // tail to carry no lowercase at all took it from half wrong to 27 for 27.
+    const cast = /\sin\s+([A-Z0-9][^a-z]{3,})$/.exec(name.trim());
+    if (cast) push(cast[1].trim(), true);
   };
   if (!variants.length) return { candidates: [], tier: 'none' };
 

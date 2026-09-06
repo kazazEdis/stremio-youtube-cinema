@@ -396,3 +396,39 @@ test('the fuzzy tier is reachable, and catches a channel that drops apostrophes'
   assert.equal(r.imdbId, 'tt0075820');
   assert.equal(r.tier, 'fuzzy');
 });
+
+test('a derived key is only reached for when the title as written finds nothing', () => {
+  // "Ever After (Reloaded)" is its own real title. Offering "Reloaded" beside
+  // it pulled in a rival that closed the margin to 10 and dropped a published
+  // film, so a rebuilt key must never dilute a direct hit.
+  const index = stubIndex([
+    title('tt1971393', 'ever after reloaded', 2011, 92),
+    title('tt9999999', 'reloaded', 2011, 92),
+  ]);
+  const r = resolveOne(upload({ name: 'ever after reloaded', year: 2011, runtimeMin: 92 }), index);
+  assert.equal(r.imdbId, 'tt1971393');
+  assert.equal(r.margin, 100);            // the rival was never generated
+  assert.equal(r.tier, 'exact-primary');
+});
+
+test('a dash segment and a shouted cast credit are keys of last resort', () => {
+  // Public Domain Movies files uploads as "<year> - <title> - <tagline>"; the
+  // martial-arts channels put two languages either side of a dash. Neither
+  // title matches as written, so every segment becomes a key and the scorer
+  // decides which one is the film.
+  const idx1 = stubIndex([title('tt0050723', 'monster from green hell', 1957, 71)]);
+  const r1 = resolveOne(upload({
+    name: '1957 - Monster from Green Hell - Atomic mutations with an appetite for flesh!',
+    year: 1957, runtimeMin: 71 }), idx1);
+  assert.equal(r1.imdbId, 'tt0050723');
+  assert.equal(r1.tier, 'exact-derived');
+
+  // Shouting is what makes the cast rule safe. Lower-cased, "in" is an ordinary
+  // preposition and this sent "Shaolin Roar In The Woods" to The Woods.
+  const idx2 = stubIndex([title('tt0290103', 'wanted man', 2005, 95)]);
+  assert.equal(resolveOne(upload({ name: 'Dolph Lundgren in WANTED MAN', year: 2005, runtimeMin: 95 }), idx2).imdbId,
+               'tt0290103');
+  const idx3 = stubIndex([title('tt0380066', 'the woods', 2006, 91)]);
+  assert.equal(resolveOne(upload({ name: 'Shaolin Roar In The Woods', year: 2006, runtimeMin: 91 }), idx3).imdbId,
+               undefined);
+});

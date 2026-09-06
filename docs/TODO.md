@@ -245,6 +245,42 @@ is now a test that resolves `cathys curse` against an indexed `cathy s curse`
 and asserts the tier is `fuzzy`, because a tier that silently stops running
 looks exactly like a tier that finds nothing.
 
+## DONE — two more shapes of lookup key (2026-09-06)
+
+Same method as the brackets, same gate: a rebuilt key is only tried once the
+title as written has found nothing.
+
+**Dash segments.** Cult Cinema Classics and Public Domain Movies file uploads
+as `<year> - <title> - <tagline>`, and the martial-arts channels put the
+English and Spanish titles either side of a dash. Every segment becomes a key
+and the scorer decides which one is the film — `Roy Rogers - 1946 - My Pal
+Trigger - ...` offers both the star and the picture, and runtime settles it at
+79/79 minutes and confidence 100.
+
+Two guards, both earned: a bare year is not a title (`1952 - Invasion, U.S.A.`
+offered `1952`, which is a real film) and neither is one shouted word
+(`Fist Of Shaolin - ENGLISH - RIP` offered `ENGLISH`, likewise real).
+
+**A shouted cast credit.** `Jason Statham, Ben Foster in THE MECHANIC`. The
+same rule matched case-insensitively was measured at roughly half wrong —
+`Shaolin Roar In The Woods` to *The Woods*, `He Fights the Yakuza in Brazil` to
+*Brazil* — because `in` is an ordinary preposition. Requiring the tail to carry
+no lowercase at all took it to 27 for 27.
+
+    rejects            3,000 -> 2,623
+    films              2,923 -> 3,055     +132 added, 0 removed
+    Cult Cinema          462 ->   611     51.5%
+    derived tier         321 ->   576 accepted
+
+## Wu Tang Collection: no further tuning (2026-09-06)
+
+Decided by the owner. The channel is 2,372 features and resolves at 13.4%; the
+888 uploads still at `no-candidates` are the largest single block left, and
+they are titles like `Right Overcomes Might`, `My Blade my Life` and
+`Black Belt The Roaming Hero` — English release names invented per-distributor
+that IMDb does not carry under any aka. The channel stays in the catalogue for
+the 319 films it does resolve; it is simply not the place to spend effort.
+
 ## 3. Work the review queue
 
 2,404 entries, and the sampled ones are mostly *correct* matches sitting under
