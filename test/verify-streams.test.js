@@ -1,7 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { classify, regionVerdict } from '../src/dwh/verify-streams.js';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+
+import { classify, regionVerdict, publishedStreams } from '../src/dwh/verify-streams.js';
 
 const video = (over = {}) => ({
   id: 'x',
@@ -50,4 +54,21 @@ test('a missing status block does not read as broken', () => {
   // The API omits fields rather than nulling them, and treating an absent
   // embeddable flag as false would condemn the whole catalogue.
   assert.equal(classify({ id: 'x' }, 'HR'), 'ok');
+});
+
+test('every stream in a file is collected, not just the first', async () => {
+  // A film can offer several copies. Reading only streams[0] meant the
+  // alternates were never checked by anything, so "100% coverage" covered the
+  // winners alone while the fallbacks went unmeasured — any of which could be
+  // gated or dead and still be offered to a viewer.
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ps-'));
+  fs.mkdirSync(path.join(dir, 'stream', 'movie'), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'stream', 'movie', 'tt1.json'),
+    JSON.stringify({ streams: [{ ytId: 'a' }, { ytId: 'b' }, { ytId: 'c' }] }));
+  fs.writeFileSync(path.join(dir, 'stream', 'movie', 'tt2.json'),
+    JSON.stringify({ streams: [{ ytId: 'd' }] }));
+
+  const got = await publishedStreams(dir);
+  assert.deepEqual(got.map(s => s.ytId).sort(), ['a', 'b', 'c', 'd']);
+  assert.deepEqual(got.filter(s => s.id === 'tt1').map(s => s.rank), [0, 1, 2]);
 });

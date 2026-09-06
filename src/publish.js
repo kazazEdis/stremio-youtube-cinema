@@ -75,6 +75,10 @@ export function toMeta(m, type = 'movie') {
  * player, so handing it the video id plays in-app rather than bouncing the
  * user out to a browser. externalUrl is the fallback for clients that lack it.
  */
+/** How a viewer would name the picture, or nothing if it was never probed. */
+export const quality = h =>
+  !h ? null : h >= 2000 ? '4K' : h >= 1080 ? '1080p' : h >= 720 ? '720p' : `${h}p`;
+
 export function toStream(m) {
   // An age-gated upload we could not replace is still served, because a viewer
   // signed in on YouTube can play it and no entry at all helps nobody. But
@@ -85,7 +89,11 @@ export function toStream(m) {
   return {
     ytId: m.ytId,
     name: 'YouTube Cinema',
-    title: [m.channel, m.imdbRuntimeMin ? `${m.imdbRuntimeMin} min` : null,
+    // Resolution first among the optional parts: with 567 films offering more
+    // than one copy, it is the thing a viewer actually chooses on, and the API
+    // never knew it — this comes from probing the video itself.
+    title: [m.channel, quality(m.maxHeight),
+            m.imdbRuntimeMin ? `${m.imdbRuntimeMin} min` : null,
             m.confidence < 100 ? `match ${m.confidence}` : 'manual',
             gated ? 'sign-in required' : null]
            .filter(Boolean).join(' • '),

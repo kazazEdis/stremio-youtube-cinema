@@ -401,9 +401,17 @@ and committed with every weekly catalogue. The step is `continue-on-error`
 throw away a catalogue that published cleanly. Problems surface as a
 `::warning::` in the Actions summary, the same way a silent channel does.
 
-## DONE — the whole catalogue measured by a real client (2026-09-06)
+## DONE — the catalogue measured by a real client (2026-09-06)
 
-Every published stream probed with yt-dlp, not sampled:
+**Corrected the same day.** The figures below cover the 3,085 *primary* streams
+and were reported as the whole catalogue, which they were not.
+`publishedStreams` read `streams[0]` of each file, so once a film could offer
+several copies the alternates were invisible to it — the real population is
+3,893 and 805 of those had never been probed by anything. Any of them could
+have been gated or dead and would still have been offered to a viewer. Every
+stream in a file is collected now.
+
+The primary streams, probed with yt-dlp rather than sampled:
 
     3,054 play        31 age-gated      3 dead
 

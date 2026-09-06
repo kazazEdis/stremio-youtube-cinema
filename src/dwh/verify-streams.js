@@ -65,8 +65,14 @@ export async function publishedStreams(outDir) {
     for (const name of names) {
       if (!name.endsWith('.json')) continue;
       const text = await fsp.readFile(path.join(dir, name), 'utf8');
-      const ytId = JSON.parse(text)?.streams?.[0]?.ytId;
-      if (ytId) out.push({ id: name.replace(/\.json$/, ''), type, ytId });
+      // Every stream in the file, not just the first. A film can now offer
+      // several copies, and reading only streams[0] meant the alternates were
+      // never checked by anything — "100% coverage" covered the winners alone
+      // while ~800 fallback streams went unmeasured, any of which could be
+      // gated or dead and would still be offered to a viewer.
+      for (const [rank, s] of (JSON.parse(text)?.streams ?? []).entries()) {
+        if (s?.ytId) out.push({ id: name.replace(/\.json$/, ''), type, ytId: s.ytId, rank });
+      }
     }
   }
   return out;
