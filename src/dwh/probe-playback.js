@@ -190,7 +190,10 @@ async function main() {
   // this addon never offers. It reported two of them as unreachable, which was
   // true and irrelevant: both are geo-blocked outside their allowed regions,
   // which is exactly why publish had already dropped them.
-  const served = await publishedStreams(args.out);
+  // One row per video, not per stream file: the same upload appears in the root
+  // tree and in every region that can see it, and probing it fifteen times to
+  // learn the same thing would be the whole budget.
+  const served = [...new Map((await publishedStreams(args.out)).map(s => [s.ytId, s])).values()];
   const meta = new Map(wh.prepare(`
     SELECT r.ytId, r.imdb_id, r.match_name, u.runtime_min, u.grp, u.channel_name
     FROM fct_resolution r JOIN fct_upload u ON u.ytId = r.ytId

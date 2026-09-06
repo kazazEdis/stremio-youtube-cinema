@@ -58,8 +58,15 @@ const chunk = (xs, n) => Array.from({ length: Math.ceil(xs.length / n) }, (_, i)
  */
 export async function publishedStreams(outDir) {
   const out = [];
-  for (const type of ['movie', 'series']) {
-    const dir = path.join(outDir, 'stream', type);
+  // The root tree plus every region=xx variant beside it. Reading only the root
+  // would quietly stop covering the uploads that exist *because* of a region —
+  // which are exactly the ones a rights holder is most likely to gate or pull.
+  const roots = [outDir];
+  for (const name of await fsp.readdir(outDir, { withFileTypes: true }).catch(() => [])) {
+    if (name.isDirectory() && name.name.startsWith('region=')) roots.push(path.join(outDir, name.name));
+  }
+  for (const root of roots) for (const type of ['movie', 'series']) {
+    const dir = path.join(root, 'stream', type);
     let names;
     try { names = await fsp.readdir(dir); } catch { continue; }
     for (const name of names) {
@@ -71,7 +78,7 @@ export async function publishedStreams(outDir) {
       // while ~800 fallback streams went unmeasured, any of which could be
       // gated or dead and would still be offered to a viewer.
       for (const [rank, s] of (JSON.parse(text)?.streams ?? []).entries()) {
-        if (s?.ytId) out.push({ id: name.replace(/\.json$/, ''), type, ytId: s.ytId, rank });
+        if (s?.ytId) out.push({ id: name.replace(/\.json$/, ''), type, ytId: s.ytId, rank, root });
       }
     }
   }

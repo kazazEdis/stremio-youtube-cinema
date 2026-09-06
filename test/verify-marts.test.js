@@ -5,7 +5,7 @@ import fsp from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import { verifyMarts, streamsFor } from '../src/dwh/publish.js';
+import { verifyMarts, streamsFor, playableIn, FREE } from '../src/dwh/publish.js';
 import { toStream } from '../src/publish.js';
 
 function mart(entries) {
@@ -104,4 +104,20 @@ test('an alternate stream must be an accepted match, not a reviewed one', () => 
     row('unsure', 1, 'low-score'), row('close', 1, 'narrow-margin'),
   ], new Set());
   assert.deepEqual(streams.map(s => s.ytId), ['best', 'alsoGood']);
+});
+
+test('the free region means unrestricted, not "playable here"', () => {
+  // A viewer in Bogotá and one in Zagreb install the same URL, so every stream
+  // in the unrestricted build has to work for both. An upload allowed only in
+  // the US passes playableIn('US') and must not pass this.
+  assert.equal(playableIn(FREE, null, null), true);
+  assert.equal(playableIn(FREE, '', ''), true);
+  assert.equal(playableIn(FREE, null, 'US,CA'), false, 'allow-listed is still restricted');
+  assert.equal(playableIn(FREE, 'DE', null), false, 'blocked anywhere is still restricted');
+
+  // Named regions are unchanged.
+  assert.equal(playableIn('US', null, 'US,CA'), true);
+  assert.equal(playableIn('HR', null, 'US,CA'), false);
+  assert.equal(playableIn('HR', 'DE,FR', null), true);
+  assert.equal(playableIn('DE', 'DE,FR', null), false);
 });

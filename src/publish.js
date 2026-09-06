@@ -104,14 +104,19 @@ export function toStream(m) {
 
 const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
-export function buildManifest(movies, groups, baseUrl, seriesGroups = []) {
+export function buildManifest(movies, groups, baseUrl, seriesGroups = [], region = null) {
   return {
     id: 'org.stremio.youtube-cinema',
     version: '0.1.0',
-    name: 'YouTube Cinema',
+    name: region ? `YouTube Cinema (${region})` : 'YouTube Cinema',
     description:
       `${movies.length} feature films legally on YouTube — licensed uploads and ` +
-      `public domain prints, resolved to IMDb ids so subtitles and metadata work.`,
+      `public domain prints, resolved to IMDb ids so subtitles and metadata work. ` +
+      (region
+        ? `Everything playable in ${region}, including uploads the rights holder ` +
+          `restricted to it.`
+        : `Only uploads with no region restriction at all, so every stream works ` +
+          `wherever you are. Pick your country at /configure for the rest.`),
     logo: 'https://www.youtube.com/s/desktop/dcb2a4a1/img/favicon_144x144.png',
     resources: ['catalog', 'stream'],
     types: ['movie', 'series'],
@@ -151,7 +156,11 @@ export function buildManifest(movies, groups, baseUrl, seriesGroups = []) {
         extra: [{ name: 'skip' }],
       })),
     ],
-    behaviorHints: { configurable: false },
+    // Torrentio's convention: the addon advertises that it has a configuration
+    // page, and the chosen value rides in a path segment before manifest.json.
+    // configurationRequired stays false because the unrestricted root is a
+    // complete, correct addon on its own.
+    behaviorHints: { configurable: true, configurationRequired: false },
     ...(baseUrl ? { contactEmail: undefined } : {}),
   };
 }

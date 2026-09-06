@@ -22,3 +22,9 @@ data/
 
 .env
 .DS_Store
+
+# Regional addon trees: 20 of them, 66,000 files, 280 MB, and ~85% identical to
+# the root. They are built in CI and deployed straight to Pages as an artifact,
+# so the repo carries only the unrestricted tree — which stays diffable, and is
+# what the weekly "catalog: N films" commit is actually about.
+docs/region=*/

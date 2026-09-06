@@ -12,7 +12,7 @@
     "extract": "node --env-file-if-exists=.env src/dwh/extract.js --eu-only --max-per-channel 3000",
     "stage": "node --max-old-space-size=1024 src/dwh/stage.js",
     "transform": "node --max-old-space-size=1024 src/dwh/transform.js",
-    "publish": "node src/dwh/publish.js --region HR --out docs",
+    "publish": "node src/dwh/publish.js --out docs --regions US,CA,GB,AU,IE,NZ,DE,FR,IT,ES,NL,PL,HR,RS,BR,IN,JP,MX,SE,TR",
     "serve": "node src/stremio.js",
     "test": "node --test test/*.test.js",
     "fetch": "node src/resolve/build-index.js --cache .cache --fetch-only",

@@ -8,6 +8,11 @@ on:
 
 permissions:
   contents: write
+  # Deploying the site as an artifact rather than serving /docs from the branch.
+  # 20 regional trees are 66,000 files and 280 MB — committing that weekly would
+  # bury the one commit that matters under a churn of identical stream files.
+  pages: write
+  id-token: write
 
 concurrency:
   group: build-catalog
@@ -16,7 +21,10 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # 45 was enough before the regional trees. Publishing 21 of them adds about
+    # seven minutes, and a cache miss puts the IMDb index build and a full
+    # re-resolve in the same run.
+    timeout-minutes: 90
 
     steps:
       - uses: actions/checkout@v4
@@ -128,6 +136,9 @@ jobs:
           path: data/warehouse.sqlite
           retention-days: 30
 
+      # Only the unrestricted tree is committed; docs/region=*/ is gitignored.
+      # The artifact carries everything, so the repo stays diffable while the
+      # site serves all 21 addons.
       - name: Commit catalog
         run: |
           git config user.name  "github-actions[bot]"
@@ -140,3 +151,18 @@ jobs:
             git commit -m "catalog: ${COUNT} films [skip ci]"
             git push
           fi
+
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

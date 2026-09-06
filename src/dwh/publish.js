@@ -30,12 +30,18 @@ const PAGE = 100;
 const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
 function parseArgs(argv) {
+  // `region` is the *root* build and defaults to FREE — the unrestricted set,
+  // which is the only catalogue that is honest for a viewer anywhere. `regions`
+  // are the variants published alongside it under region=xx/.
   const a = { warehouse: 'data/warehouse.sqlite', landing: 'data/landing.sqlite',
-              out: 'docs', region: process.env.YT_REGION || 'HR',
+              out: 'docs', region: process.env.YT_REGION || null,
+              regions: (process.env.YT_REGIONS || '').split(',').map(r => r.trim()).filter(Boolean),
               prev: 'docs/catalog.json', seed: null };
   for (let i = 2; i < argv.length; i++) {
     const k = argv[i].replace(/^--/, '');
     if (k === 'seed-first-seen') a.seed = argv[++i];
+    else if (k === 'regions') a.regions = argv[++i].split(',').map(r => r.trim()).filter(Boolean);
+    else if (k === 'region') a.region = (argv[++i] || '').toUpperCase() || null;
     else if (k in a) a[k] = argv[++i];
   }
   return a;
@@ -124,7 +130,18 @@ async function writeJson(file, data) {
  * Mirrors the original playableInRegion: a blocked list wins outright,
  * otherwise an allowed list must contain the region, otherwise it plays.
  */
+export const FREE = null;   // the region that is no region
+
+/**
+ * `FREE` means "carries no restriction at all", not "playable where I am".
+ *
+ * That distinction is the whole point of the unrestricted build: a viewer in
+ * Bogotá and one in Zagreb must be able to install the same URL and have every
+ * stream in it work. An upload allowed only in the US passes `playableIn('US')`
+ * and must not pass this — 2,551 of 3,963 films have a copy that qualifies.
+ */
 export function playableIn(region, blockedCsv, allowedCsv) {
+  if (region === FREE) return !blockedCsv && !allowedCsv;
   if (blockedCsv) return !blockedCsv.split(',').includes(region);
   if (allowedCsv) return allowedCsv.split(',').includes(region);
   return true;
@@ -317,6 +334,150 @@ function showRows(episodes) {
   return [...byShow.values()].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 }
 
+const REGION_NAMES = {
+  US: 'United States', CA: 'Canada', GB: 'United Kingdom', AU: 'Australia',
+  IE: 'Ireland', NZ: 'New Zealand', DE: 'Germany', FR: 'France', IT: 'Italy',
+  ES: 'Spain', NL: 'Netherlands', PL: 'Poland', HR: 'Croatia', RS: 'Serbia',
+  BR: 'Brazil', IN: 'India', JP: 'Japan', MX: 'Mexico', SE: 'Sweden', TR: 'Türkiye',
+};
+
+/**
+ * The configure page, generated from what was actually built.
+ *
+ * Hand-writing it would let the list drift from the trees on disk, and a region
+ * offered here that does not exist is a 404 the viewer reads as a broken addon.
+ */
+async function writeConfigure(outDir, free, regions) {
+  const rows = regions.map(([code, films, eps]) => `
+      <label class="r">
+        <input type="radio" name="region" value="region=${code.toLowerCase()}">
+        <span class="n">${REGION_NAMES[code] ?? code}</span>
+        <span class="c">${films.toLocaleString()} films${eps ? ` · ${eps} episodes` : ''}</span>
+      </label>`).join('');
+
+  const html = `<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>YouTube Cinema — configure</title>
+<style>
+  :root { color-scheme: light dark; --fg:#111; --dim:#666; --line:#ddd; --acc:#0b6bcb; --bg:#fff; }
+  @media (prefers-color-scheme: dark) {
+    :root { --fg:#e8e8e8; --dim:#999; --line:#333; --acc:#5aa9f0; --bg:#141414; }
+  }
+  body { margin:0 auto; padding:2rem 1.25rem 4rem; max-width:44rem; background:var(--bg); color:var(--fg);
+         font:15px/1.55 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
+  h1 { font-size:1.35rem; margin:0 0 .35rem; }
+  p  { color:var(--dim); margin:.35rem 0 1.25rem; }
+  .r { display:flex; align-items:baseline; gap:.6rem; padding:.5rem .7rem; border:1px solid var(--line);
+       border-radius:7px; margin:.3rem 0; cursor:pointer; }
+  .r:hover { border-color:var(--acc); }
+  .n { font-weight:600; }
+  .c { color:var(--dim); font-size:.85em; margin-left:auto; }
+  code { background:rgba(128,128,128,.14); padding:.15em .4em; border-radius:4px; font-size:.9em; }
+  #url { width:100%; box-sizing:border-box; margin-top:1rem; padding:.6rem .7rem; font:13px ui-monospace,monospace;
+         border:1px solid var(--line); border-radius:7px; background:transparent; color:var(--fg); }
+  button { margin-top:.6rem; padding:.55rem 1rem; font:inherit; border:0; border-radius:7px;
+           background:var(--acc); color:#fff; cursor:pointer; }
+  h2 { font-size:1rem; margin:2rem 0 .3rem; }
+</style>
+<h1>YouTube Cinema</h1>
+<p>Feature films and TV legally on YouTube, resolved to IMDb ids so Stremio brings its own
+   artwork, cast and subtitles. Pick where you watch from — that decides which uploads
+   the rights holders let you play.</p>
+
+<label class="r">
+  <input type="radio" name="region" value="" checked>
+  <span class="n">Anywhere</span>
+  <span class="c">${free.films.toLocaleString()} films${free.eps ? ` · ${free.eps} episodes` : ''}</span>
+</label>
+<p style="margin:.3rem 0 1rem;font-size:.88em">Only uploads with no country restriction at all.
+   Every stream works wherever you are — the safe choice if you travel or use a VPN.</p>
+${rows}
+
+<input id="url" readonly>
+<button id="copy">Copy link</button>
+<p id="hint" style="font-size:.88em">In Stremio: <b>Addons → Add addon</b>, paste the link.</p>
+
+<h2>Why the lists differ</h2>
+<p style="font-size:.88em">A rights holder can allow an upload in some countries and not others.
+   Choosing your country adds the films it lets you see; it never adds one you cannot play.
+   If a film has more than one copy on YouTube, all of them are offered, sharpest first, with
+   anything needing a YouTube sign-in last.</p>
+
+<script>
+  const base = location.origin + location.pathname.replace(/\/configure\/?$/, '');
+  const url = document.getElementById('url');
+  const set = () => {
+    const v = document.querySelector('input[name=region]:checked').value;
+    url.value = base + (v ? '/' + v : '') + '/manifest.json';
+  };
+  document.querySelectorAll('input[name=region]').forEach(el => el.addEventListener('change', set));
+  document.getElementById('copy').addEventListener('click', async () => {
+    url.select();
+    try { await navigator.clipboard.writeText(url.value); document.getElementById('copy').textContent = 'Copied'; }
+    catch { document.execCommand('copy'); }
+  });
+  set();
+</script>
+`;
+  await fsp.mkdir(path.join(outDir, 'configure'), { recursive: true });
+  await fsp.writeFile(path.join(outDir, 'configure', 'index.html'), html);
+}
+
+/**
+ * One complete addon tree: manifest, catalogues, stream files.
+ *
+ * Stremio resolves every path against the manifest's own base and never falls
+ * back to a parent, so a regional variant cannot share the root's files — each
+ * one has to be whole. That is the cost of the Torrentio-style config segment
+ * on a static host, and it is why the trees are generated rather than linked.
+ */
+export async function writeTree(outDir, { movies, regional, quarantine, region }) {
+  const films = movies.filter(m => (m.stremioType ?? 'movie') === 'movie');
+  const episodes = movies.filter(m => m.stremioType === 'series');
+  const groups = [...new Set(films.map(m => m.group).filter(Boolean))].sort();
+  const seriesGroups = [...new Set(episodes.map(m => m.group).filter(Boolean))].sort();
+
+  await writeJson(path.join(outDir, 'manifest.json'),
+                  buildManifest(films, groups, '', seriesGroups, region));
+
+  let pages = await writeCatalog(outDir, 'movie', 'ytc-all', films.map(m => toMeta(m)));
+  for (const g of groups) {
+    pages += await writeCatalog(outDir, 'movie', `ytc-${slug(g)}`,
+                                films.filter(m => m.group === g).map(m => toMeta(m)));
+  }
+
+  // Series: the catalogue lists shows, the streams are per episode.
+  const shows = showRows(episodes);
+  if (shows.length) {
+    pages += await writeCatalog(outDir, 'series', 'ytc-all',
+                                shows.map(m => toMeta(m, 'series')));
+    for (const g of seriesGroups) {
+      pages += await writeCatalog(outDir, 'series', `ytc-${slug(g)}`,
+                                  showRows(episodes.filter(m => m.group === g))
+                                    .map(m => toMeta(m, 'series')));
+    }
+  }
+
+  for (const m of films) {
+    await writeJson(path.join(outDir, 'stream', 'movie', `${m.imdbId}.json`),
+                    { streams: streamsFor(m, regional, quarantine) });
+  }
+  // One file per episode, named with the composite id Stremio requests.
+  for (const m of episodes) {
+    await writeJson(path.join(outDir, 'stream', 'series', `${m.id}.json`),
+                    { streams: streamsFor(m, regional, quarantine) });
+  }
+
+  const orphans =
+    await prune(outDir, 'movie', new Set(films.map(m => `${m.imdbId}.json`))) +
+    await prune(outDir, 'series', new Set(episodes.map(m => `${m.id}.json`)));
+  if (orphans) console.log(`[publish]  pruned ${orphans} stream files no longer in ${outDir}`);
+
+  await verifyMarts(outDir, movies);
+  return { films, episodes, groups, seriesGroups, shows, pages };
+}
+
 async function main() {
   const args = parseArgs(process.argv);
   const today = new Date().toISOString().slice(0, 10);
@@ -328,7 +489,7 @@ async function main() {
   }
 
   const landing = openLanding(args.landing);
-  const runId = startRun(landing, 'publish', `region=${args.region}`);
+  const runId = startRun(landing, 'publish', `region=${args.region ?? 'free'}`);
   const rules = loadExclusions(await readJson('config/exclude.json', null));
 
   const { movies, review, scanned, regional, quarantine } = loadCore(wh, { region: args.region, rules });
@@ -346,46 +507,28 @@ async function main() {
 
   applyFirstSeen(wh, movies, today, runId);
 
-  const films = movies.filter(m => (m.stremioType ?? 'movie') === 'movie');
-  const episodes = movies.filter(m => m.stremioType === 'series');
-  const groups = [...new Set(films.map(m => m.group).filter(Boolean))].sort();
-  const seriesGroups = [...new Set(episodes.map(m => m.group).filter(Boolean))].sort();
+  const { films, episodes, shows, groups, seriesGroups, pages } =
+    await writeTree(args.out, { movies, regional, quarantine, region: args.region });
 
-  await writeJson(path.join(args.out, 'manifest.json'),
-                  buildManifest(films, groups, '', seriesGroups));
-
-  let pages = await writeCatalog(args.out, 'movie', 'ytc-all', films.map(m => toMeta(m)));
-  for (const g of groups) {
-    pages += await writeCatalog(args.out, 'movie', `ytc-${slug(g)}`,
-                                films.filter(m => m.group === g).map(m => toMeta(m)));
+  // The regional variants, in Torrentio's shape: a `key=value` segment between
+  // the host and manifest.json. Torrentio parses that per request because it is
+  // a live server; on a static host each value has to be a real directory, so
+  // the trees are generated. That is affordable here only because the config is
+  // one key with a handful of values rather than providers x qualities x keys.
+  const regionCounts = [];
+  for (const region of args.regions) {
+    const dir = path.join(args.out, `region=${region.toLowerCase()}`);
+    const built = loadCore(wh, { region, rules });
+    const t = await writeTree(dir, {
+      movies: built.movies, regional: built.regional,
+      quarantine: built.quarantine, region,
+    });
+    regionCounts.push([region, t.films.length, t.episodes.length]);
   }
-
-  // Series: the catalogue lists shows, the streams are per episode.
-  const shows = showRows(episodes);
-  if (shows.length) {
-    pages += await writeCatalog(args.out, 'series', 'ytc-all',
-                                shows.map(m => toMeta(m, 'series')));
-    for (const g of seriesGroups) {
-      pages += await writeCatalog(args.out, 'series', `ytc-${slug(g)}`,
-                                  showRows(episodes.filter(m => m.group === g))
-                                    .map(m => toMeta(m, 'series')));
-    }
+  if (regionCounts.length) {
+    console.log(`[regions]  ${regionCounts.map(([r, f]) => `${r} ${f.toLocaleString()}`).join('  ')}`);
   }
-
-  for (const m of films) {
-    await writeJson(path.join(args.out, 'stream', 'movie', `${m.imdbId}.json`),
-                    { streams: streamsFor(m, regional, quarantine) });
-  }
-  // One file per episode, named with the composite id Stremio requests.
-  for (const m of episodes) {
-    await writeJson(path.join(args.out, 'stream', 'series', `${m.id}.json`),
-                    { streams: streamsFor(m, regional, quarantine) });
-  }
-
-  const orphans =
-    await prune(args.out, 'movie', new Set(films.map(m => `${m.imdbId}.json`))) +
-    await prune(args.out, 'series', new Set(episodes.map(m => `${m.id}.json`)));
-  if (orphans) console.log(`[publish]  pruned ${orphans} stream files no longer in the catalog`);
+  await writeConfigure(args.out, { films: films.length, eps: episodes.length }, regionCounts);
   // No `generated` timestamp in either committed artifact. It is the only
   // thing that changes on a run where the catalog did not, so writing it makes
   // every scheduled run produce a commit, rebuild Pages, and bury the runs
@@ -403,7 +546,8 @@ async function main() {
   const diff = diffCatalogs(prevCatalog.movies, movies);
   const reviewSummary = summarizeReview({ movies: review });
   const report = {
-    run: { region: args.region, imdbDataset: getCoreMeta(wh, 'imdb_dataset') },
+    run: { region: args.region ?? 'free', regions: args.regions,
+           imdbDataset: getCoreMeta(wh, 'imdb_dataset') },
     counts: {
       scanned: scanned.length,
       published: movies.length,
@@ -422,7 +566,6 @@ async function main() {
   };
   await writeJson(path.join(args.out, 'report.json'), report);
 
-  await verifyMarts(args.out, movies);
 
   finishRun(landing, runId, { status: 'ok', rowsIn: scanned.length, rowsOut: movies.length });
   console.log(`[publish]  ${films.length.toLocaleString()} films` +
@@ -437,7 +580,7 @@ async function main() {
   if (diff.removedTitles.length) {
     console.log(`[report]   dead: ${diff.removedTitles.slice(0, 5).join(' | ')}`);
   }
-  console.log(`[publish]  region ${args.region}: ${scanned.length.toLocaleString()} of ` +
+  console.log(`[publish]  ${args.region ?? 'unrestricted'}: ${scanned.length.toLocaleString()} of ` +
               `${wh.prepare('SELECT COUNT(*) c FROM fct_upload WHERE drop_reason IS NULL').get().c.toLocaleString()}` +
               ` eligible uploads playable, ${review.length.toLocaleString()} in review`);
   wh.close(); landing.close();
