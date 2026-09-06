@@ -330,37 +330,61 @@ function completedPasses(db) {
  *
  * A mark is bookkeeping and the rows are the fact, and on a host that kills the
  * process routinely the two can disagree: `principals` was once marked done
- * with `credits` holding zero rows. Every later run then skipped it and built
- * an index with no corroboration data at all — which is 10 of the 100 scoring
- * points, and the signal that lifts a yearless match over the floor. Nothing
- * failed; the catalogue would simply have been quietly worse.
+ * with nothing staged at all. Every later run then skipped it and built an
+ * index with no corroboration data — 10 of the 100 scoring points, and the
+ * signal that lifts a yearless match over the floor. Nothing failed; the
+ * catalogue would simply have been quietly worse.
+ *
+ * The subtlety is that a pass must be judged on *its own* output, not on the
+ * final table. `principals` stages into `staged_credits`; `names` consumes that
+ * and drops it. Checking `credits` for both marks the staging unbacked every
+ * time the join is killed — which is the pass most likely to be killed — and
+ * re-streams 782 MB of principals to rebuild seven million rows that were
+ * already there. Hence the two-sided tests: a pass is backed by its staging
+ * *or* by the finished table its staging became.
  */
-const PASS_OUTPUT = {
-  basics: 'titles',
-  akas: 'title_norm',
-  ratings: 'ratings',
-  principals: 'credits',
-  names: 'credits',
+const rowsIn = (db, table) => {
+  try { return db.prepare(`SELECT COUNT(*) c FROM ${table}`).get().c; }
+  catch { return 0; }                      // no such table counts as no rows
+};
+
+const PASS_BACKED = {
+  basics:       db => rowsIn(db, 'titles') > 0,
+  akas:         db => rowsIn(db, 'title_norm') > 0,
+  ratings:      db => rowsIn(db, 'ratings') > 0,
+  principals:   db => rowsIn(db, 'staged_credits') > 0 || rowsIn(db, 'credits') > 0,
+  names_staged: db => rowsIn(db, 'staged_names') > 0 || rowsIn(db, 'credits') > 0,
+  names:        db => rowsIn(db, 'credits') > 0,
 };
 
 /**
- * Drop any mark whose rows are not there. Cheap — one COUNT per pass — and it
- * runs before anything decides what to skip.
+ * A pass's resume cursor is only meaningful while the rows it counts into still
+ * exist. Dropping the mark without the cursor would restart `principals` at the
+ * tail of the alphabet and stage the last few thousand tconsts onto an empty
+ * table, which looks like a completed pass and is not one.
+ */
+const PASS_CURSOR = { principals: 'principals_at' };
+
+/**
+ * Drop any mark whose rows are not there, and the cursor that went with it.
+ * Cheap — one COUNT per pass — and it runs before anything decides what to skip.
  */
 function dropUnbackedPasses(db) {
   const done = completedPasses(db);
   const dropped = [];
   for (const name of [...done]) {
-    const table = PASS_OUTPUT[name];
-    if (!table) continue;
-    let n = 0;
-    try { n = db.prepare(`SELECT COUNT(*) c FROM ${table}`).get().c; } catch { n = 0; }
-    if (n === 0) { done.delete(name); dropped.push(`${name} (${table} is empty)`); }
+    const backed = PASS_BACKED[name];
+    if (!backed || backed(db)) continue;
+    done.delete(name);
+    dropped.push(name);
+    const cursor = PASS_CURSOR[name];
+    if (cursor) db.prepare('DELETE FROM meta WHERE key = ?').run(cursor);
   }
   if (dropped.length) {
     db.prepare('INSERT OR REPLACE INTO meta (key,value) VALUES (?,?)')
       .run('passes', [...done].join(','));
-    console.log(`[recheck] re-running ${dropped.join(', ')}`);
+    console.log(`[recheck] re-running ${dropped.join(', ')} from the start ` +
+                `(nothing staged behind the mark)`);
   }
   return done;
 }
