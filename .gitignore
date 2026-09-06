@@ -28,3 +28,6 @@ data/
 # so the repo carries only the unrestricted tree — which stays diffable, and is
 # what the weekly "catalog: N films" commit is actually about.
 docs/region=*/
+
+# Claude Code session state — locks and scratch, not repo content.
+.claude/

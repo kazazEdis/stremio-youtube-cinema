@@ -572,6 +572,30 @@ verify a regional variant remotely.
 **All 21 live addons pass**, and the chain was walked to the end: catalogue →
 stream → a YouTube video that actually plays, for films and for an episode.
 
+## DONE — in-repo memory wiki (2026-09-06)
+
+Everything this project learned the hard way lives outside the repository — in
+the agent's own memory directory — so a fork inherits the code and none of the
+reasoning. A tracked `CLAUDE.md` at the root should be the entry point, pointing
+at `MEMORY.md`, which indexes a `memory/` wiki.
+
+Its job is the knowledge that is *not* derivable from reading the code: why the
+runtime signal is worth 20 points, why `genre` carries sort orders but never
+group names, why a resumed download needs `If-Range`, why every long step is
+checkpointed. The specs already describe what the code does; this should say
+what it cost to find out.
+
+`CLAUDE.md` is the entry point, `MEMORY.md` indexes seven pages under
+`memory/`: the host and why everything is resumable, the IMDb datasets and the
+resume bug that spliced four archives, the resolver weights and the cliff at 84,
+title extraction and the three rules that measured well and were rejected
+anyway, what Stremio actually requests, the region split, and how playback is
+checked against reality.
+
+Written for someone who has never seen the code. Every claim in them is
+something that was measured or that broke in production — the specs already say
+what the code does.
+
 ## 3. Work the review queue
 
 2,404 entries, and the sampled ones are mostly *correct* matches sitting under
