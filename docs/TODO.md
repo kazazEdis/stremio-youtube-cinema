@@ -38,8 +38,7 @@ them turned up a larger defect. Both corrections are below.
   Separately, 12 of the 14 Sapphire and Steel uploads are
   `<Story> | Pt N | <Show> | FULL EPISODE`, a layout `parseEpisode` declines on
   purpose.
-- **Series scoring is unmeasured.** The 20-point type signal was reasoned, not
-  tuned. The review queue is the evidence for a first tuning pass. Still open.
+- ~~**Series scoring is unmeasured.**~~ Measured, see below.
 
 ## DONE — the title picked the star instead of the film (2026-09-06)
 
@@ -308,6 +307,40 @@ checks it parses and carries the ytId just written, failing the build
 otherwise. Three thousand small reads cost under a second. Pinned in
 `test/verify-marts.test.js` against an empty file, a missing file, a stale
 ytId, and an episode's composite id.
+
+## DONE — the same cliff, on the series side (2026-09-06)
+
+The yearless lift reads the runtime to decide whether the era is pinned, and
+`scoreCandidate` zeroes the runtime for episodes **on purpose** — IMDb's series
+runtime is a nominal slot length, not what an episode runs. So episodes were
+structurally shut out of the fix and the identical cliff formed again:
+
+    t50 y8 runtime0 c0  =  78   ->  170 episodes
+    t50 y8 runtime0 c6  =  84   ->   90 episodes    one point under the floor
+
+For an episode the type agreement *is* the corroboration: the candidate is a
+`tvSeries` carrying that exact title, which is what the marker claimed. A year
+would not have helped in any case, because IMDb's `startYear` is when the show
+began while the upload carries the episode's own date — comparing them is a
+category error, and it is why 37 episodes scored `y6` for being two years
+"off".
+
+    episodes   317 -> 349      shows 15 -> 20
+    films      2,736 unchanged, 0 removed
+
+All twenty published shows were checked against the index: every one is a
+`tvSeries` with the right start year. Two shows the queue was holding are
+**wrong and stayed held** — `TV!` (`cleanTitle` made that out of a
+`|TV-1966|` marker on a Lucy Show upload) and `Soul`, which reached a 2009
+series rather than the 1968 one. The floor caught both, which is the floor
+working.
+
+Joe 90 resolves correctly for 30 episodes and publishes none of them: the
+uploads are `allowed_regions` US/Canada, so the Croatian filter drops them.
+That is the gap between the 62 the simulation predicted and the 32 that shipped.
+
+Still held: 170 episodes with no corroboration at all, at 82. Two signals do
+not carry an episode any more than they carry a film.
 
 ## 3. Work the review queue
 

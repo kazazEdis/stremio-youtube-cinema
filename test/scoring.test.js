@@ -432,3 +432,33 @@ test('a dash segment and a shouted cast credit are keys of last resort', () => {
   assert.equal(resolveOne(upload({ name: 'Shaolin Roar In The Woods', year: 2006, runtimeMin: 91 }), idx3).imdbId,
                undefined);
 });
+
+test('an episode earns the yearless lift from its type, not a runtime it never has', () => {
+  // scoreCandidate zeroes runtime for episodes on purpose — IMDb's series
+  // runtime is a nominal slot length — so a rule that read only the runtime
+  // shut episodes out of the lift entirely and let the same cliff form again:
+  // 107 episodes at exactly 84, one point under the floor.
+  const index = stubIndex(
+    [{ ...title('tt0062573', 'joe 90', 1968, 25), titleType: 'tvSeries' }],
+    { tt0062573: [{ category: 'cast', name: 'rupert davies', tokens: 'rupert davies' }] });
+
+  const ep = resolveOne(
+    upload({ name: 'joe 90', year: null, runtimeMin: 25, description: 'starring Rupert Davies' }),
+    index, { episode: { season: 1, episode: 1 } });
+
+  assert.equal(ep.signals.runtime, 0);       // never scored for an episode
+  assert.equal(ep.signals.typeMatch, 20);    // this is what pins it instead
+  assert.equal(ep.signals.year, 12);
+  assert.equal(ep.status, 'accept');
+  assert.equal(ep.id, 'tt0062573:1:1');
+});
+
+test('two signals still do not carry an episode', () => {
+  // An exact show title and type agreement reach 82, and stay in review. The
+  // floor asks for a third signal from a series exactly as it does from a film.
+  const index = stubIndex([{ ...title('tt0052442', 'one step beyond', 1959, 30), titleType: 'tvSeries' }]);
+  const ep = resolveOne(upload({ name: 'one step beyond', year: null, runtimeMin: 26 }),
+                        index, { episode: { season: 2, episode: 17 } });
+  assert.equal(ep.confidence, 82);
+  assert.equal(ep.status, 'review');
+});

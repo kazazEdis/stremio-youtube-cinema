@@ -369,7 +369,20 @@ export function generateCandidates(video, index) {
 function relaxYearless(video, best) {
   if (video.year != null) return;
   if (best.kind === 'fuzzy') return;          // the title never matched exactly
-  if ((best.signals.runtime ?? 0) < 20) return;  // the era is not pinned
+
+  // What pins the era differs by type, and reading only the runtime shut
+  // episodes out of this entirely: scoreCandidate zeroes runtime for them on
+  // purpose, because IMDb's series runtime is a nominal slot length. So the
+  // same cliff formed again on the series side -- 107 episodes at exactly 84.
+  //
+  // For an episode the type agreement *is* the corroboration: the candidate is
+  // a tvSeries carrying that exact title, which is what the marker claimed.
+  // A year would not have helped anyway, since IMDb's startYear is when the
+  // show began and the upload carries the episode's own date.
+  const pinned = (best.signals.runtime ?? 0) >= 20
+              || (best.signals.typeMatch ?? 0) >= 20;
+  if (!pinned) return;
+
   best.signals.year = 12;
   best.score = Number((best.score + 4).toFixed(1));
 }
