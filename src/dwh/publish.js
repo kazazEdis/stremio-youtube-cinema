@@ -79,6 +79,10 @@ export function toResolutionShape(r) {
     status: statusName(r.status),
     ytId: r.ytId,
     imdbId: r.imdb_id ?? undefined,
+    stremioType: r.stremio_type ?? 'movie',
+    id: r.published_id ?? r.imdb_id ?? undefined,
+    season: r.season ?? null,
+    episode: r.episode ?? null,
     name: r.match_name ?? r.clean_title,
     rawTitle: r.raw_title,
     year: r.imdb_year ?? null,
@@ -105,7 +109,8 @@ export function loadCore(wh, { region, rules }) {
   const rows = wh.prepare(`
     SELECT u.ytId, u.channel_name, u.grp, u.raw_title, u.clean_title, u.runtime_min,
            u.thumb_tier, u.blocked_regions, u.allowed_regions,
-           r.status, r.reason, r.imdb_id, r.match_name, r.imdb_year, r.imdb_runtime,
+           r.status, r.reason, r.imdb_id, r.stremio_type, r.published_id,
+           r.season, r.episode, r.match_name, r.imdb_year, r.imdb_runtime,
            r.genres, r.confidence, r.margin, r.candidate_count,
            r.sig_title, r.sig_year, r.sig_runtime, r.sig_corrob, r.is_override, r.tier
     FROM fct_upload u JOIN fct_resolution r ON r.ytId = u.ytId
@@ -126,11 +131,11 @@ export function loadCore(wh, { region, rules }) {
 /** Write-once, then read back. A replay must never rewrite history. */
 export function applyFirstSeen(wh, movies, today, runId) {
   wh.exec('BEGIN');
-  for (const m of movies) noteFirstSeen(wh, m.imdbId, today, runId, 'publish');
+  for (const m of movies) noteFirstSeen(wh, m.id ?? m.imdbId, today, runId, 'publish');
   wh.exec('COMMIT');
-  const get = wh.prepare('SELECT first_seen FROM fct_first_seen WHERE imdb_id=?');
+  const get = wh.prepare('SELECT first_seen FROM fct_first_seen WHERE published_id=?');
   for (const m of movies) {
-    m.firstSeen = get.get(m.imdbId)?.first_seen ?? today;
+    m.firstSeen = get.get(m.id ?? m.imdbId)?.first_seen ?? today;
     m.lastVerified = today;
   }
 }
@@ -147,20 +152,60 @@ export function qualityGates(movies, prevCatalog) {
   }
   const low = movies.filter(m => !m.override && m.confidence < THRESHOLDS.accept);
   if (low.length) fails.push(`${low.length} accepted below the confidence floor`);
+  // Keyed on the published id: a show's episodes legitimately share a tconst,
+  // and gating on imdbId would fail the build the first time a series appears.
   const seen = new Set(), dupes = new Set();
-  for (const m of movies) { if (seen.has(m.imdbId)) dupes.add(m.imdbId); seen.add(m.imdbId); }
-  if (dupes.size) fails.push(`${dupes.size} duplicate imdbId among accepted`);
+  for (const m of movies) {
+    const k = m.id ?? m.imdbId;
+    if (seen.has(k)) dupes.add(k);
+    seen.add(k);
+  }
+  if (dupes.size) fails.push(`${dupes.size} duplicate published id among accepted`);
   return fails;
 }
 // #endregion
 
-async function writeCatalog(outDir, id, metas) {
-  await writeJson(path.join(outDir, 'catalog', 'movie', `${id}.json`), { metas: metas.slice(0, PAGE) });
+/**
+ * Delete mart files the current run did not write.
+ *
+ * Without this the marts only ever grow: a film that stops resolving keeps its
+ * stream file, so the addon goes on serving a title the catalogue no longer
+ * lists, and every stale page ships to Pages forever. Measured at 46 orphans
+ * after a handful of runs.
+ */
+async function prune(outDir, kind, keep) {
+  const dir = path.join(outDir, 'stream', kind);
+  let names;
+  try { names = await fsp.readdir(dir); } catch { return 0; }
+  let removed = 0;
+  for (const f of names) {
+    if (keep.has(f)) continue;
+    await fsp.rm(path.join(dir, f), { force: true });
+    removed++;
+  }
+  return removed;
+}
+
+async function writeCatalog(outDir, type, id, metas) {
+  await writeJson(path.join(outDir, 'catalog', type, `${id}.json`), { metas: metas.slice(0, PAGE) });
   for (let skip = PAGE; skip < metas.length; skip += PAGE) {
-    await writeJson(path.join(outDir, 'catalog', 'movie', id, `skip=${skip}.json`),
+    await writeJson(path.join(outDir, 'catalog', type, id, `skip=${skip}.json`),
                     { metas: metas.slice(skip, skip + PAGE) });
   }
   return Math.ceil(metas.length / PAGE);
+}
+
+/**
+ * One catalogue row per show, not per episode.
+ *
+ * Ninety-one episodes of One Step Beyond are ninety-one streams but a single
+ * entry in the row; Stremio expands it into seasons itself from the series
+ * tconst. Keeps the earliest-named episode's metadata as the show's.
+ */
+function showRows(episodes) {
+  const byShow = new Map();
+  for (const e of episodes) if (!byShow.has(e.imdbId)) byShow.set(e.imdbId, e);
+  return [...byShow.values()].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 }
 
 async function main() {
@@ -192,17 +237,46 @@ async function main() {
 
   applyFirstSeen(wh, movies, today, runId);
 
-  const groups = [...new Set(movies.map(m => m.group).filter(Boolean))].sort();
-  await writeJson(path.join(args.out, 'manifest.json'), buildManifest(movies, groups, ''));
-  let pages = await writeCatalog(args.out, 'ytc-all', movies.map(toMeta));
+  const films = movies.filter(m => (m.stremioType ?? 'movie') === 'movie');
+  const episodes = movies.filter(m => m.stremioType === 'series');
+  const groups = [...new Set(films.map(m => m.group).filter(Boolean))].sort();
+  const seriesGroups = [...new Set(episodes.map(m => m.group).filter(Boolean))].sort();
+
+  await writeJson(path.join(args.out, 'manifest.json'),
+                  buildManifest(films, groups, '', seriesGroups));
+
+  let pages = await writeCatalog(args.out, 'movie', 'ytc-all', films.map(m => toMeta(m)));
   for (const g of groups) {
-    pages += await writeCatalog(args.out, `ytc-${slug(g)}`,
-                                movies.filter(m => m.group === g).map(toMeta));
+    pages += await writeCatalog(args.out, 'movie', `ytc-${slug(g)}`,
+                                films.filter(m => m.group === g).map(m => toMeta(m)));
   }
-  for (const m of movies) {
+
+  // Series: the catalogue lists shows, the streams are per episode.
+  const shows = showRows(episodes);
+  if (shows.length) {
+    pages += await writeCatalog(args.out, 'series', 'ytc-all',
+                                shows.map(m => toMeta(m, 'series')));
+    for (const g of seriesGroups) {
+      pages += await writeCatalog(args.out, 'series', `ytc-${slug(g)}`,
+                                  showRows(episodes.filter(m => m.group === g))
+                                    .map(m => toMeta(m, 'series')));
+    }
+  }
+
+  for (const m of films) {
     await writeJson(path.join(args.out, 'stream', 'movie', `${m.imdbId}.json`),
                     { streams: [toStream(m)] });
   }
+  // One file per episode, named with the composite id Stremio requests.
+  for (const m of episodes) {
+    await writeJson(path.join(args.out, 'stream', 'series', `${m.id}.json`),
+                    { streams: [toStream(m)] });
+  }
+
+  const orphans =
+    await prune(args.out, 'movie', new Set(films.map(m => `${m.imdbId}.json`))) +
+    await prune(args.out, 'series', new Set(episodes.map(m => `${m.id}.json`)));
+  if (orphans) console.log(`[publish]  pruned ${orphans} stream files no longer in the catalog`);
   // No `generated` timestamp in either committed artifact. It is the only
   // thing that changes on a run where the catalog did not, so writing it makes
   // every scheduled run produce a commit, rebuild Pages, and bury the runs
@@ -240,8 +314,10 @@ async function main() {
   await writeJson(path.join(args.out, 'report.json'), report);
 
   finishRun(landing, runId, { status: 'ok', rowsIn: scanned.length, rowsOut: movies.length });
-  console.log(`[publish]  ${movies.length.toLocaleString()} movies, ${groups.length} groups, ` +
-              `${pages} catalog pages -> ${args.out}/`);
+  console.log(`[publish]  ${films.length.toLocaleString()} films` +
+              (episodes.length ? `, ${episodes.length.toLocaleString()} episodes across ` +
+                                 `${shows.length} shows` : '') +
+              `, ${groups.length + seriesGroups.length} groups, ${pages} catalog pages -> ${args.out}/`);
   console.log(`[report]   +${diff.added} added, -${diff.removed} dead, ` +
               `~${diff.resourceChanged} re-uploaded, ${(report.health.resolveRate * 100).toFixed(1)}% resolved`);
   if (report.health.silentChannels.length) {

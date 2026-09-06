@@ -57,10 +57,12 @@ async function writeJson(file, data) {
  * name, poster and year. Those are not enriched from Cinemeta at catalog time,
  * so omitting them leaves blank tiles.
  */
-export function toMeta(m) {
+export function toMeta(m, type = 'movie') {
   return {
+    // A series row points at the show, not the episode: Stremio renders the
+    // season and episode list itself from the series tconst via Cinemeta.
     id: m.imdbId,
-    type: 'movie',
+    type,
     name: m.name,
     poster: m.poster || undefined,
     posterShape: 'poster',
@@ -87,7 +89,7 @@ export function toStream(m) {
 
 const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
-export function buildManifest(movies, groups, baseUrl) {
+export function buildManifest(movies, groups, baseUrl, seriesGroups = []) {
   return {
     id: 'org.stremio.youtube-cinema',
     version: '0.1.0',
@@ -97,7 +99,7 @@ export function buildManifest(movies, groups, baseUrl) {
       `public domain prints, resolved to IMDb ids so subtitles and metadata work.`,
     logo: 'https://www.youtube.com/s/desktop/dcb2a4a1/img/favicon_144x144.png',
     resources: ['catalog', 'stream'],
-    types: ['movie'],
+    types: ['movie', 'series'],
     // Only ever asked about real IMDb ids; without this Stremio would query us
     // for every id in every other addon's catalog too.
     idPrefixes: ['tt'],
@@ -117,6 +119,20 @@ export function buildManifest(movies, groups, baseUrl) {
         type: 'movie',
         id: `ytc-${slug(g)}`,
         name: `YouTube Cinema — ${g}`,
+        extra: [{ name: 'skip' }],
+      })),
+      // Series catalogues reuse the same ids under a different type; Stremio
+      // keys a catalogue on (type, id), and the mart paths differ by type too.
+      ...(seriesGroups.length ? [{
+        type: 'series',
+        id: 'ytc-all',
+        name: 'YouTube Cinema — TV',
+        extra: [{ name: 'skip' }],
+      }] : []),
+      ...seriesGroups.map(g => ({
+        type: 'series',
+        id: `ytc-${slug(g)}`,
+        name: `YouTube Cinema TV — ${g}`,
         extra: [{ name: 'skip' }],
       })),
     ],

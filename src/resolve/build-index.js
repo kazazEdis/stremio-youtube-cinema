@@ -26,9 +26,17 @@ import { normalize, normVariants } from './normalize.js';
 
 const BASE = 'https://datasets.imdbws.com';
 
-// §1: features only, and a runtime is mandatory — runtime is the discriminator
-// the whole scorer leans on, so a row without one is not a usable candidate.
-const KEEP_TYPES = new Set(['movie', 'tvMovie', 'video']);
+// §1 features, plus series so episodes can resolve to their show.
+const KEEP_TYPES = new Set(['movie', 'tvMovie', 'video', 'tvSeries', 'tvMiniSeries']);
+
+// A runtime is mandatory for features -- it is the discriminator the whole
+// scorer leans on, so a feature without one is not a usable candidate.
+//
+// Series are exempt. IMDb gives a runtime to only 37% of tvSeries rows, and the
+// value it does give is a nominal slot length (30) against episodes that run
+// 22-25, so requiring it would exclude two thirds of the catalogue to protect a
+// signal that scoreTypeMatch replaces for series anyway.
+const SERIES_TYPES = new Set(['tvSeries', 'tvMiniSeries']);
 
 export const DATASETS = {
   basics: 'title.basics.tsv.gz',
@@ -176,7 +184,7 @@ CREATE TABLE IF NOT EXISTS titles (
   originalTitle  TEXT,
   isAdult        INTEGER NOT NULL DEFAULT 0,
   startYear      INTEGER,
-  runtimeMinutes INTEGER NOT NULL,
+  runtimeMinutes INTEGER,          -- NULL for series without one; see KEEP_TYPES
   genres         TEXT
 );
 
@@ -259,11 +267,12 @@ async function passBasics(db, file) {
                     isAdult, startYear, , runtimeMinutes, genres] of tsvRows(file)) {
     seen++;
     if (!KEEP_TYPES.has(titleType)) continue;
-    if (runtimeMinutes === '\\N' || !runtimeMinutes) continue;
+    const hasRuntime = runtimeMinutes !== '\\N' && !!runtimeMinutes;
+    if (!hasRuntime && !SERIES_TYPES.has(titleType)) continue;
 
     ins.run(tconst, titleType, primaryTitle, nz(originalTitle),
             isAdult === '1' ? 1 : 0, nz(startYear) ? Number(startYear) : null,
-            Number(runtimeMinutes), nz(genres));
+            hasRuntime ? Number(runtimeMinutes) : null, nz(genres));
 
     insertNormRows(insNorm, tconst, primaryTitle, 'primary', null, null);
     if (originalTitle && originalTitle !== primaryTitle) {
@@ -273,7 +282,7 @@ async function passBasics(db, file) {
     if (keep.size % 200000 === 0) { db.exec('COMMIT'); db.exec('BEGIN'); }
   }
   db.exec('COMMIT');
-  console.log(`[basics] ${seen.toLocaleString()} rows -> ${keep.size.toLocaleString()} features`);
+  console.log(`[basics] ${seen.toLocaleString()} rows -> ${keep.size.toLocaleString()} titles`);
   markPass(db, 'basics');
   return keep;
 }

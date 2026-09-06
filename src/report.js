@@ -47,8 +47,12 @@ async function readJson(p, fallback = null) {
  * ytId changed is not added+removed; it is the same entry with a new source.
  */
 export function diffCatalogs(previous, current) {
-  const prev = new Map((previous || []).map(m => [m.imdbId, m]));
-  const curr = new Map(current.map(m => [m.imdbId, m]));
+  // Keyed on the published id, which for an episode is tconst:season:episode.
+  // Keying on imdbId alone would fold a show's episodes into a single entry and
+  // report ninety of them as removed the moment a second one appeared.
+  const key = m => m.id ?? m.imdbId;
+  const prev = new Map((previous || []).map(m => [key(m), m]));
+  const curr = new Map(current.map(m => [key(m), m]));
 
   const added = [], removed = [], resourceChanged = [];
   let unchanged = 0;
@@ -63,14 +67,17 @@ export function diffCatalogs(previous, current) {
     if (!curr.has(id)) removed.push(m);
   }
 
-  const label = m => (m.year ? `${m.name} (${m.year})` : m.name);
+  const label = m => {
+    const base = m.year ? `${m.name} (${m.year})` : m.name;
+    return m.season != null ? `${base} S${m.season}E${m.episode}` : base;
+  };
   return {
     added: added.length,
     removed: removed.length,
     resourceChanged: resourceChanged.length,
     unchanged,
     addedTitles: added.map(label).sort(),
-    removedTitles: removed.map(m => `${label(m)} [${m.imdbId}]`).sort(),
+    removedTitles: removed.map(m => `${label(m)} [${key(m)}]`).sort(),
     resourceChangedTitles: resourceChanged.map(label).sort(),
   };
 }

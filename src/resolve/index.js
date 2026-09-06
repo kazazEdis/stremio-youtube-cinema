@@ -23,6 +23,8 @@ const FUZZY_FLOOR = 0.85;
 
 export const THRESHOLDS = { accept: 85, margin: 12, review: 60 };
 
+const SERIES_TYPES = new Set(['tvSeries', 'tvMiniSeries']);
+
 // #region ---------------------------------------------------------- index
 /**
  * Open the SQLite index built by build-index.js.
@@ -156,6 +158,31 @@ export function scoreCorroboration(description, credits) {
   }
   return best;
 }
+/**
+ * Type agreement, max 20. Replaces the runtime signal for series.
+ *
+ * Two problems, one mechanism.
+ *
+ * The runtime bands are calibrated for features: IMDb records a nominal slot
+ * length for a series (30) against episodes that actually run 22-25, a -20%
+ * delta that scores nothing. Without a replacement a perfect series match tops
+ * out at 50 + 20 + 0 + 10 = 80, under the 85 floor, so no series could ever
+ * publish.
+ *
+ * The other problem is worse. "The Beverly Hillbillies" matches ten movie and
+ * video entries in the index, including the 1993 film, and nothing else in the
+ * resolver looks at titleType. Scoring alone would eventually publish a 1962
+ * sitcom episode against a feature film -- the wrong-tconst failure the spec
+ * calls worse than no match at all.
+ *
+ * Returning null on a type mismatch makes that structurally impossible rather
+ * than merely unlikely, in the same way scoreRuntime rejects a split upload.
+ */
+export function scoreTypeMatch(isEpisode, titleType) {
+  const isSeries = SERIES_TYPES.has(titleType);
+  if (isEpisode) return isSeries ? 20 : null;
+  return isSeries ? null : 0;
+}
 // #endregion
 
 // #region ---------------------------------------------------------- candidates
@@ -236,9 +263,14 @@ export function generateCandidates(video, index) {
 // #endregion
 
 // #region ---------------------------------------------------------- resolve
-function scoreCandidate(video, candidate, index) {
-  const runtime = scoreRuntime(video.runtimeMin, candidate.runtimeMinutes);
-  if (runtime === null) return null;   // §4 hard reject band
+function scoreCandidate(video, candidate, index, isEpisode) {
+  const typeMatch = scoreTypeMatch(isEpisode, candidate.titleType);
+  if (typeMatch === null) return null;      // a film is not an episode's show
+
+  // An episode scores type agreement where a film scores runtime; IMDb's series
+  // runtime is a nominal slot length and does not survive the feature bands.
+  const runtime = isEpisode ? 0 : scoreRuntime(video.runtimeMin, candidate.runtimeMinutes);
+  if (runtime === null) return null;        // §4 hard reject band
 
   const title = scoreTitle(candidate.kind, candidate.ratio);
   const year = scoreYear(video.year, candidate.startYear);
@@ -250,10 +282,11 @@ function scoreCandidate(video, candidate, index) {
     runtime,
     corroboration,
   };
+  if (isEpisode) signals.typeMatch = typeMatch;
   return {
     ...candidate,
     signals,
-    score: Number((title + year + runtime + corroboration).toFixed(1)),
+    score: Number((title + year + runtime + corroboration + typeMatch).toFixed(1)),
   };
 }
 
@@ -274,6 +307,15 @@ function hardFlag(candidate, score, now = new Date()) {
 const publicShape = (video, best, margin, extra = {}) => ({
   ytId: video.ytId,
   imdbId: best.tconst,
+  // The Stremio type, and for an episode the id it actually requests. imdbId
+  // stays the bare series tconst so the catalogue can group a show's episodes
+  // under one entry; `id` is what a stream file is named after.
+  stremioType: SERIES_TYPES.has(best.titleType) ? 'series' : 'movie',
+  season: video.__episode?.season ?? null,
+  episode: video.__episode?.episode ?? null,
+  id: video.__episode
+    ? `${best.tconst}:${video.__episode.season}:${video.__episode.episode}`
+    : best.tconst,
   name: best.primaryTitle,
   // Spec §2: every record keeps rawTitle, accepted ones included. Without it
   // an accepted-but-wrong match is undebuggable — you cannot see what the
@@ -299,7 +341,11 @@ const publicShape = (video, best, margin, extra = {}) => ({
  * is consulted before any scoring happens and is trusted absolutely.
  */
 export function resolveOne(video, index, opts = {}) {
-  const { overrides = {}, now = new Date() } = opts;
+  const { overrides = {}, now = new Date(), episode = null } = opts;
+  // Carried on the video rather than passed down every call site; publicShape
+  // and scoreCandidate are the only readers.
+  video = episode ? { ...video, __episode: episode } : video;
+  const isEpisode = Boolean(episode);
 
   const override = overrides[video.ytId];
   if (override) {
@@ -318,11 +364,24 @@ export function resolveOne(video, index, opts = {}) {
     }
   }
 
-  const { candidates, tier } = generateCandidates(video, index);
+  const generated = generateCandidates(video, index);
+  const { tier } = generated;
+  // Drop type-incompatible candidates BEFORE the cap, not after. The cap exists
+  // to catch titles too generic to resolve safely, and counting candidates the
+  // scorer is guaranteed to reject inflates it: adding 377k series to the index
+  // pushed "Choices", "Flight" and "Framed" past 25 and into review even though
+  // every one of the new candidates was a series a film could never match.
+  const candidates = generated.candidates
+    .filter(c => scoreTypeMatch(isEpisode, c.titleType) !== null);
 
   if (!candidates.length) {
+    // Distinguish "the title matched nothing" from "it matched, but only films
+    // when we needed a series". The second is a title-parsing or coverage
+    // problem and wants a different fix, so it gets its own reason.
+    const reason = generated.candidates.length && isEpisode
+      ? 'no-series-match' : 'no-candidates';
     return { status: 'reject', ytId: video.ytId, name: video.name, rawTitle: video.rawTitle,
-             channel: video.channel, reason: 'no-candidates', candidates: [] };
+             channel: video.channel, reason, candidates: [] };
   }
   if (candidates.length > MAX_CANDIDATES) {
     return { status: 'review', ytId: video.ytId, name: video.name, rawTitle: video.rawTitle,
@@ -331,13 +390,17 @@ export function resolveOne(video, index, opts = {}) {
   }
 
   const scored = candidates
-    .map(c => scoreCandidate(video, c, index))
+    .map(c => scoreCandidate(video, c, index, isEpisode))
     .filter(Boolean)
     .sort((a, b) => b.score - a.score);
 
   if (!scored.length) {
     return { status: 'reject', ytId: video.ytId, name: video.name, rawTitle: video.rawTitle,
-             channel: video.channel, reason: 'runtime-rejected', candidates: [] };
+             channel: video.channel,
+             // With an episode in hand the usual cause is that every candidate
+             // was a film rather than a series, not the runtime bands.
+             reason: isEpisode ? 'no-series-match' : 'runtime-rejected',
+             candidates: [] };
   }
 
   const best = scored[0];
@@ -376,14 +439,19 @@ export function resolveOne(video, index, opts = {}) {
  * imdbId the way the Stremio handler and the report diff both assume.
  */
 export function settleDuplicates(results) {
-  const accepted = new Map();   // tconst -> resolution
+  // Keyed on the published id, not imdbId. Ninety-one episodes of one show
+  // share a series tconst and are ninety-one distinct entries, not ninety
+  // duplicates -- keying on the tconst would discard an entire series but one
+  // episode, and trip the duplicate quality gate on the way.
+  const accepted = new Map();   // published id -> resolution
   const review = [];
   const rejected = [];
 
   for (const r of results) {
     if (r.status === 'accept') {
-      const prev = accepted.get(r.imdbId);
-      if (!prev) { accepted.set(r.imdbId, r); continue; }
+      const key = r.id ?? r.imdbId;
+      const prev = accepted.get(key);
+      if (!prev) { accepted.set(key, r); continue; }
       // Ties must not be settled by iteration order. Two uploads of the same
       // film frequently score identically, and letting whichever arrived first
       // win makes the published ytId depend on how the rows happened to be
@@ -397,7 +465,7 @@ export function settleDuplicates(results) {
         ? r.confidence > prev.confidence
         : r.ytId < prev.ytId;
       const [winner, loser] = better ? [r, prev] : [prev, r];
-      accepted.set(r.imdbId, winner);
+      accepted.set(key, winner);
       review.push({ ...loser, status: 'review', reason: 'duplicate',
                     duplicateOf: winner.ytId, candidates: [] });
     } else if (r.status === 'review') {

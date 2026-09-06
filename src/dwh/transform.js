@@ -23,6 +23,7 @@ import {
   thumbUrl, STATUS, setCoreMeta,
 } from './core.js';
 import { cleanTitle, extractYear } from '../transform/title.js';
+import { parseEpisode } from '../transform/episode.js';
 import { loadExclusions, excludeReason } from '../resolve/exclude.js';
 import { buildIndex, resolveOne } from '../resolve/index.js';
 
@@ -30,7 +31,7 @@ import { buildIndex, resolveOne } from '../resolve/index.js';
  * Bump when resolve/index.js changes scoring semantics. Stored on every
  * resolution so a stale one is recomputed rather than silently trusted.
  */
-export const RESOLVER_VERSION = 1;
+export const RESOLVER_VERSION = 3;   // 3: type filter applied before the candidate cap
 
 const BATCH = 500;
 
@@ -38,6 +39,9 @@ function parseArgs(argv) {
   const a = {
     landing: 'data/landing.sqlite', warehouse: 'data/warehouse.sqlite',
     cache: '.cache', minMinutes: 60, maxMinutes: 300,
+    // Episodes need their own window: 20-50 minutes is normal television and
+    // sits entirely below the feature floor.
+    epMinMinutes: 15, epMaxMinutes: 90,
     skipResolve: false, fresh: false, limit: 0,
   };
   for (let i = 2; i < argv.length; i++) {
@@ -118,8 +122,14 @@ export function buildDimChannel(wh, landing, cfg, day) {
  * design. Rows are kept either way -- "what did we drop and why" is a query.
  */
 export function dropReason(row, rules, args) {
-  if (row.duration_s < args.minMinutes * 60 || row.duration_s > args.maxMinutes * 60) {
-    return 'duration';
+  // Two windows, chosen by what the title says the upload is. Applying the
+  // feature floor to an episode drops every one of them before the resolver
+  // ever sees it.
+  const [lo, hi] = row.isEpisode
+    ? [args.epMinMinutes, args.epMaxMinutes]
+    : [args.minMinutes, args.maxMinutes];
+  if (row.duration_s < lo * 60 || row.duration_s > hi * 60) {
+    return row.isEpisode ? 'duration-episode' : 'duration';
   }
   // Matches the original `status.embeddable === false`: an absent value passes.
   if (row.embeddable === 0) return 'not-embeddable';
@@ -131,6 +141,8 @@ export function toResolverInput(u, description) {
   return {
     ytId: u.ytId,
     name: u.clean_title,
+    season: u.season ?? null,
+    episode: u.episode ?? null,
     rawTitle: u.raw_title,
     year: u.extracted_year,
     runtimeMin: u.runtime_min,
@@ -151,13 +163,15 @@ function buildFctUpload(wh, landing, cfg, rules, args, runId, now) {
   // away every resolution on each re-run. Verified.
   const ins = wh.prepare(`INSERT INTO fct_upload
     (ytId,channel_ref,channel_name,grp,raw_title,clean_title,extracted_year,
+     season,episode,
      duration_s,runtime_min,thumb_tier,published_at,view_count,licensed,embeddable,
      blocked_regions,allowed_regions,drop_reason,input_hash,transformed_at,run_id)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     ON CONFLICT(ytId) DO UPDATE SET
       channel_ref=excluded.channel_ref, channel_name=excluded.channel_name,
       grp=excluded.grp, raw_title=excluded.raw_title, clean_title=excluded.clean_title,
-      extracted_year=excluded.extracted_year, duration_s=excluded.duration_s,
+      extracted_year=excluded.extracted_year,
+      season=excluded.season, episode=excluded.episode, duration_s=excluded.duration_s,
       runtime_min=excluded.runtime_min, thumb_tier=excluded.thumb_tier,
       published_at=excluded.published_at, view_count=excluded.view_count,
       licensed=excluded.licensed, embeddable=excluded.embeddable,
@@ -178,14 +192,17 @@ function buildFctUpload(wh, landing, cfg, rules, args, runId, now) {
     const grp = grpByRef.get(ref) ?? '_unmapped';
     const channelName = s.channel_title ?? ref;
 
-    // The two computations that used to happen during the fetch.
-    const clean = cleanTitle(s.raw_title, channelName);
+    // The computations that used to happen during the fetch. For an episode the
+    // show name is what resolves, so cleanTitle is given the text before the
+    // marker rather than the whole string.
+    const ep = parseEpisode(s.raw_title);
+    const clean = cleanTitle(ep ? ep.showTitle : s.raw_title, channelName);
     const year = extractYear(s.raw_title);
     const runtimeMin = Math.round(s.duration_s / 60);
 
     const shaped = {
       ytId: s.ytId, raw_title: s.raw_title, duration_s: s.duration_s,
-      embeddable: s.embeddable, grp,
+      embeddable: s.embeddable, grp, isEpisode: Boolean(ep),
     };
     const reason = dropReason(shaped, rules, args);
     if (reason) drops[reason] = (drops[reason] || 0) + 1;
@@ -194,9 +211,11 @@ function buildFctUpload(wh, landing, cfg, rules, args, runId, now) {
       ytId: s.ytId, name: clean, rawTitle: s.raw_title, year, runtimeMin,
       description: s.description ?? '', channel: channelName, group: grp,
       poster: thumbUrl(s.ytId, s.thumb_tier),
+      season: ep?.season ?? null, episode: ep?.episode ?? null,
     });
 
     ins.run(s.ytId, ref, channelName, grp, s.raw_title, clean, year,
+            ep?.season ?? null, ep?.episode ?? null,
             s.duration_s, runtimeMin, s.thumb_tier, s.published_at, s.view_count,
             s.licensed, s.embeddable, s.blocked_regions, s.allowed_regions,
             reason, hash, now, runId);
@@ -217,6 +236,8 @@ export function resolutionRow(r, ctx) {
   const s = r.signals || {};
   return [
     r.ytId, STATUS[r.status], r.reason ?? null, r.imdbId ?? null,
+    r.stremioType ?? 'movie', r.id ?? r.imdbId ?? null,
+    r.season ?? null, r.episode ?? null,
     // match_name is the IMDb title only; the resolver reuses `name` for the
     // cleaned YouTube title when there is no match, and publish rebuilds that.
     r.imdbId ? (r.name ?? null) : null,
@@ -232,12 +253,15 @@ export function resolutionRow(r, ctx) {
 
 async function resolvePending(wh, index, ctx, args) {
   const ins = wh.prepare(`INSERT INTO fct_resolution
-    (ytId,status,reason,imdb_id,match_name,imdb_year,imdb_runtime,genres,
+    (ytId,status,reason,imdb_id,stremio_type,published_id,season,episode,
+     match_name,imdb_year,imdb_runtime,genres,
      confidence,margin,score,candidate_count,sig_title,sig_year,sig_runtime,sig_corrob,
      is_override,tier,dataset,input_hash,overrides_hash,resolver_version,resolved_at,run_id)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     ON CONFLICT(ytId) DO UPDATE SET
       status=excluded.status, reason=excluded.reason, imdb_id=excluded.imdb_id,
+      stremio_type=excluded.stremio_type, published_id=excluded.published_id,
+      season=excluded.season, episode=excluded.episode,
       match_name=excluded.match_name, imdb_year=excluded.imdb_year,
       imdb_runtime=excluded.imdb_runtime, genres=excluded.genres,
       confidence=excluded.confidence, margin=excluded.margin, score=excluded.score,
@@ -281,7 +305,9 @@ async function resolvePending(wh, index, ctx, args) {
     wh.exec('BEGIN');
     for (const u of batch) {
       const video = toResolverInput(u, u.description);
-      const res = resolveOne(video, index, { overrides: ctx.overrides });
+      const episode = u.season != null && u.episode != null
+        ? { season: u.season, episode: u.episode } : null;
+      const res = resolveOne(video, index, { overrides: ctx.overrides, episode });
       res.__hash = u.input_hash;
       ins.run(...resolutionRow(res, ctx));
       delCand.run(u.ytId);

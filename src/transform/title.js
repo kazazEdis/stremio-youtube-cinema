@@ -21,7 +21,10 @@ const CAST_HINT = /\b(starring|with|feat\.?|ft\.?)\b/i;
 // "(1963)", "[1963]", "(MGM,1930)" — a parenthesised release year.
 // "(1963)", "(MGM,1930)", "(1975 Action film)", "(1972 Horror)" -- studios and
 // distributors precede the year, genre words follow it, and both appear.
-const YEAR_PAREN = /[([]\s*(?:[A-Za-z.&]{2,}\s*,\s*)?(?:19\d{2}|20\d{2})(?:\s+[A-Za-z][\w'-]*){0,3}\s*[)\]]/;
+// "(1963)", "(MGM,1930)", "(TV-1954)", "(1975 Action film)", "(1972 Horror)".
+// Studios and broadcast markers precede the year separated by a comma or a
+// hyphen; genre words follow it. All four forms occur in the catalogue.
+const YEAR_PAREN = /[([]\s*(?:[A-Za-z.&]{2,}\s*[,\-]\s*)?(?:19\d{2}|20\d{2})(?:\s+[A-Za-z][\w'-]*){0,3}\s*[)\]]/;
 
 // Symbols these channels use as separators: emoji, dingbats, and the shouty
 // punctuation that ends a clickbait hook.

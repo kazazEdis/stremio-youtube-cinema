@@ -13,8 +13,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
-  scoreTitle, scoreYear, scoreRuntime, scoreCorroboration,
-  resolveOne, resolveAll, THRESHOLDS,
+  scoreTitle, scoreYear, scoreRuntime, scoreCorroboration, scoreTypeMatch,
+  resolveOne, resolveAll, settleDuplicates, THRESHOLDS,
 } from '../src/resolve/index.js';
 
 // #region ---------------------------------------------------------- runtime
@@ -251,3 +251,70 @@ test('duplicate ties are settled deterministically, not by arrival order', () =>
   assert.equal(forward, reverse);
   assert.equal(forward, 'aaa');
 });
+
+// #region ---------------------------------------------------------- series
+test('type agreement replaces runtime for episodes, and rejects on mismatch', () => {
+  // An episode matched against its series scores the full 20.
+  assert.equal(scoreTypeMatch(true, 'tvSeries'), 20);
+  assert.equal(scoreTypeMatch(true, 'tvMiniSeries'), 20);
+  // "The Beverly Hillbillies" matches ten films in the index. Returning null
+  // makes publishing a 1962 sitcom episode against the 1993 feature
+  // structurally impossible rather than merely improbable.
+  assert.equal(scoreTypeMatch(true, 'movie'), null);
+  assert.equal(scoreTypeMatch(true, 'tvMovie'), null);
+  // And the reverse: a feature upload must not resolve to a series.
+  assert.equal(scoreTypeMatch(false, 'tvSeries'), null);
+  assert.equal(scoreTypeMatch(false, 'movie'), 0);
+});
+
+test('an episode reaches the accept floor where runtime alone could not', () => {
+  // Without type agreement the best a series can score is
+  // title 50 + year 20 + runtime 0 + corroboration 10 = 80, under the floor.
+  const index = stubIndex([
+    { tconst: 'tt0052514', titleType: 'tvSeries', primaryTitle: 'one step beyond',
+      originalTitle: 'one step beyond', isAdult: 0, startYear: 1959,
+      runtimeMinutes: null, genres: 'Mystery', norms: ['one step beyond'] },
+  ]);
+  const r = resolveOne(
+    upload({ name: 'one step beyond', year: 1959, runtimeMin: 25 }),
+    index, { episode: { season: 2, episode: 17 } });
+
+  assert.equal(r.status, 'accept');
+  assert.equal(r.imdbId, 'tt0052514');
+  assert.equal(r.signals.typeMatch, 20);
+  assert.equal(r.signals.runtime, 0);      // deliberately unused for episodes
+  assert.equal(r.id, 'tt0052514:2:17');    // the id Stremio requests
+  assert.equal(r.stremioType, 'series');
+  assert.equal(r.season, 2);
+});
+
+test('an episode never resolves to a same-named film', () => {
+  // The exact hazard: only the 1993 movie is in the index, so the episode must
+  // fail rather than publish against it.
+  const index = stubIndex([title('tt0106normal', 'the beverly hillbillies', 1993, 93)]);
+  const r = resolveOne(
+    upload({ name: 'the beverly hillbillies', year: 1962, runtimeMin: 25 }),
+    index, { episode: { season: 1, episode: 23 } });
+  assert.equal(r.status, 'reject');
+  assert.equal(r.reason, 'no-series-match');
+});
+
+test('episodes of one show are distinct entries, not duplicates', () => {
+  // Keyed on imdbId, ninety-one episodes would collapse to one and trip the
+  // duplicate quality gate on the way.
+  const index = stubIndex([
+    { tconst: 'tt0052514', titleType: 'tvSeries', primaryTitle: 'one step beyond',
+      originalTitle: 'one step beyond', isAdult: 0, startYear: 1959,
+      runtimeMinutes: null, genres: null, norms: ['one step beyond'] },
+  ]);
+  const mk = (ytId, ep) => resolveOne(
+    upload({ ytId, name: 'one step beyond', year: 1959, runtimeMin: 25 }),
+    index, { episode: { season: 2, episode: ep } });
+
+  const { resolved, review } = settleDuplicates([mk('a', 17), mk('b', 18), mk('c', 19)]);
+  assert.equal(resolved.length, 3);
+  assert.equal(review.filter(r => r.reason === 'duplicate').length, 0);
+  assert.deepEqual(resolved.map(r => r.id).sort(),
+                   ['tt0052514:2:17', 'tt0052514:2:18', 'tt0052514:2:19']);
+});
+// #endregion

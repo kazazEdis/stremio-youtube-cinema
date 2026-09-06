@@ -76,10 +76,25 @@ async function main() {
     process.exit(1);
   }
 
-  const groups = [...new Set(movies.map(m => m.group).filter(Boolean))].sort();
-  const manifest = buildManifest(movies, groups, '');
-  const byImdb = new Map(movies.map(m => [m.imdbId, m]));
-  const byGroup = new Map(groups.map(g => [`ytc-${slug(g)}`, movies.filter(m => m.group === g)]));
+  const films = movies.filter(m => (m.stremioType ?? 'movie') === 'movie');
+  const episodes = movies.filter(m => m.stremioType === 'series');
+  const groups = [...new Set(films.map(m => m.group).filter(Boolean))].sort();
+  const seriesGroups = [...new Set(episodes.map(m => m.group).filter(Boolean))].sort();
+  const manifest = buildManifest(films, groups, '', seriesGroups);
+
+  // Films are looked up by tconst; episodes by the composite id Stremio sends,
+  // which is tconst:season:episode and would miss a tconst-keyed map entirely.
+  const byId = new Map([...films.map(m => [m.imdbId, m]),
+                        ...episodes.map(m => [m.id, m])]);
+  const shows = new Map();
+  for (const e of episodes) if (!shows.has(e.imdbId)) shows.set(e.imdbId, e);
+
+  const pool = { movie: films, series: [...shows.values()] };
+  const byGroup = {
+    movie: new Map(groups.map(g => [`ytc-${slug(g)}`, films.filter(m => m.group === g)])),
+    series: new Map(seriesGroups.map(g => [`ytc-${slug(g)}`,
+      [...new Map(episodes.filter(m => m.group === g).map(m => [m.imdbId, m])).values()]])),
+  };
 
   const server = http.createServer((req, res) => {
     const url = new URL(req.url, 'http://localhost');
@@ -102,23 +117,24 @@ async function main() {
 
     if (parts[0] === 'manifest.json') return send(res, 200, manifest);
 
-    // /catalog/movie/<id>.json  or  /catalog/movie/<id>/<extra>.json
-    if (parts[0] === 'catalog' && parts[1] === 'movie') {
+    // /catalog/<type>/<id>.json  or  /catalog/<type>/<id>/<extra>.json
+    if (parts[0] === 'catalog' && (parts[1] === 'movie' || parts[1] === 'series')) {
+      const type = parts[1];
       const id = parts[2].replace(/\.json$/, '');
       const extra = parseExtra(parts[3]);
-      let list = id === 'ytc-all' ? movies : (byGroup.get(id) || []);
+      let list = id === 'ytc-all' ? pool[type] : (byGroup[type].get(id) || []);
       if (extra.genre) list = list.filter(m => m.group === extra.genre);
       if (extra.search) {
         const q = extra.search.toLowerCase();
         list = list.filter(m => (m.name || '').toLowerCase().includes(q));
       }
       const skip = Number(extra.skip) || 0;
-      return send(res, 200, { metas: list.slice(skip, skip + PAGE).map(toMeta) });
+      return send(res, 200, { metas: list.slice(skip, skip + PAGE).map(m => toMeta(m, type)) });
     }
 
-    // /stream/movie/<tconst>.json
-    if (parts[0] === 'stream' && parts[1] === 'movie') {
-      const m = byImdb.get(parts[2].replace(/\.json$/, ''));
+    // /stream/movie/<tconst>.json or /stream/series/<tconst>:<season>:<episode>.json
+    if (parts[0] === 'stream' && (parts[1] === 'movie' || parts[1] === 'series')) {
+      const m = byId.get(decodeURIComponent(parts[2]).replace(/\.json$/, ''));
       return send(res, 200, { streams: m ? [toStream(m)] : [] });
     }
 
@@ -126,7 +142,9 @@ async function main() {
   });
 
   server.listen(args.port, args.host, () => {
-    console.log(`[serve]  ${movies.length} films, ${groups.length} groups`);
+    console.log(`[serve]  ${films.length} films` +
+                (episodes.length ? `, ${episodes.length} episodes across ${shows.size} shows` : '') +
+                `, ${groups.length + seriesGroups.length} groups`);
     for (const u of lanAddresses(args.port)) console.log(`[serve]  ${u}/manifest.json`);
     console.log(`[serve]  local: http://127.0.0.1:${args.port}/manifest.json`);
   });
