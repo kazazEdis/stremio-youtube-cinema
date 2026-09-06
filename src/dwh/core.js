@@ -186,6 +186,7 @@ const SCHEMA = [
      max_height INTEGER,
      duration_s INTEGER,
      subtitles  TEXT,                              -- comma-joined language codes
+     fail_count INTEGER NOT NULL DEFAULT 0,        -- consecutive non-ok probes
      probed_at  TEXT NOT NULL,
      run_id     INTEGER
    ) WITHOUT ROWID;`,
@@ -270,19 +271,28 @@ export const quarantinedYtIds = db => new Set(
   db.prepare(`SELECT ytId FROM fct_playback WHERE verdict IN (${
     [...UNPLAYABLE].map(() => '?').join(',')})`).all(...UNPLAYABLE).map(r => r.ytId));
 
+/**
+ * One probe is not evidence. yt-dlp reports a throttled request and a deleted
+ * video in much the same breath, so `fail_count` counts *consecutive* non-ok
+ * probes and resets the moment one succeeds. A policy that removes anything
+ * should read that count, never a single verdict.
+ */
 export function recordPlayback(db, rows, runId) {
   const ins = db.prepare(`INSERT INTO fct_playback
-      (ytId,verdict,max_height,duration_s,subtitles,probed_at,run_id)
-    VALUES (?,?,?,?,?,?,?)
+      (ytId,verdict,max_height,duration_s,subtitles,fail_count,probed_at,run_id)
+    VALUES (?,?,?,?,?,?,?,?)
     ON CONFLICT(ytId) DO UPDATE SET
       verdict=excluded.verdict, max_height=excluded.max_height,
       duration_s=excluded.duration_s, subtitles=excluded.subtitles,
+      fail_count=CASE WHEN excluded.verdict = 'ok' THEN 0
+                      ELSE fct_playback.fail_count + 1 END,
       probed_at=excluded.probed_at, run_id=excluded.run_id`);
   const now = new Date().toISOString();
   db.exec('BEGIN');
   for (const r of rows) {
     ins.run(r.ytId, r.verdict, r.maxHeight ?? null, r.durationSec ?? null,
-            (r.subtitles || []).join(',') || null, now, runId ?? null);
+            (r.subtitles || []).join(',') || null, r.verdict === 'ok' ? 0 : 1,
+            now, runId ?? null);
   }
   db.exec('COMMIT');
   return rows.length;
@@ -295,6 +305,7 @@ export function migrateColumns(db) {
       stremio_type: "TEXT NOT NULL DEFAULT 'movie'", published_id: 'TEXT',
       season: 'INTEGER', episode: 'INTEGER',
     },
+    fct_playback: { fail_count: 'INTEGER NOT NULL DEFAULT 0' },
   };
   let added = 0;
   for (const [table, cols] of Object.entries(wanted)) {

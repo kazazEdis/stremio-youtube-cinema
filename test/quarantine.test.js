@@ -45,3 +45,36 @@ test('an empty table quarantines nothing', () => {
   assert.equal(quarantinedYtIds(db).size, 0);
   db.close();
 });
+
+test('consecutive failures are counted, and one success clears them', () => {
+  // One probe is not evidence: yt-dlp reports a throttled request and a deleted
+  // video in much the same breath. Any policy that removes a film should read
+  // the count, never a single verdict.
+  const db = core();
+  const count = () => db.prepare('SELECT fail_count FROM fct_playback WHERE ytId=?').get('x').fail_count;
+
+  recordPlayback(db, [{ ytId: 'x', verdict: 'unreachable' }], 1);
+  assert.equal(count(), 1);
+  recordPlayback(db, [{ ytId: 'x', verdict: 'unreachable' }], 2);
+  assert.equal(count(), 2);
+  recordPlayback(db, [{ ytId: 'x', verdict: 'age-gated' }], 3);
+  assert.equal(count(), 3, 'a different failure still counts as a failure');
+
+  recordPlayback(db, [{ ytId: 'x', verdict: 'ok', maxHeight: 720 }], 4);
+  assert.equal(count(), 0);
+  db.close();
+});
+
+test('the fail_count column reaches a warehouse that predates it', () => {
+  // CREATE TABLE IF NOT EXISTS adds no columns, which is how "table fct_upload
+  // has no column named season" happened once already.
+  const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'old-')), 'core.sqlite');
+  const first = openCore(file);
+  first.exec('ALTER TABLE fct_playback DROP COLUMN fail_count');
+  first.close();
+
+  const reopened = openCore(file);            // migrateColumns runs here
+  recordPlayback(reopened, [{ ytId: 'y', verdict: 'unreachable' }], 1);
+  assert.equal(reopened.prepare('SELECT fail_count FROM fct_playback WHERE ytId=?').get('y').fail_count, 1);
+  reopened.close();
+});
