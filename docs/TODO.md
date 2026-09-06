@@ -403,15 +403,22 @@ throw away a catalogue that published cleanly. Problems surface as a
 
 ## DONE — the catalogue measured by a real client (2026-09-06)
 
-**Corrected the same day.** The figures below cover the 3,085 *primary* streams
-and were reported as the whole catalogue, which they were not.
-`publishedStreams` read `streams[0]` of each file, so once a film could offer
-several copies the alternates were invisible to it — the real population is
-3,893 and 805 of those had never been probed by anything. Any of them could
-have been gated or dead and would still have been offered to a viewer. Every
-stream in a file is collected now.
+**Complete: 3,893 of 3,893 streams**, every copy of every film, probed with
+yt-dlp rather than sampled.
 
-The primary streams, probed with yt-dlp rather than sampled:
+    3,857 play        33 age-gated       3 dead
+
+The first attempt claimed this at 3,085, which was only the primaries:
+`publishedStreams` read `streams[0]` of each file, so once a film could offer
+several copies the alternates were invisible to it. 805 streams had never been
+probed by anything, and one of the gated uploads found afterwards was a
+fallback — the exact case that read could not reach.
+
+The invariant that matters holds: **no gated stream leads a film that has a
+working alternative** (0 of 33). The 27 that lead are the only copy of their
+film, labelled `sign-in required`; the other 6 sit behind a stream that plays.
+
+The primary streams alone, for comparison with what the API reported:
 
     3,054 play        31 age-gated      3 dead
 
