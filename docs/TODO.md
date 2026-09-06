@@ -448,6 +448,32 @@ Throttled probes are now classified apart and **not written at all**: a probe
 that learned nothing must not count as coverage. The next probe of that video
 returned the real answer, which happened to be that it is dead anyway.
 
+## DONE — the runtime evidence audited against the videos (2026-09-06)
+
+`duration-drift` was built to catch a video re-cut since we matched its runtime,
+and it never fired. With all 3,857 playable streams measured, that is now a
+result rather than an absence:
+
+**Not one stored runtime has drifted.** Every duration landed at extract time
+still describes the video to within two minutes. The signal carrying 20 of the
+100 points in §4 is being scored on accurate input, which nothing had checked
+before.
+
+Against IMDb's runtime for the matched film:
+
+    within 3%    2,688   69.7%
+    within 10%     850   22.0%
+    within 25%     317    8.2%
+    beyond 25%       2    0.1%
+
+That second table is **partly circular** and should not be read as a precision
+measurement: runtime is a scoring input, so films that matched well on runtime
+are over-represented among published ones by construction. What it does say is
+that nothing in the catalogue is wildly off — two entries beyond 25%, and both
+are *Rocky Jones, Space Ranger*, which was serialised in three-part chapters and
+whose uploads carry a whole story under its first episode's number. A viewer
+clicking E19 gets E19 and then some, which is not a wrong match.
+
 ## 3. Work the review queue
 
 2,404 entries, and the sampled ones are mostly *correct* matches sitting under
