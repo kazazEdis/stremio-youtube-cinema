@@ -47,6 +47,28 @@ const readJson = (p, fb = null) =>
   });
 
 /**
+ * Every playable upload of one film, best first.
+ *
+ * Stremio's stream endpoint is an array and this addon has only ever put one
+ * thing in it, so 579 films quietly threw away a second working copy. That is
+ * also why the age-gate swap only helps one gated upload in seven: a film with
+ * a spare did not need choosing between, it needed both offered.
+ *
+ * The settled winner stays first, because it is the one the scorer trusts most.
+ * Anything a real client could not play sorts last however good its match is —
+ * a viewer scanning the list should reach a working stream before a gated one.
+ */
+export function streamsFor(winner, scanned, quarantine) {
+  const id = winner.id ?? winner.imdbId;
+  const alts = scanned
+    .filter(r => (r.published_id ?? r.imdb_id) === id && r.ytId !== winner.ytId)
+    .map(r => ({ ...toResolutionShape(r), playback: quarantine.has(r.ytId) ? 'age-gated' : undefined }))
+    .sort((a, b) => (a.playback ? 1 : 0) - (b.playback ? 1 : 0)
+                 || (b.confidence ?? 0) - (a.confidence ?? 0));
+  return [winner, ...alts].map(toStream);
+}
+
+/**
  * Read back every stream file the catalogue promises, and fail loudly if one
  * of them is not there, is empty, or does not carry the ytId we just wrote.
  *
@@ -179,13 +201,17 @@ export function loadCore(wh, { region, rules }) {
   const replaceable = r => quarantine.has(r.ytId)
     && (copies.get(r.published_id ?? r.imdb_id) ?? 0) > 1;
 
+  // Only the *winner* has to be playable. Now that a stream file carries every
+  // copy of a film, hiding the gated one helps nobody — a viewer signed in on
+  // YouTube can play it, and it costs nothing to offer it last. So it is kept
+  // out of the settle and put back in the list.
   const scanned = regional.filter(r => !replaceable(r));
-  for (const r of scanned) if (quarantine.has(r.ytId)) r.playback = 'age-gated';
+  for (const r of regional) if (quarantine.has(r.ytId)) r.playback = 'age-gated';
   const { resolved, review, rejected } = settleDuplicates(scanned.map(toResolutionShape));
 
   const movies = resolved.filter(m => !excludedByImdb(m.imdbId, rules));
   movies.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-  return { movies, review, rejected, scanned };
+  return { movies, review, rejected, scanned, regional, quarantine };
 }
 
 /** Write-once, then read back. A replay must never rewrite history. */
@@ -282,7 +308,7 @@ async function main() {
   const runId = startRun(landing, 'publish', `region=${args.region}`);
   const rules = loadExclusions(await readJson('config/exclude.json', null));
 
-  const { movies, review, scanned } = loadCore(wh, { region: args.region, rules });
+  const { movies, review, scanned, regional, quarantine } = loadCore(wh, { region: args.region, rules });
   const prevCatalog = await readJson(args.prev, { movies: [] });
   // Read before publishing overwrites it: the silent-channel check compares
   // this run's per-channel output against the previous run's.
@@ -325,12 +351,12 @@ async function main() {
 
   for (const m of films) {
     await writeJson(path.join(args.out, 'stream', 'movie', `${m.imdbId}.json`),
-                    { streams: [toStream(m)] });
+                    { streams: streamsFor(m, regional, quarantine) });
   }
   // One file per episode, named with the composite id Stremio requests.
   for (const m of episodes) {
     await writeJson(path.join(args.out, 'stream', 'series', `${m.id}.json`),
-                    { streams: [toStream(m)] });
+                    { streams: streamsFor(m, regional, quarantine) });
   }
 
   const orphans =

@@ -5,7 +5,7 @@ import fsp from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import { verifyMarts } from '../src/dwh/publish.js';
+import { verifyMarts, streamsFor } from '../src/dwh/publish.js';
 import { toStream } from '../src/publish.js';
 
 function mart(entries) {
@@ -62,4 +62,28 @@ test('a gated upload we cannot replace is served honestly, not hidden', () => {
   assert.equal(gated.behaviorHints.notWebReady, true);
   assert.match(gated.title, /sign-in required/);
   assert.equal(gated.externalUrl, 'https://www.youtube.com/watch?v=b');
+});
+
+test('a film offers every playable copy, best first and gated last', () => {
+  // Stremio's stream endpoint is an array and this addon only ever put one
+  // thing in it, so 579 films quietly threw away a second working copy. That is
+  // also why the age-gate swap helped only one gated upload in seven: a film
+  // with a spare did not need choosing between, it needed both offered.
+  const row = (ytId, confidence, published_id) => ({
+    ytId, confidence, published_id, imdb_id: 'tt1', status: 0,
+    channel_name: 'Ch', grp: 'G', raw_title: 't', clean_title: 't',
+    match_name: 'Film', imdb_runtime: 95, runtime_min: 95,
+  });
+  const winner = { ytId: 'best', imdbId: 'tt1', id: 'tt1', confidence: 92, channel: 'Ch', imdbRuntimeMin: 95 };
+  const regional = [row('best', 92, 'tt1'), row('good', 88, 'tt1'),
+                    row('gated', 99, 'tt1'), row('other', 90, 'tt2')];
+
+  const streams = streamsFor(winner, regional, new Set(['gated']));
+  assert.deepEqual(streams.map(s => s.ytId), ['best', 'good', 'gated']);
+  // The winner leads because the scorer trusts it most; the gated copy sorts
+  // last despite the highest confidence, so a viewer reaches a working stream
+  // before one that asks them to sign in. tt2 belongs to another film.
+  assert.equal(streams[2].behaviorHints.notWebReady, true);
+  assert.match(streams[2].title, /sign-in required/);
+  assert.equal(streams[0].behaviorHints.notWebReady, false);
 });
