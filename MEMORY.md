@@ -16,6 +16,7 @@ that**, which is the part a fork cannot recover by reading the source.
 | [stremio-protocol](memory/stremio-protocol.md) | what a client actually requests, and the four ways a static addon breaks |
 | [regions](memory/regions.md) | the unrestricted/per-region split and why combinations cannot be pre-generated |
 | [playback-verification](memory/playback-verification.md) | the API lies about age-gating; how the catalogue is checked against reality |
+| [build-and-deploy](memory/build-and-deploy.md) | why a code change ships on push and a data change does not |
 
 ## The shortest version
 
@@ -27,3 +28,5 @@ that**, which is the part a fork cannot recover by reading the source.
   zero-byte mart file, a `genre` chip that 404s — all of them left every
   internal number looking correct.
 - **The host will kill you.** Design for it.
+- **Green is not deployed.** `deploy-site` re-renders the warehouse it is given;
+  a feature that needs new *data* ships only when `build-catalog` runs.
