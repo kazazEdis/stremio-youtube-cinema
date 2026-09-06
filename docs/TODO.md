@@ -532,6 +532,46 @@ keeps the unrestricted tree, which stays diffable. Job timeout 45 → 90 minutes
 quietly stopped covering the uploads that exist *because* of a region, which are
 the ones a rights holder is most likely to gate or pull.
 
+## DONE — several countries at once, and a name that stops shouting (2026-09-06)
+
+Twenty regions is 2^20 selections and the catalogues do not collapse — all
+twenty are distinct — so pre-generating combinations is out on a static host.
+Stremio already solves it: it merges catalogues and streams across installed
+addons. Tick HR and US, install both, get `unrestricted ∪ HR ∪ US` with every
+copy of a film offered together. Exact, no supersets, nothing to guess.
+
+That only works if they can coexist, and Stremio keys an installed addon on its
+manifest **id** — share one and the second install replaces the first. So:
+
+    id     org.stremio.youtube-cinema.hr     distinct per region
+    name   YouTube Cinema                    the same everywhere
+    rows   YouTube Cinema — HR               the country lives here
+
+The configure page is checkboxes and hands back one install button per country
+picked, rather than a single URL that could only ever mean one of them.
+
+### The addon is now checked as a client sees it
+
+`npm run conformance` walks the published tree the way Stremio does: every
+declared catalogue resolves, page two exists where page one is full, a listed
+title has a stream at the id a client will actually request, and no two addons
+share an id. It runs after publish in both workflows.
+
+Everything else in this repo verifies our own reasoning. This is the first check
+that asks whether the *protocol* holds — the failure a viewer calls "the addon
+is broken", and the one that is invisible from inside, because the marts can be
+internally perfect and still unusable if the ids do not line up.
+
+It found its own bug before the addon's: probing S1-3/E1-3 for a show's episodes
+called *Man with a Camera* broken, when its two episodes are S1E6 and S1E12.
+Episodes are whatever a channel uploaded; guessing was never going to hold. Each
+tree publishes `episodes.json` now, so the check reads the truth. That also
+fixed a real gap — `catalog.json` exists only in the root, so nothing could
+verify a regional variant remotely.
+
+**All 21 live addons pass**, and the chain was walked to the end: catalogue →
+stream → a YouTube video that actually plays, for films and for an episode.
+
 ## 3. Work the review queue
 
 2,404 entries, and the sampled ones are mostly *correct* matches sitting under
