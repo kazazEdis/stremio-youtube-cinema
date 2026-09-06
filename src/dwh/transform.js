@@ -232,6 +232,35 @@ function buildFctUpload(wh, landing, cfg, rules, args, runId, now) {
 // #endregion
 
 // #region ---------------------------------------------------------- resolve
+/**
+ * The work list, which IS the checkpoint: a stored resolution is reused only
+ * while every input that produced it is unchanged. No separate progress file.
+ *
+ * The override clause is deliberately narrow. `overrides_hash` is one hash of
+ * the whole file, so comparing it alone put all 11,979 eligible uploads back
+ * through the scorer whenever a single ytId was pinned -- over two hours on
+ * this host, to correct one film. Only two kinds of row can be affected: one
+ * whose ytId the file now pins, and one that was last resolved *by* an
+ * override, so that deleting an entry re-resolves it honestly.
+ *
+ * Bound parameters, in order: dataset, resolverVersion, overridesHash,
+ * ...overrideIds, limit.
+ */
+export function pendingSql(overrideCount) {
+  const inList = overrideCount
+    ? `u.ytId IN (${Array.from({ length: overrideCount }, () => '?').join(',')})` : '0';
+  return `
+    SELECT u.*, b.text AS description
+    FROM fct_upload u
+    LEFT JOIN stg_blurb b ON b.ytId = u.ytId
+    LEFT JOIN fct_resolution r ON r.ytId = u.ytId
+    WHERE u.drop_reason IS NULL
+      AND (r.ytId IS NULL OR r.input_hash <> u.input_hash OR r.dataset <> ?
+           OR r.resolver_version <> ?
+           OR (r.overrides_hash <> ? AND (r.is_override = 1 OR ${inList})))
+    LIMIT ?`;
+}
+
 export function resolutionRow(r, ctx) {
   const s = r.signals || {};
   return [
@@ -277,17 +306,8 @@ async function resolvePending(wh, index, ctx, args) {
       year=excluded.year, runtime=excluded.runtime, score=excluded.score, kind=excluded.kind`);
   const delCand = wh.prepare('DELETE FROM fct_candidate WHERE ytId=?');
 
-  // The work list IS the checkpoint: a stored resolution is reused only while
-  // every input that produced it is unchanged. No separate progress file.
-  const pending = wh.prepare(`
-    SELECT u.*, b.text AS description
-    FROM fct_upload u
-    LEFT JOIN stg_blurb b ON b.ytId = u.ytId
-    LEFT JOIN fct_resolution r ON r.ytId = u.ytId
-    WHERE u.drop_reason IS NULL
-      AND (r.ytId IS NULL OR r.input_hash <> u.input_hash OR r.dataset <> ?
-           OR r.overrides_hash <> ? OR r.resolver_version <> ?)
-    LIMIT ?`);
+  const overrideIds = Object.keys(ctx.overrides);
+  const pending = wh.prepare(pendingSql(overrideIds.length));
 
   const total = wh.prepare(`SELECT COUNT(*) c FROM fct_upload WHERE drop_reason IS NULL`).get().c;
   let done = 0;
@@ -299,7 +319,8 @@ async function resolvePending(wh, index, ctx, args) {
   for (;;) {
     // Materialised, not iterated: inserting into the same connection while a
     // cursor is open over these tables invalidates the statement.
-    const batch = pending.all(ctx.dataset, ctx.overridesHash, RESOLVER_VERSION, BATCH);
+    const batch = pending.all(ctx.dataset, RESOLVER_VERSION, ctx.overridesHash,
+                              ...overrideIds, BATCH);
     if (!batch.length) break;
 
     wh.exec('BEGIN');
@@ -319,6 +340,14 @@ async function resolvePending(wh, index, ctx, args) {
     wh.exec('COMMIT');
     console.log(`[transform] resolved ${done.toLocaleString()} (of ${total.toLocaleString()} eligible)`);
     if (stopping || (args.limit && done >= args.limit)) break;
+  }
+  // Rows the predicate above deliberately skipped still carry the previous
+  // file's hash. Stamping them keeps the column meaning what it says -- "the
+  // overrides this row was last checked against" -- so the next run compares
+  // against a truth rather than a permanent mismatch.
+  if (!stopping) {
+    wh.prepare('UPDATE fct_resolution SET overrides_hash=? WHERE overrides_hash<>?')
+      .run(ctx.overridesHash, ctx.overridesHash);
   }
   return { done, total, stopped: stopping };
 }

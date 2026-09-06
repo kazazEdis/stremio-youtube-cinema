@@ -16,18 +16,72 @@ Status as of 2026-09-05: 8,276 films indexed (Croatia), 2,102 published,
 `src/resolve/index.js` rejects a type mismatch outright, and the marts carry a
 `series` type with `tt<series>:<season>:<episode>` stream ids.
 
-Open follow-ups from that work:
+Two of the three follow-ups recorded here were diagnosed wrong, and probing
+them turned up a larger defect. Both corrections are below.
 
-- **The fuzzy tier's early break is order-dependent.** `generateCandidates`
-  stops at `MAX_CANDIDATES * 4`, so a larger index can fill the year window
-  before reaching a good match. Cost one film (`Get Christie Love!`) when the
-  index grew by 377k series. Scoring every candidate would fix it and is
-  expensive; an override is the cheap escape hatch.
-- **`Sapphire and Steel` resolves to nothing** despite being in the catalogue —
-  worth a probe, it may be an aka-coverage gap.
+- ~~**The fuzzy tier's early break is order-dependent**, and cost
+  `Get Christie Love!` when the index grew by 377k series.~~ **Wrong.** The
+  channel uploaded it as `Christie Love! (1974 Crime) Teresa Graves`, without
+  the leading *Get*. No normalization of that string reaches `tt0071548`, and
+  no candidate generator could have. Pinned in `config/overrides.json` to the
+  1974 tvMovie rather than the same-named tvSeries `tt0070990`, on the upload's
+  74-minute runtime. The early-break concern may still be real; this was not
+  evidence of it.
+- ~~**`Sapphire and Steel` may be an aka-coverage gap.**~~ **Wrong, and not
+  worth fixing.** `normalize` turns every non-alphanumeric into a separator, so
+  IMDb's `Sapphire & Steel` becomes `sapphire steel` while the upload's
+  `Sapphire And Steel` keeps its conjunction. A real asymmetry — but mapping
+  `&` to `and` was measured against all 3,720 `no-candidates` uploads and would
+  reach **7** index titles, of which one (`tt0078682`) is plausible and six are
+  unrelated modern films that would become candidates for the scorer to reject.
+  One title does not justify a 15-minute index rebuild plus six new decoys.
+  Separately, 12 of the 14 Sapphire and Steel uploads are
+  `<Story> | Pt N | <Show> | FULL EPISODE`, a layout `parseEpisode` declines on
+  purpose.
 - **Series scoring is unmeasured.** The 20-point type signal was reasoned, not
-  tuned. 405 episodes sit in review; that queue is the evidence for a first
-  tuning pass.
+  tuned. The review queue is the evidence for a first tuning pass. Still open.
+
+## DONE — the title picked the star instead of the film (2026-09-06)
+
+Probing the two items above surfaced the real defect. **93 uploads resolved to
+nothing because `cleanTitle` returned an actor's name** — measured by matching
+every `no-candidates` clean title against the index's `credits` table, where no
+film is called *Rutger Hauer*. The true count is higher, since `credits` only
+covers titles already in `KEEP_TYPES`.
+
+The cause was tier 2 of `pickSegment`, which required a segment untouched by the
+marketing strip. On the commonest layout there is —
+
+    New World Disorder FULL MOVIE | Rutger Hauer | Action Movies | The Midnight Screening
+
+— the marketing sits *on* the title, so the star's segment is the only clean one
+and position lost to tidiness. Tier 2 now prefers the opening segment when
+anything survives both the marketing strip and a genre vocabulary, which
+separates `New World Disorder FULL MOVIE` from `Action Movies`.
+
+Three narrower fixes were tried and **rejected on measurement**, each against
+all 22,453 uploads scored by exact index hits:
+
+| change | net hits | why rejected |
+|---|---|---|
+| relax tier 2 everywhere, not just at segment 0 | +49 | promoted genre tails (`Hemingway Fishing Drama`) over real titles ahead of them |
+| treat a trailing name-shaped segment as a credit | −37 | `… \| Action Western Movie \| Michael Paré` and `… \| Free Movie \| Caged Birds` are the same shape; shape alone cannot tell a star from a title |
+| stop treating bare `with` as a cast hint | −11 | it was accidentally vetoing hooks (`Trapped With A Killer Dog`) that `looksLikeHook` misses below its six-word floor |
+
+The last one is *correct in principle* — `with` is ordinary title English, and
+the veto costs `Poker with Pistols`. It stays only because `looksLikeHook`
+cannot yet carry the load. Fixing that hook floor is the way to collect it.
+
+## DONE — one override no longer re-resolves the warehouse (2026-09-06)
+
+Found by pinning `Get Christie Love!` and watching the run: `overrides_hash` is
+a hash of the whole file, and the work-list compared it row by row, so a single
+new entry put **all 11,979 eligible uploads** back through the scorer — over two
+hours on this host to correct one film. The predicate now narrows that to rows
+the file actually pins, plus rows last resolved *by* an override so that
+deleting an entry re-resolves it honestly. `pendingSql` is exported and pinned
+in `test/pending.test.js`, because a checkpoint that silently does too much and
+one that silently does too little look identical from outside.
 
 ## DONE 2026-09-05 — items 1 and 2
 
@@ -71,6 +125,13 @@ this costs no dependency — the original argument for JSON here was wrong, see
 - `report.js`'s catalog diff becomes a JOIN
 
 `docs/` stays JSON — that is the addon protocol, not a choice.
+
+## `fct_resolution.score` is never written
+
+All 3,588 accepted rows have `score IS NULL`; `confidence` carries the number
+instead. Harmless today, but it is the column the weight tuning in item 5 will
+want to read, and a NULL there will look like "no data" rather than "wrong
+column". Cheap to fix while the schema is still moving.
 
 ## 3. Work the review queue
 
