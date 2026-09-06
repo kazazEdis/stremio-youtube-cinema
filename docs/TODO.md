@@ -401,6 +401,38 @@ and committed with every weekly catalogue. The step is `continue-on-error`
 throw away a catalogue that published cleanly. Problems surface as a
 `::warning::` in the Actions summary, the same way a silent channel does.
 
+## DONE — the whole catalogue measured by a real client (2026-09-06)
+
+Every published stream probed with yt-dlp, not sampled:
+
+    3,054 play        31 age-gated      3 dead
+
+    1080p  1,441  46.7%      480p        762  24.7%
+    720p     330  10.7%      below 480p  390  12.6%
+    4K       131   4.2%      no format    34   1.1%
+
+    real subtitle tracks, not auto-captions: 912 of 3,088
+
+**Three published films do not play and the Data API says they are fine.**
+`The Little Princess` (tt0031580), `The Brave One` (tt0049030) and
+`Gulliver's Travels` (tt0031397) all return "This video is not available"
+reproducibly, while `videos.list` reports them public, embeddable and
+unrestricted. None has a second copy, so nothing can be swapped in. The API's
+metadata record simply outlives the video, which is the whole reason this probe
+exists alongside `verify-streams`.
+
+Nothing acts on them. Removing a film is a policy decision and wants the
+owner's call, the way the age-gate swap did.
+
+### Throttling is not a verdict
+
+"Sign in to confirm you're not a bot" arrived on *The Little Princess* and was
+recorded as `unreachable` — a permanent false verdict on a healthy film from
+one busy minute, which the unprobed-first sampler would then never revisit.
+Throttled probes are now classified apart and **not written at all**: a probe
+that learned nothing must not count as coverage. The next probe of that video
+returned the real answer, which happened to be that it is dead anyway.
+
 ## 3. Work the review queue
 
 2,404 entries, and the sampled ones are mostly *correct* matches sitting under

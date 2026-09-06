@@ -158,6 +158,12 @@ export const watchUrl = ytId => `https://www.youtube.com/watch?v=${encodeURIComp
  */
 export function verdictFromError(text) {
   const t = String(text || '');
+  // Not a fact about the video: YouTube is refusing *us*. Recorded like any
+  // other failure it would mark a healthy film as probed and permanently
+  // unreachable, and the unprobed-first sampler would never look at it again.
+  // "Sign in to confirm you're not a bot" arrived on The Little Princess, which
+  // is fine.
+  if (/not a bot|too many requests|http error 429|rate.?limit/i.test(t)) return 'throttled';
   if (/confirm your age|age.?restricted|inappropriate for some users/i.test(t)) return 'age-gated';
   if (/private video/i.test(t)) return 'private';
   if (/members-only|join this channel/i.test(t)) return 'members-only';
@@ -236,7 +242,10 @@ async function main() {
   // The verdicts are a fact about the upload, so they belong in the warehouse
   // rather than only in a report. publish reads them back to keep a quarantined
   // upload out of the duplicate contest.
-  recordPlayback(wh, results, runId);
+  // A throttled probe learned nothing, so it is not written. Storing it would
+  // count the video as covered and hide it from every later batch.
+  const learned = results.filter(r => r.verdict !== 'throttled');
+  recordPlayback(wh, learned, runId);
   wh.close();
 
   results.sort((a, b) => String(a.imdbId).localeCompare(String(b.imdbId)));

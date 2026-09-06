@@ -111,3 +111,15 @@ test('the batch is drawn from what has never been probed', () => {
   assert.equal(picked.length, 10);
   assert.equal(picked.filter(id => seen.has(id)).length, 0);
 });
+
+test('throttling is not a fact about the video', () => {
+  // "Sign in to confirm you're not a bot" is YouTube refusing us, not a broken
+  // upload. Recorded like any other failure it would mark a healthy film as
+  // probed and unreachable, and the unprobed-first sampler would never look at
+  // it again — a permanent false verdict from one busy minute.
+  assert.equal(verdictFromError("ERROR: [youtube] x: Sign in to confirm you're not a bot."), 'throttled');
+  assert.equal(verdictFromError('ERROR: HTTP Error 429: Too Many Requests'), 'throttled');
+  // Still told apart from the real ones.
+  assert.equal(verdictFromError('ERROR: [youtube] x: Sign in to confirm your age.'), 'age-gated');
+  assert.equal(verdictFromError('ERROR: [youtube] x: Video unavailable'), 'unreachable');
+});
