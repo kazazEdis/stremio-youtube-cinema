@@ -106,9 +106,16 @@ const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, 
 
 export function buildManifest(movies, groups, baseUrl, seriesGroups = [], region = null) {
   return {
-    id: 'org.stremio.youtube-cinema',
+    // A distinct id per region, because Stremio keys an installed addon on it:
+    // share one and installing the second replaces the first, which is exactly
+    // what has to work for someone who wants two countries at once.
+    id: region ? `org.stremio.youtube-cinema.${region.toLowerCase()}`
+               : 'org.stremio.youtube-cinema',
     version: '0.1.0',
-    name: region ? `YouTube Cinema (${region})` : 'YouTube Cinema',
+    // The name never carries the region. Several of these can be installed
+    // together and they are all the same addon; what differs is the catalogue,
+    // so that is where the country belongs.
+    name: 'YouTube Cinema',
     description:
       `${movies.length} feature films legally on YouTube — licensed uploads and ` +
       `public domain prints, resolved to IMDb ids so subtitles and metadata work. ` +
@@ -127,7 +134,7 @@ export function buildManifest(movies, groups, baseUrl, seriesGroups = [], region
       {
         type: 'movie',
         id: 'ytc-all',
-        name: 'YouTube Cinema',
+        name: region ? `YouTube Cinema — ${region}` : 'YouTube Cinema',
         // No `genre` extra on purpose. Group names contain a slash
         // ("Archive/Soviet"), and Stremio would request the literal value back
         // as a path segment — which any web server decodes into a directory
@@ -138,7 +145,7 @@ export function buildManifest(movies, groups, baseUrl, seriesGroups = [], region
       ...groups.map(g => ({
         type: 'movie',
         id: `ytc-${slug(g)}`,
-        name: `YouTube Cinema — ${g}`,
+        name: region ? `YouTube Cinema ${region} — ${g}` : `YouTube Cinema — ${g}`,
         extra: [{ name: 'skip' }],
       })),
       // Series catalogues reuse the same ids under a different type; Stremio
@@ -146,13 +153,13 @@ export function buildManifest(movies, groups, baseUrl, seriesGroups = [], region
       ...(seriesGroups.length ? [{
         type: 'series',
         id: 'ytc-all',
-        name: 'YouTube Cinema — TV',
+        name: region ? `YouTube Cinema ${region} — TV` : 'YouTube Cinema — TV',
         extra: [{ name: 'skip' }],
       }] : []),
       ...seriesGroups.map(g => ({
         type: 'series',
         id: `ytc-${slug(g)}`,
-        name: `YouTube Cinema TV — ${g}`,
+        name: region ? `YouTube Cinema ${region} TV — ${g}` : `YouTube Cinema TV — ${g}`,
         extra: [{ name: 'skip' }],
       })),
     ],

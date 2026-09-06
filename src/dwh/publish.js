@@ -350,76 +350,107 @@ const REGION_NAMES = {
 async function writeConfigure(outDir, free, regions) {
   const rows = regions.map(([code, films, eps]) => `
       <label class="r">
-        <input type="radio" name="region" value="region=${code.toLowerCase()}">
+        <input type="checkbox" value="${code.toLowerCase()}">
         <span class="n">${REGION_NAMES[code] ?? code}</span>
-        <span class="c">${films.toLocaleString()} films${eps ? ` · ${eps} episodes` : ''}</span>
+        <span class="c">${films.toLocaleString()} films${eps ? ` \u00b7 ${eps} episodes` : ''}</span>
       </label>`).join('');
 
   const html = `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>YouTube Cinema — configure</title>
+<title>YouTube Cinema</title>
 <style>
-  :root { color-scheme: light dark; --fg:#111; --dim:#666; --line:#ddd; --acc:#0b6bcb; --bg:#fff; }
+  :root { color-scheme: light dark; --fg:#111; --dim:#666; --line:#ddd; --acc:#0b6bcb; --bg:#fff; --ok:#1a7f37; }
   @media (prefers-color-scheme: dark) {
-    :root { --fg:#e8e8e8; --dim:#999; --line:#333; --acc:#5aa9f0; --bg:#141414; }
+    :root { --fg:#e8e8e8; --dim:#9a9a9a; --line:#333; --acc:#5aa9f0; --bg:#141414; --ok:#3fb950; }
   }
-  body { margin:0 auto; padding:2rem 1.25rem 4rem; max-width:44rem; background:var(--bg); color:var(--fg);
+  body { margin:0 auto; padding:2rem 1.25rem 5rem; max-width:44rem; background:var(--bg); color:var(--fg);
          font:15px/1.55 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
-  h1 { font-size:1.35rem; margin:0 0 .35rem; }
-  p  { color:var(--dim); margin:.35rem 0 1.25rem; }
+  h1 { font-size:1.4rem; margin:0 0 .3rem; } h2 { font-size:1rem; margin:2rem 0 .4rem; }
+  p { color:var(--dim); margin:.35rem 0 1rem; }
   .r { display:flex; align-items:baseline; gap:.6rem; padding:.5rem .7rem; border:1px solid var(--line);
        border-radius:7px; margin:.3rem 0; cursor:pointer; }
   .r:hover { border-color:var(--acc); }
-  .n { font-weight:600; }
-  .c { color:var(--dim); font-size:.85em; margin-left:auto; }
-  code { background:rgba(128,128,128,.14); padding:.15em .4em; border-radius:4px; font-size:.9em; }
-  #url { width:100%; box-sizing:border-box; margin-top:1rem; padding:.6rem .7rem; font:13px ui-monospace,monospace;
-         border:1px solid var(--line); border-radius:7px; background:transparent; color:var(--fg); }
-  button { margin-top:.6rem; padding:.55rem 1rem; font:inherit; border:0; border-radius:7px;
-           background:var(--acc); color:#fff; cursor:pointer; }
-  h2 { font-size:1rem; margin:2rem 0 .3rem; }
+  .r input { margin:0; }
+  .n { font-weight:600; } .c { color:var(--dim); font-size:.85em; margin-left:auto; }
+  .base { border-color:var(--acc); }
+  #out { margin-top:1.25rem; }
+  .lnk { display:flex; align-items:center; gap:.5rem; margin:.35rem 0; }
+  .lnk code { flex:1; overflow-x:auto; white-space:nowrap; background:rgba(128,128,128,.14);
+              padding:.4rem .55rem; border-radius:6px; font-size:12px; }
+  button { padding:.45rem .8rem; font:inherit; border:0; border-radius:6px; background:var(--acc);
+           color:#fff; cursor:pointer; white-space:nowrap; }
+  button.ghost { background:transparent; color:var(--acc); border:1px solid var(--acc); }
+  .none { color:var(--dim); font-style:italic; }
 </style>
+
 <h1>YouTube Cinema</h1>
 <p>Feature films and TV legally on YouTube, resolved to IMDb ids so Stremio brings its own
-   artwork, cast and subtitles. Pick where you watch from — that decides which uploads
-   the rights holders let you play.</p>
+   artwork, cast and subtitles. Tick every country you watch from — you can pick more than one.</p>
 
-<label class="r">
-  <input type="radio" name="region" value="" checked>
-  <span class="n">Anywhere</span>
-  <span class="c">${free.films.toLocaleString()} films${free.eps ? ` · ${free.eps} episodes` : ''}</span>
+<label class="r base">
+  <input type="checkbox" id="freeOnly">
+  <span class="n">Anywhere only</span>
+  <span class="c">${free.films.toLocaleString()} films${free.eps ? ` \u00b7 ${free.eps} episodes` : ''}</span>
 </label>
-<p style="margin:.3rem 0 1rem;font-size:.88em">Only uploads with no country restriction at all.
-   Every stream works wherever you are — the safe choice if you travel or use a VPN.</p>
+<p style="margin:.2rem 0 1.2rem;font-size:.88em">Just the uploads with no country restriction at all.
+   Every country below already includes these, so tick this only if you want nothing else.</p>
 ${rows}
 
-<input id="url" readonly>
-<button id="copy">Copy link</button>
-<p id="hint" style="font-size:.88em">In Stremio: <b>Addons → Add addon</b>, paste the link.</p>
+<div id="out"></div>
+
+<h2>Picking more than one</h2>
+<p style="font-size:.88em">Each country is its own addon and Stremio merges them, so installing two gives
+   you the films either one can play, with every copy of a film offered together. Install them one after
+   another — they sit side by side rather than replacing each other.</p>
 
 <h2>Why the lists differ</h2>
 <p style="font-size:.88em">A rights holder can allow an upload in some countries and not others.
-   Choosing your country adds the films it lets you see; it never adds one you cannot play.
-   If a film has more than one copy on YouTube, all of them are offered, sharpest first, with
-   anything needing a YouTube sign-in last.</p>
+   Choosing your country adds the films it lets you see and never adds one you cannot play. Where a film
+   has several copies on YouTube all of them are offered, sharpest first, with anything needing a
+   YouTube sign-in last.</p>
 
 <script>
   const base = location.origin + location.pathname
     .replace(/\\/configure\\/?$/, '')
-    .replace(/\\/region=[a-z]{2}$/i, '');
-  const url = document.getElementById('url');
-  const set = () => {
-    const v = document.querySelector('input[name=region]:checked').value;
-    url.value = base + (v ? '/' + v : '') + '/manifest.json';
-  };
-  document.querySelectorAll('input[name=region]').forEach(el => el.addEventListener('change', set));
-  document.getElementById('copy').addEventListener('click', async () => {
-    url.select();
-    try { await navigator.clipboard.writeText(url.value); document.getElementById('copy').textContent = 'Copied'; }
-    catch { document.execCommand('copy'); }
-  });
-  set();
+    .replace(/\\/region=[a-z]{2}$/i, '')
+    .replace(/\\/$/, '');
+  const out = document.getElementById('out');
+  const freeOnly = document.getElementById('freeOnly');
+  const boxes = [...document.querySelectorAll('.r input[type=checkbox]')].filter(b => b !== freeOnly);
+
+  const urlFor = v => base + (v ? '/region=' + v : '') + '/manifest.json';
+
+  function render() {
+    const picked = boxes.filter(b => b.checked).map(b => b.value);
+    if (freeOnly.checked) { boxes.forEach(b => { b.checked = false; }); }
+    const list = freeOnly.checked ? [''] : picked;
+    out.innerHTML = '';
+    if (!list.length) {
+      out.innerHTML = '<p class="none">Tick a country above, or “Anywhere only”.</p>';
+      return;
+    }
+    for (const v of list) {
+      const u = urlFor(v);
+      const row = document.createElement('div');
+      row.className = 'lnk';
+      const c = document.createElement('code'); c.textContent = u;
+      const install = document.createElement('button');
+      install.textContent = 'Install';
+      install.onclick = () => { location.href = u.replace(/^https?:/, 'stremio:'); };
+      const copy = document.createElement('button');
+      copy.className = 'ghost'; copy.textContent = 'Copy';
+      copy.onclick = async () => {
+        try { await navigator.clipboard.writeText(u); copy.textContent = 'Copied'; setTimeout(() => copy.textContent = 'Copy', 1200); }
+        catch { const t = document.createElement('textarea'); t.value = u; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); }
+      };
+      row.append(c, install, copy);
+      out.append(row);
+    }
+  }
+  freeOnly.addEventListener('change', () => { if (freeOnly.checked) boxes.forEach(b => b.checked = false); render(); });
+  boxes.forEach(b => b.addEventListener('change', () => { if (b.checked) freeOnly.checked = false; render(); }));
+  render();
 </script>
 `;
   await fsp.mkdir(path.join(outDir, 'configure'), { recursive: true });
