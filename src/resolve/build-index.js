@@ -54,10 +54,24 @@ const mb = n => `${(n / 1e6).toFixed(0)} MB`;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 /** HEAD the dataset — backs both the freshness stamp and the size check. */
-async function headers(file) {
-  const res = await fetch(`${BASE}/${file}`, { method: 'HEAD' });
-  if (!res.ok) throw new Error(`HEAD ${file}: ${res.status}`);
-  return res.headers;
+/**
+ * The one unretried call in the whole build, and it killed a run that had every
+ * archive already cached: a single ECONNRESET on this HEAD meant no
+ * content-length, so no cache check, so no build. Everything downstream retries
+ * eight times; this deserves the same courtesy for a fraction of the cost.
+ */
+async function headers(file, attempts = 5) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const res = await fetch(`${BASE}/${file}`, { method: 'HEAD' });
+      if (!res.ok) throw new Error(`HEAD ${file}: ${res.status}`);
+      return res.headers;
+    } catch (err) {
+      if (attempt === attempts) throw err;
+      console.warn(`[warn]   HEAD ${file}: ${err.cause?.code ?? err.message} — retry ${attempt}/${attempts - 1}`);
+      await sleep(Math.min(15_000, 2 ** attempt * 500));
+    }
+  }
 }
 
 async function remoteStamp(file) {
@@ -309,6 +323,46 @@ const nz = v => (v === '\\N' || v === '' || v == null ? null : v);
 function completedPasses(db) {
   const v = db.prepare('SELECT value FROM meta WHERE key = ?').get('passes')?.value;
   return new Set(v ? v.split(',').filter(Boolean) : []);
+}
+
+/**
+ * What each pass must have left behind for its mark to be believed.
+ *
+ * A mark is bookkeeping and the rows are the fact, and on a host that kills the
+ * process routinely the two can disagree: `principals` was once marked done
+ * with `credits` holding zero rows. Every later run then skipped it and built
+ * an index with no corroboration data at all — which is 10 of the 100 scoring
+ * points, and the signal that lifts a yearless match over the floor. Nothing
+ * failed; the catalogue would simply have been quietly worse.
+ */
+const PASS_OUTPUT = {
+  basics: 'titles',
+  akas: 'title_norm',
+  ratings: 'ratings',
+  principals: 'credits',
+  names: 'credits',
+};
+
+/**
+ * Drop any mark whose rows are not there. Cheap — one COUNT per pass — and it
+ * runs before anything decides what to skip.
+ */
+function dropUnbackedPasses(db) {
+  const done = completedPasses(db);
+  const dropped = [];
+  for (const name of [...done]) {
+    const table = PASS_OUTPUT[name];
+    if (!table) continue;
+    let n = 0;
+    try { n = db.prepare(`SELECT COUNT(*) c FROM ${table}`).get().c; } catch { n = 0; }
+    if (n === 0) { done.delete(name); dropped.push(`${name} (${table} is empty)`); }
+  }
+  if (dropped.length) {
+    db.prepare('INSERT OR REPLACE INTO meta (key,value) VALUES (?,?)')
+      .run('passes', [...done].join(','));
+    console.log(`[recheck] re-running ${dropped.join(', ')}`);
+  }
+  return done;
 }
 
 function markPass(db, name) {
@@ -572,6 +626,9 @@ export async function buildIndexFile({ cacheDir = '.cache', principals = true, f
 
   const db = new DatabaseSync(dbPath);
   db.exec(SCHEMA);
+  // Before anything decides what to skip: a mark without its rows is a lie the
+  // rest of this function would believe.
+  dropUnbackedPasses(db);
   db.prepare('INSERT OR REPLACE INTO meta (key,value) VALUES (?,?)').run('dataset', stamp);
 
   const t0 = Date.now();
