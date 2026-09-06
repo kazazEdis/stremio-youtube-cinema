@@ -596,10 +596,57 @@ Written for someone who has never seen the code. Every claim in them is
 something that was measured or that broke in production — the specs already say
 what the code does.
 
-## 3. Work the review queue
+## DONE — 170 of the review queue, by measurement not by hand (2026-09-06)
 
-2,404 entries, and the sampled ones are mostly *correct* matches sitting under
-the 85 floor — "The Swan (1930)" resolved to `One Romantic Night` at 84.
+The queue's largest single shape turned out to be one missing band, not a
+thousand judgement calls.
+
+`relaxYearless` gives a yearless upload a relaxed year neutral (8 -> 12, +4)
+when the runtime pins the era, and it demanded the **top** band, 20. The queue
+was full of exact-title matches with margin 100 that missed by three points:
+*Chicago Overcoat* [91m] -> (2009, 94m) at 81.
+
+**The first reading was wrong and measurement caught it.** Those samples all
+showed the YouTube duration a few percent under IMDb's, which looked like the
+bands being miscentred. They are not: across the 2,617 accepted matches whose
+year agreed exactly — confirmed by a signal other than runtime — the median
+delta is **0.00%**. The apparent shortfall came from filtering on
+`sig_runtime>=17` and then reading rows out of the 17 band, which is *defined*
+as -6%..-2%. A filter cannot be used as evidence for itself.
+
+The same measurement gave the real answer — band occupancy on that known-good
+population:
+
+    20   1,590   60.8%
+    17     484   18.5%
+    12     180    6.9%
+     6     362   13.8%
+
+Band 17 is the PAL speedup: a mechanical artifact of the transfer, the same cut
+of the film, and where nearly a fifth of demonstrably correct matches sit. Band
+6 is a print that has actually been cut, and stays out. Whole corpus, old
+against new: **gained 170, lost 0, ids changed 0** — the shape the change
+predicts, since the lift moves the winner alone after the ranking and margin are
+settled.
+
+    accept 4,868 -> 5,038      resolved 47.9% -> 48.7%
+    films  2,202 -> 2,241      US 3,370 -> 3,513   HR 2,734 -> 2,794
+
+Gained list read rather than counted: 156 of 170 exact titles, the other 14
+akas doing their job (*A Certain Justice* -> **Puncture Wounds**, *Hot Enough
+For June* -> **Agent 8 3/4**). Of the 29 with a real competitor, runtime is what
+discriminates — *Bye Bye Birdie* at 131m takes the 1995 version over the 1963.
+
+## 3. Work the rest of the review queue
+
+2,853 entries left: `low-score` 1,624, `recent-year` 526, `narrow-margin` 373,
+`too-many-candidates` 182. The sampled ones are still mostly *correct* matches
+sitting under the 85 floor — "The Swan (1930)" resolved to `One Romantic Night`
+at 84.
+
+Before promoting anything by hand, look for another shape like the one above:
+a systematic gate that is excluding a population measurably known to be right is
+worth more than a hundred overrides, and it is testable.
 
 - promote confirmed pairs into `config/overrides.json` (confidence 100, PR-able)
 - the `src/resolve/probe.js` tool exists for exactly this: it prints the full
