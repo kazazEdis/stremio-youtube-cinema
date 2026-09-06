@@ -22,15 +22,27 @@ test('the sample is stable and spread across channels', () => {
     ...Array.from({ length: 3 }, (_, i) => ({ ytId: `small${i}`, grp: 'Filipino' })),
     ...Array.from({ length: 4 }, (_, i) => ({ ytId: `mid${i}`, grp: 'Western' })),
   ];
-  const a = seededPick(rows, 9);
-  const b = seededPick(rows, 9);
-  assert.deepEqual(a.map(r => r.ytId), b.map(r => r.ytId));      // stable
+  const a = seededPick(rows, 9, 7);
+  const b = seededPick(rows, 9, 7);
+  assert.deepEqual(a.map(r => r.ytId), b.map(r => r.ytId));      // stable for a seed
   assert.equal(a.length, 9);
 
   const groups = new Set(a.map(r => r.grp));
   assert.equal(groups.size, 3);                                   // all three represented
   assert.ok(a.filter(r => r.grp === 'PublicDomain').length <= 4,
             'the largest group must not dominate a spread sample');
+});
+
+test('a different seed probes different videos', () => {
+  // A fixed sample checks the same forty videos forever and the quarantine
+  // never learns anything new. The seed defaults to the ISO week, so weekly
+  // runs turn a sample into coverage.
+  const rows = Array.from({ length: 60 }, (_, i) => ({ ytId: `v${i}`, grp: 'G' }));
+  const w1 = seededPick(rows, 10, 1).map(r => r.ytId);
+  const w2 = seededPick(rows, 10, 2).map(r => r.ytId);
+  assert.notDeepEqual(w1, w2);
+  const overlap = w1.filter(id => w2.includes(id)).length;
+  assert.ok(overlap < 6, `two seeds should not mostly agree, got ${overlap}/10`);
 });
 
 test('a sample larger than the population returns everything, once', () => {

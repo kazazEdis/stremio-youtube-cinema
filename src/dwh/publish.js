@@ -16,7 +16,8 @@
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 
-import { openCore, seedFirstSeen, noteFirstSeen, thumbUrl, statusName, getCoreMeta } from './core.js';
+import { openCore, seedFirstSeen, noteFirstSeen, thumbUrl, statusName, getCoreMeta,
+         quarantinedYtIds } from './core.js';
 import { openLanding, startRun, finishRun } from './landing.js';
 import { settleDuplicates, THRESHOLDS } from '../resolve/index.js';
 import { loadExclusions, excludedByImdb } from '../resolve/exclude.js';
@@ -155,7 +156,16 @@ export function loadCore(wh, { region, rules }) {
   // allowed to win a duplicate contest and then be filtered out, which would
   // drop the film entirely — the old path could not hit this because blocked
   // uploads never reached the resolver at all.
-  const scanned = rows.filter(r => playableIn(region, r.blocked_regions, r.allowed_regions));
+  //
+  // Quarantine sits here for exactly the same reason. An age-gated upload is
+  // one a real client cannot play, and letting it win the contest serves a dead
+  // click for a film we hold another copy of: Ivan's Childhood was published
+  // from a gated Mosfilm upload while an ungated one of the same 95 minutes sat
+  // second. 16.4% of published films have a spare, which is how much of this
+  // the swap can actually fix.
+  const quarantine = quarantinedYtIds(wh);
+  const scanned = rows.filter(r => !quarantine.has(r.ytId)
+                                && playableIn(region, r.blocked_regions, r.allowed_regions));
   const { resolved, review, rejected } = settleDuplicates(scanned.map(toResolutionShape));
 
   const movies = resolved.filter(m => !excludedByImdb(m.imdbId, rules));

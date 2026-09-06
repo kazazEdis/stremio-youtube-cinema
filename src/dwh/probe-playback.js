@@ -31,34 +31,54 @@ import { promisify } from 'node:util';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 
-import { DatabaseSync } from 'node:sqlite';
-
 import { publishedStreams } from './verify-streams.js';
+import { openCore, recordPlayback, UNPLAYABLE } from './core.js';
+import { openLanding, startRun, finishRun } from './landing.js';
 
 const run = promisify(execFile);
 
+/** Weeks since the epoch — a seed that advances once a week on its own. */
+const isoWeek = () => Math.floor(Date.now() / (7 * 24 * 3600 * 1000));
+
 function parseArgs(argv) {
-  const a = { out: 'docs', warehouse: 'data/warehouse.sqlite', sample: 40, ids: null, concurrency: 3 };
+  const a = { out: 'docs', warehouse: 'data/warehouse.sqlite', landing: 'data/landing.sqlite',
+              sample: 40, ids: null, concurrency: 3, seed: isoWeek() };
   for (let i = 2; i < argv.length; i++) {
     const k = argv[i];
     if (k === '--out') a.out = argv[++i];
     else if (k === '--warehouse') a.warehouse = argv[++i];
+    else if (k === '--landing') a.landing = argv[++i];
     else if (k === '--sample') a.sample = Number(argv[++i]);
     else if (k === '--ids') a.ids = argv[++i].split(',').map(s => s.trim()).filter(Boolean);
     else if (k === '--concurrency') a.concurrency = Number(argv[++i]);
+    else if (k === '--seed') a.seed = Number(argv[++i]);
   }
   return a;
 }
 
 /**
- * A stable hash, so `--sample 40` picks the same forty videos every run and two
- * probes are comparable. Math.random would make every result a fresh sample of
- * a different population, which is not a measurement.
+ * A stable hash, so a given seed always picks the same videos and two probes of
+ * that seed are comparable. Math.random would make every result a fresh sample
+ * of a different population, which is not a measurement.
+ *
+ * The seed defaults to the ISO week, which is the other half of the problem: a
+ * fixed sample checks the same forty videos forever and the quarantine never
+ * learns anything new. Rotating weekly turns it into coverage — 40 a week is
+ * the whole catalogue in about 77 weeks, 200 a week in 15.
  */
-export function seededPick(rows, n, key = r => r.ytId) {
+export function seededPick(rows, n, seed = 0, key = r => r.ytId) {
   const hash = s => {
-    let h = 2166136261;
+    let h = 2166136261 ^ (seed >>> 0);
     for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+    // FNV alone has not diffused across 32 bits after a handful of rounds, so
+    // the magnitude tracks the string's length: two-character ids landed near
+    // 2e8 and three-character ones near 3.5e9, which made this "pick the
+    // shortest" and left the seed barely able to move the selection. Every
+    // ytId is eleven characters so it would never have shown in production.
+    // The MurmurHash3 finaliser is what makes the low bits worth sorting on.
+    h ^= h >>> 16; h = Math.imul(h, 2246822507);
+    h ^= h >>> 13; h = Math.imul(h, 3266489909);
+    h ^= h >>> 16;
     return h >>> 0;
   };
   // Spread across channels rather than taking the n smallest hashes overall:
@@ -154,7 +174,9 @@ async function probe(ytId) {
 
 async function main() {
   const args = parseArgs(process.argv);
-  const wh = new DatabaseSync(args.warehouse, { readOnly: true });
+  const wh = openCore(args.warehouse);
+  const landing = openLanding(args.landing);
+  const runId = startRun(landing, 'probe-playback');
 
   // The population is what the marts serve, not what the warehouse accepted.
   // Those differ by 1,783 rows — the HR region filter and duplicate settling
@@ -171,10 +193,10 @@ async function main() {
 
   const chosen = args.ids
     ? published.filter(r => args.ids.includes(r.ytId))
-    : seededPick(published, args.sample);
+    : seededPick(published, args.sample, args.seed);
 
   console.log(`[probe]    ${chosen.length} of ${published.length.toLocaleString()} published videos, ` +
-              `${args.concurrency} at a time`);
+              `${args.concurrency} at a time, seed ${args.seed}`);
 
   const results = [];
   const queue = [...chosen];
@@ -196,6 +218,11 @@ async function main() {
       }
     }
   }));
+
+  // The verdicts are a fact about the upload, so they belong in the warehouse
+  // rather than only in a report. publish reads them back to keep a quarantined
+  // upload out of the duplicate contest.
+  recordPlayback(wh, results, runId);
   wh.close();
 
   results.sort((a, b) => String(a.imdbId).localeCompare(String(b.imdbId)));
@@ -206,6 +233,7 @@ async function main() {
 
   const report = {
     probedAt: new Date().toISOString(),
+    seed: args.seed,
     sampled: results.length,
     population: published.length,
     verdicts,
@@ -222,6 +250,15 @@ async function main() {
   for (const [v, n] of Object.entries(verdicts)) if (v !== 'ok') console.log(`   ${v.padEnd(22)} ${n}`);
   console.log(`   max height          ${JSON.stringify(heights)}`);
   console.log(`   real subtitle tracks ${withSubs} of ${results.length}`);
+
+  const quarantined = results.filter(r => UNPLAYABLE.has(r.verdict));
+  if (quarantined.length) {
+    console.log(`[probe]    ${quarantined.length} quarantined for the next publish:`);
+    for (const q of quarantined) console.log(`   ${q.verdict.padEnd(14)} ${q.ytId}  ${q.name ?? ''}`);
+  }
+
+  finishRun(landing, runId, { status: 'ok', rowsIn: results.length, rowsOut: ok });
+  landing.close();
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

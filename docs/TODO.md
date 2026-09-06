@@ -474,12 +474,39 @@ unreachable, which was true and irrelevant — publish had already dropped them.
 It reads `docs/stream/**` now, which is the rule `verify-streams` states in its
 own docstring and this script broke in the very next file.
 
-### Left over
+### DONE — an age-gated film is re-resolved to another upload
 
-Nothing acts on any of this yet. An age-gated film could be re-resolved to
-another upload of the same title rather than served as a dead click, and
-`duration-drift` — a video re-cut since we matched its runtime — has never been
-seen because this is the first run. Both want a policy decision, not more code.
+The owner's call. `fct_playback` records what a real client found; publish reads
+it back and drops a quarantined upload **before** duplicate settling, so another
+copy of the same film wins the contest instead. That is the same placement, and
+the same reason, as the region filter one line above it.
+
+*Ivan's Childhood* moved from the gated Mosfilm upload to `_TAvXRF5ZHc` — the
+same 95 minutes from the same channel, second on confidence. `+0 added, -0
+dead, ~1 re-uploaded`: the film stayed, the dead click went.
+
+Only three verdicts quarantine, and the two that do not are the point:
+
+- `region-blocked` reflects wherever the probe ran. CI is in the US and the dev
+  box is not, so it says nothing about HR.
+- `unreachable` can be a dropped connection as easily as a dead video, and
+  `verify-streams` already asks the API that question for the whole catalogue
+  rather than a sample.
+
+What is left is a stable property of the upload. A later probe overwrites an
+earlier verdict, so a quarantine lifts by itself when a video is ungated —
+otherwise a film would be stranded on a worse copy for good.
+
+**Coverage is the limit, not the mechanism.** 16.4% of published films have a
+spare upload to fall back on, and the probe only knows about what it has
+sampled. The seed now defaults to the ISO week, so each run probes a different
+40 and `fct_playback` accumulates: 40 a week is the catalogue in ~77 weeks,
+200 a week in ~15. Raising `--sample` in CI is the lever; at 3.6s a video with
+concurrency 3, 200 is about four minutes.
+
+`duration-drift` — a video re-cut since we matched its runtime — has a detector
+and has still never fired.
+
 
 `report.js` already computes added/changed entries — tens per week. At ~4.7s per
 video that is minutes, and buys what the API cannot supply:
