@@ -87,3 +87,21 @@ test('a film offers every playable copy, best first and gated last', () => {
   assert.match(streams[2].title, /sign-in required/);
   assert.equal(streams[0].behaviorHints.notWebReady, false);
 });
+
+test('an alternate stream must be an accepted match, not a reviewed one', () => {
+  // Filtering on the published id alone offered uploads the scorer had rejected
+  // as too uncertain: 127 films were served a low-score or narrow-margin match
+  // as a playable alternative. A viewer picking the second stream and getting a
+  // different film is worse than a film with only one stream.
+  const row = (ytId, status, reason) => ({
+    ytId, status, reason, confidence: 90, published_id: 'tt1', imdb_id: 'tt1',
+    channel_name: 'Ch', grp: 'G', raw_title: 't', clean_title: 't',
+    match_name: 'Film', imdb_runtime: 95, runtime_min: 95,
+  });
+  const winner = { ytId: 'best', imdbId: 'tt1', id: 'tt1', confidence: 92, channel: 'Ch' };
+  const streams = streamsFor(winner, [
+    row('best', 0, null), row('alsoGood', 0, null),
+    row('unsure', 1, 'low-score'), row('close', 1, 'narrow-margin'),
+  ], new Set());
+  assert.deepEqual(streams.map(s => s.ytId), ['best', 'alsoGood']);
+});

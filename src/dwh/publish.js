@@ -61,6 +61,12 @@ const readJson = (p, fb = null) =>
 export function streamsFor(winner, scanned, quarantine) {
   const id = winner.id ?? winner.imdbId;
   const alts = scanned
+    // Accepted uploads only. Without this the list filtered on the published id
+    // alone and happily offered matches the scorer had *rejected* as too
+    // uncertain — 127 films were served a low-score or narrow-margin upload as
+    // a playable alternative. A viewer picking the second stream and getting a
+    // different film is worse than a film with one stream.
+    .filter(r => r.status === 0)
     .filter(r => (r.published_id ?? r.imdb_id) === id && r.ytId !== winner.ytId)
     .map(r => ({ ...toResolutionShape(r), playback: quarantine.has(r.ytId) ? 'age-gated' : undefined }))
     .sort((a, b) => (a.playback ? 1 : 0) - (b.playback ? 1 : 0)
