@@ -78,3 +78,21 @@ test('the other three invalidation reasons are untouched', () => {
   assert.equal(all.length, 3);
   db.close();
 });
+
+test('a videos response without snippet is not staged', async () => {
+  // verify-streams asks for part=status,contentDetails and used to land its
+  // responses under the same `videos` name extract uses. stage read them,
+  // wrote NULL yt_channel_id, and the *next* run died on
+  // "NOT NULL constraint failed: dim_channel.channel_ref" — a run later, with
+  // the cause nowhere in sight.
+  const { toStagedRow } = await import('../src/dwh/stage.js');
+  const full = toStagedRow({ id: 'a', snippet: { channelId: 'UC1', title: 'T' },
+                             contentDetails: { duration: 'PT90M' } }, 1);
+  assert.equal(full.yt_channel_id, 'UC1');
+
+  // The shape verify-streams lands: no snippet at all.
+  const thin = toStagedRow({ id: 'a', status: { privacyStatus: 'public' },
+                             contentDetails: {} }, 1);
+  assert.equal(thin.yt_channel_id, null,
+    'toStagedRow still yields null — which is why the caller must skip it');
+});

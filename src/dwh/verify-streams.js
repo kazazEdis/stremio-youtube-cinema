@@ -141,13 +141,18 @@ async function main() {
   try {
     for (const batch of chunk(todo, BATCH)) {
       const params = { part: 'status,contentDetails', id: batch.join(',') };
+      // Landed as `videos:verify`, not `videos`. stage.js reads every landed
+      // `videos` response and takes yt_channel_id from snippet.channelId — and
+      // this call does not ask for snippet, so sharing the name wrote NULL
+      // channel ids into stg_upload and broke the *next* run's dim_channel
+      // build, not this one's.
       const url = new URL(`${API}/videos`);
       for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
       url.searchParams.set('key', KEY);
 
       const res = await fetch(url);
       const text = await res.text();
-      land(landing, runId, 'videos', params, res.status, text);
+      land(landing, runId, 'videos:verify', params, res.status, text);
       calls++;
       if (!res.ok) throw new Error(`videos ${res.status}: ${text.slice(0, 200)}`);
       for (const item of JSON.parse(text).items || []) seen.set(item.id, item);

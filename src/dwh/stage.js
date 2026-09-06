@@ -137,10 +137,16 @@ async function main() {
   const now = new Date().toISOString();
   let responses = 0, rows = 0;
   wh.exec('BEGIN');
+  let skipped = 0;
   for (const resp of readLanded(landing, 'videos', { runId: args.runId })) {
     responses++;
     for (const v of resp.body.items || []) {
       if (!v.id) continue;
+      // A response without `snippet` was fetched for some other purpose and
+      // cannot be staged: every downstream row keys off the channel, and one
+      // with no channel id breaks the dim_channel build a run later, where the
+      // cause is nowhere in sight. Skip it and say so.
+      if (!v.snippet) { skipped++; continue; }
       const r = toStagedRow(v, resp.runId);
       ins.run(r.ytId, r.yt_channel_id, r.channel_title, r.raw_title, r.duration_s,
               r.published_at, r.view_count, r.embeddable, r.licensed, r.privacy,
@@ -156,7 +162,8 @@ async function main() {
   const geo = wh.prepare('SELECT COUNT(*) c FROM stg_upload WHERE blocked_regions IS NOT NULL').get().c;
   finishRun(landing, runId, { rowsIn: responses, rowsOut: rows });
 
-  console.log(`[stage]  ${responses} landed responses -> ${rows.toLocaleString()} rows`);
+  console.log(`[stage]  ${responses} landed responses -> ${rows.toLocaleString()} rows` +
+              (skipped ? `, ${skipped.toLocaleString()} skipped for having no snippet` : ''));
   console.log(`[stage]  stg_upload now holds ${total.toLocaleString()} uploads, ` +
               `${geo.toLocaleString()} carry region restrictions (recorded, not applied)`);
   wh.close(); landing.close();

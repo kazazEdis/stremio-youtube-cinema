@@ -102,6 +102,10 @@ export function buildDimChannel(wh, landing, cfg, day) {
   const tally = { new: 0, versioned: 0, unchanged: 0 };
 
   for (const [ytChannelId, obs] of observed) {
+    // No channel id, no dimension row. This crashed a CI run with "NOT NULL
+    // constraint failed: dim_channel.channel_ref" one run after the rows were
+    // written, which is the worst place to learn about it.
+    if (!ytChannelId) continue;
     const ref = refByYt.get(ytChannelId) ?? ytChannelId;
     const conf = byRef.get(ref);
     const r = upsertChannel(wh, {
