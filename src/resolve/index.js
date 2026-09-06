@@ -534,6 +534,15 @@ export function resolveOne(video, index, opts = {}) {
   // full. Two candidates at 88 and 86 is a coin flip dressed up as confidence.
   const margin = scored.length > 1 ? Number((best.score - scored[1].score).toFixed(1)) : 100;
 
+  // Kept before the lift, and written to fct_resolution.score, because the two
+  // numbers answer different questions: `confidence` is what the floor judged,
+  // `score` is what §4 alone produced. Both columns existed and neither was
+  // ever written -- score was NULL on every accepted row and candidate_count on
+  // all but one rejection path, which is the shape of a diagnostic nobody can
+  // use for the tuning it exists to serve.
+  const rawScore = best.score;
+  const candidateCount = scored.length;
+
   relaxYearless(video, best);
 
   const top5 = scored.slice(0, 5).map(c => ({
@@ -543,14 +552,14 @@ export function resolveOne(video, index, opts = {}) {
 
   const flag = hardFlag(best, best.score, now);
   if (flag) {
-    return { status: 'review', ...publicShape(video, best, margin),
+    return { status: 'review', ...publicShape(video, best, margin, { rawScore, candidateCount }),
              rawTitle: video.rawTitle, reason: flag, tier, candidates: top5 };
   }
   if (best.score >= THRESHOLDS.accept && margin >= THRESHOLDS.margin) {
-    return { status: 'accept', ...publicShape(video, best, margin), tier };
+    return { status: 'accept', ...publicShape(video, best, margin, { rawScore, candidateCount }), tier };
   }
   if (best.score >= THRESHOLDS.review) {
-    return { status: 'review', ...publicShape(video, best, margin),
+    return { status: 'review', ...publicShape(video, best, margin, { rawScore, candidateCount }),
              reason: best.score >= THRESHOLDS.accept ? 'narrow-margin' : 'low-score',
              tier, candidates: top5 };
   }

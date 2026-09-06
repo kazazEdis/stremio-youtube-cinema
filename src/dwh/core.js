@@ -125,10 +125,11 @@ const SCHEMA = [
      published_id     TEXT,
      season           INTEGER,
      episode          INTEGER,
-     confidence       REAL,
+     confidence       REAL,                          -- what the floor judged
      margin           REAL,
-     score            REAL,
-     candidate_count  INTEGER,
+     score            REAL,                          -- what §4 alone produced,
+                                                     -- before the yearless lift
+     candidate_count  INTEGER,                       -- how many were scored
      sig_title        REAL,
      sig_year         INTEGER,
      sig_runtime      INTEGER,

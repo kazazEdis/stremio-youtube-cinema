@@ -462,3 +462,20 @@ test('two signals still do not carry an episode', () => {
   assert.equal(ep.confidence, 82);
   assert.equal(ep.status, 'review');
 });
+
+test('the diagnostic columns record what §4 said before the floor was helped', () => {
+  // fct_resolution.score was NULL on every accepted row and candidate_count on
+  // all but one rejection path — two columns that existed for tuning and never
+  // held anything. They now answer different questions from `confidence`:
+  // what the weights produced, and how much competition there was.
+  const index = stubIndex([
+    title('tt0013442', 'nosferatu', 1922, 94),
+    title('tt0080750', 'nosferatu', 1979, 107),
+  ]);
+  const r = resolveOne(upload({ runtimeMin: 94 }), index);
+
+  assert.equal(r.candidateCount, 2);
+  assert.equal(r.rawScore, 78);      // 50 title + 8 year + 20 runtime + 0
+  assert.equal(r.confidence, 82);    // the same match after the yearless lift
+  assert.equal(r.confidence - r.rawScore, 4);
+});

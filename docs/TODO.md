@@ -178,12 +178,36 @@ this costs no dependency — the original argument for JSON here was wrong, see
 
 `docs/` stays JSON — that is the addon protocol, not a choice.
 
-## `fct_resolution.score` is never written
+## DONE — the diagnostic columns hold something (2026-09-06)
 
-All 3,588 accepted rows have `score IS NULL`; `confidence` carries the number
-instead. Harmless today, but it is the column the weight tuning in item 5 will
-want to read, and a NULL there will look like "no data" rather than "wrong
-column". Cheap to fix while the schema is still moving.
+`score` was NULL on every accepted row and `candidate_count` on all but one
+rejection path: two columns that existed for tuning and never held anything.
+
+Rather than fill `score` with a copy of `confidence`, they now answer different
+questions. `confidence` is what the floor judged; `score` is what §4 alone
+produced, **before** the yearless lift; `candidate_count` is how much
+competition there was. The first query paid for it:
+
+    accepted rows the lift carried over the floor    1,016
+      of which §4 had scored exactly 84                936
+      of which §4 had scored 82                         80
+
+    accepted rows with no rival candidate at all     3,303 of 4,868
+    2-3 candidates                                     908
+    4-10                                               515
+    11+                                                141
+
+That 936 is the cliff, as a number you can query rather than a shape in a
+histogram.
+
+A re-resolve with scoring untouched proved the change is diagnostic-only:
+**manifest, every catalog page and all 3,085 stream files came out byte
+identical.** Only `docs/catalog.json` — the internal dump `src/stremio.js`
+reads, not a protocol endpoint — gained the `candidateCount` field.
+
+Still NULL where nothing was scored, which is correct: 1 override (it never
+reached the scorer) and 182 `too-many-candidates` rejections (the cap fires
+before scoring).
 
 ## DONE — the titles that never reached the scorer (2026-09-06)
 

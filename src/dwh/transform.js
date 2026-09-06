@@ -31,7 +31,8 @@ import { buildIndex, resolveOne } from '../resolve/index.js';
  * Bump when resolve/index.js changes scoring semantics. Stored on every
  * resolution so a stale one is recomputed rather than silently trusted.
  */
-export const RESOLVER_VERSION = 10;  // 10: episodes earn the yearless lift from type agreement
+export const RESOLVER_VERSION = 11;  // 11: score/candidate_count actually written (diagnostic only)
+                                     // 10: episodes earn the yearless lift from type agreement
                                      // 9: dash segments and a shouted "<cast> in <TITLE>" as derived keys
                                      // 8: derived keys only when the title as written finds nothing
                                      // 7: fuzzy tier repaired after 6 silently disabled it
@@ -279,7 +280,7 @@ export function resolutionRow(r, ctx) {
     r.imdbId ? (r.name ?? null) : null,
     r.imdbId ? (r.year ?? null) : null,
     r.imdbRuntimeMin ?? null, r.genres ?? null,
-    r.confidence ?? null, r.margin ?? null, r.score ?? null,
+    r.confidence ?? null, r.margin ?? null, r.rawScore ?? null,
     r.candidateCount ?? null,
     s.title ?? null, s.year ?? null, s.runtime ?? null, s.corroboration ?? null,
     r.override ? 1 : 0, r.tier ?? null,
