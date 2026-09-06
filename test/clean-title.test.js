@@ -196,3 +196,40 @@ test('ellipses and exclamation marks are not hook markers', () => {
   assert.equal(cleanTitle('God Made Them... I Kill Them | WESTERN MOVIE FOR FREE', 'X'),
                'God Made Them... I Kill Them');
 });
+
+test('marketing glued onto the opening title does not hand the pick to the star', () => {
+  // The Midnight Screening writes "<Title> FULL MOVIE | <Star> | <Genre> |
+  // <Channel>". The star's segment is the only untouched one, so requiring an
+  // untouched segment published 93 films named after actors -- "Rutger Hauer",
+  // "Ray Liotta", "William Shatner". The opening segment wins instead when
+  // something is still left of it once marketing and genre words are removed.
+  assert.equal(
+    cleanTitle('New World Disorder FULL MOVIE | Rutger Hauer | Action Movies | The Midnight Screening', 'X'),
+    'New World Disorder');
+  assert.equal(
+    cleanTitle('Falcon Down FULL MOVIE | William Shatner | Action Movies | The Midnight Screening', 'X'),
+    'Falcon Down');
+});
+
+test('the relaxed opening rule does not promote a genre tail', () => {
+  // The same relaxation, applied anywhere but the first segment, turns the tail
+  // into the film: "Hemingway Fishing Drama" and "Seriously Amazing Action
+  // Thriller" both survive the marketing strip with two words intact.
+  assert.equal(
+    cleanTitle('The Old Man And The Sea | FULL MOVIE | Anthony Quinn, Gary Cole | Hemingway Fishing Drama', 'X'),
+    'The Old Man And The Sea');
+  assert.equal(
+    cleanTitle('He Is Hunting A War Criminal | Seriously Amazing Action Thriller Movie | Here Be Dragons', 'X'),
+    'Here Be Dragons');
+});
+
+test('a title that ends in a lone star keeps the hook-first layout intact', () => {
+  // "<Hook> | <Genre> | <Title>" and "<Title> | <Genre> | <Star>" are the same
+  // shape, so a trailing name-shaped segment cannot be treated as a credit.
+  assert.equal(
+    cleanTitle('They Killed Their High School Bully | Full Crime Thriller Movie | Free Movie | Caged Birds', 'X'),
+    'Caged Birds');
+  assert.equal(
+    cleanTitle('Sasquatch Is On A Killing Rampage | Full Movie | Horror Movie | Legend Of Sasquatch', 'X'),
+    'Legend Of Sasquatch');
+});

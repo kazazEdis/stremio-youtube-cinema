@@ -16,7 +16,20 @@ const YEAR_RE = /\b(?:19\d{2}|20\d{2})\b/;
 // Fool N Final"), and leaving them in lets a marketing segment outscore the
 // actual title on length alone.
 const MARKETING = /\b(full|free|hd|4k|1080p|720p|movie|film|subtitles?|subtitled|remastered|exclusive|premiere|classic|bollywood|drama|action|horror|thriller|comedy|western|romantic|superhit|blockbuster)\b/gi;
+// The genre vocabulary MARKETING deliberately leaves out, because these words
+// appear in real titles ("Crime Wave", "Family Plot") and stripping them from
+// the *output* would be wrong. They are only used to decide whether a segment
+// that already carries a marketing word has any title left underneath.
+const GENRE = /\b(sci-?fi|science\s+fiction|crime|mystery|adventure|fantasy|war|wwii|noir|survival|disaster|apocalypse|family|sport|documentary|animation|animated|hollywood|feature|epic|suspense|supernatural|creature|monster|slasher|zombie|musical|biography|history|historical|british|american|cowboy|samurai|romance|double\s+bill|found\s+footage|martial\s+arts|kung\s+fu|movies|films|tv|series|episode|presents)\b/gi;
+
+// "starring" and "feat." are unambiguous credit markers. "with" is NOT:
+// these channels write hooks like "Trapped With A Killer Dog", and every
+// one of them is vetoed here rather than by looksLikeHook, which floors at
+// six words. Narrowing this to a following capitalised name gained a handful
+// of real titles ("Poker with Pistols") and lost eleven hooks, so the blunt
+// version stays until looksLikeHook can carry its own weight.
 const CAST_HINT = /\b(starring|with|feat\.?|ft\.?)\b/i;
+const castHint = s => CAST_HINT.test(s);
 
 // "(1963)", "[1963]", "(MGM,1930)" — a parenthesised release year.
 // "(1963)", "(MGM,1930)", "(1975 Action film)", "(1972 Horror)" -- studios and
@@ -163,7 +176,7 @@ function pickSegment(segments) {
   const cast = castIndices(segments);
   // A body with no letters is a bare year or a rating, never a title.
   const usable = (s, i) => /\p{L}/u.test(body(s)) && !looksLikeHook(s)
-                      && !looksLikeCastList(s) && !CAST_HINT.test(s)
+                      && !looksLikeCastList(s) && !castHint(s)
                       && !cast.has(i);
 
   // A parenthesised year beats every heuristic below, because titleBeforeYear
@@ -187,8 +200,28 @@ function pickSegment(segments) {
   // under the strip, and each of them beat the actual film before this.
   const intact = s => body(s) === s.trim();
 
-  const best = pool.find(s => usable(s, segments.indexOf(s)) && intact(s));
-  if (best) return best;
+  // Marketing is glued *onto* real titles as often as it stands alone, and
+  // "New World Disorder FULL MOVIE" shrinks under the strip exactly as "Action
+  // Movies" does. Demanding an untouched segment therefore handed the pick to
+  // whatever came later and happened to be clean -- which on these channels is
+  // the star, so the catalogue grew films called "Rutger Hauer" and "Ray
+  // Liotta". What is left after *both* strips separates them: a title leaves
+  // real words behind, a genre tag leaves nothing.
+  const titled = s => body(s).replace(GENRE, ' ').replace(/\s{2,}/g, ' ')
+                            .trim().split(/\s+/).filter(Boolean).length >= 2;
+
+  const at = pred => {
+    const i = pool.findIndex(s => usable(s, segments.indexOf(s)) && pred(s));
+    return i < 0 ? Infinity : i;
+  };
+  // The relaxed test is confined to the opening segment, and only wins there
+  // when nothing untouched precedes it. That is where these channels put the
+  // title; letting it reach further down turned genre tails -- "Hemingway
+  // Fishing Drama", "Seriously Amazing Action Thriller" -- into films, at the
+  // cost of the real titles sitting ahead of them.
+  const strict = at(intact), loose = at(titled);
+  if (loose === 0 && loose < strict) return pool[0];
+  if (strict < Infinity) return pool[strict];
 
   // Nothing clean survived the usable test, so trust an untouched segment even
   // if it reads long -- "Go Tell It On The Mountain" is a title that happens to
@@ -202,7 +235,7 @@ function pickSegment(segments) {
 
   const score = s => (body(s) ? body(s).length : -Infinity)
                      - (looksLikeCastList(s) ? 1000 : 0)
-                     - (CAST_HINT.test(s) ? 25 : 0);
+                     - (castHint(s) ? 25 : 0);
   return pool.reduce((best, s) => (score(s) > score(best) ? s : best), pool[0]);
 }
 

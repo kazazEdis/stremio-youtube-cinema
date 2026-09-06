@@ -1,4 +1,7 @@
 {
-  "_comment": "Manual ytId -> imdbId pins. Consulted BEFORE scoring and trusted at confidence 100, so a wrong entry here is permanent and invisible. Promote from out/needs-review.json only after checking the film actually plays. Keep _note on every entry: the next person needs to know why the heuristics missed.",
-  "overrides": {}
+  "_comment": "Manual ytId -> imdbId pins. Consulted BEFORE scoring and trusted at confidence 100, so a wrong entry here is permanent and invisible. Promote from the review queue only after checking the film actually plays. Keep a _note sibling on every entry: the next person needs to know why the heuristics missed.",
+  "overrides": {
+    "3A6Ics5faIA": "tt0071548",
+    "_note:3A6Ics5faIA": "Uploaded as 'Christie Love! (1974 Crime) Teresa Graves' — the channel dropped the leading 'Get', so no normalized variant of the cleaned title reaches tt0071548 and the upload resolves to nothing. Pinned to the 1974 tvMovie, not the same-named tvSeries tt0070990: the upload runs 74 minutes, which is the tvMovie's runtime exactly."
+  }
 }
