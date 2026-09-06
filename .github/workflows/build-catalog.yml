@@ -72,6 +72,20 @@ jobs:
       - name: Publish marts
         run: npm run publish
 
+      # Asks YouTube whether the videos we just published still play — deleted,
+      # private, un-embeddable or newly geo-blocked. The extract is incremental,
+      # so a video pulled since it was last hydrated is invisible until someone
+      # looks; this looks, for about 62 quota units against a 10,000/day budget.
+      #
+      # continue-on-error because it is diagnostic. A quota error or a network
+      # blip here must not throw away a catalogue that published cleanly, and
+      # the step reports rather than acting on what it finds.
+      - name: Verify published streams
+        continue-on-error: true
+        env:
+          YT_API_KEY: ${{ secrets.YT_API_KEY }}
+        run: npm run verify-streams
+
       - name: Upload warehouse for inspection
         uses: actions/upload-artifact@v4
         with:

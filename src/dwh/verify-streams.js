@@ -173,6 +173,15 @@ async function main() {
   for (const [verdict, n] of Object.entries(health.verdicts)) {
     if (verdict !== 'ok') console.log(`   ${verdict.padEnd(22)} ${n}`);
   }
+  // Surfaced the way publish surfaces a silent channel, so a catalogue that has
+  // started serving dead links is visible in the Actions summary rather than
+  // only in a file nobody opens.
+  if (problems.length) {
+    const summary = Object.entries(health.verdicts)
+      .filter(([v]) => v !== 'ok').map(([v, n]) => `${v} ${n}`).join(', ');
+    console.log(`::warning::${problems.length} published entries are not playable in ` +
+                `${args.region}: ${summary}`);
+  }
 
   finishRun(landing, runId, { status: 'ok', rowsIn: todo.length, rowsOut: ok });
   landing.close();

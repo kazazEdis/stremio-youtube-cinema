@@ -371,9 +371,11 @@ It reports and does not act. A dead entry is a decision — quarantine it, drop
 it, or re-resolve to a different upload of the same film — and that decision
 wants numbers in front of it.
 
-**Not wired into CI yet**, deliberately: it spends quota and the weekly build
-does not currently ask for it. One step in `build-catalog.yml` after publish
-would make the answer weekly instead of whenever someone remembers.
+Wired into `build-catalog.yml` after publish, so `docs/health.json` is rebuilt
+and committed with every weekly catalogue. The step is `continue-on-error`
+**on purpose**: it is diagnostic, and a quota error or a network blip must not
+throw away a catalogue that published cleanly. Problems surface as a
+`::warning::` in the Actions summary, the same way a silent channel does.
 
 ## 3. Work the review queue
 
