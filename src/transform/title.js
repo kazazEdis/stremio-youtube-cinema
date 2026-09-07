@@ -322,6 +322,19 @@ export function cleanTitle(raw, channel = '') {
     input = input.replace(new RegExp(`^\\s*${esc}\\s*[-–—:|]+\\s*`, 'i'), '');
   }
 
+  // Several CJK channels stamp every upload with a bracketed language label —
+  // 【粵語】 (Cantonese), 【國語】 (Mandarin). The bracket rule below only knew
+  // the ASCII and fullwidth pairs, so 【 was stripped later as leading junk
+  // while the 】 survived mid-string: 九龍冰室 came out as "粵語】九龍冰室" and
+  // matched nothing. That left 經典華語老電影 rejecting 92 of its 99 uploads as
+  // no-candidates — the whole channel dark on one unhandled bracket.
+  //
+  // Removing the label is the entire fix: IMDb carries these films under the
+  // plain Chinese title in title.akas (九龍冰室 -> tt0304098, 賭神 -> tt0097244),
+  // so there is no need to prefer the English segment instead. Bounded to 12
+  // characters so it stays a label and cannot eat a bracketed title.
+  input = input.replace(/^\s*【[^】]{0,12}】\s*/u, '');
+
   const segments = input.split('|').map(s => s.trim()).filter(Boolean);
   let t = segments.length > 1 ? pickSegment(segments) : input;
 

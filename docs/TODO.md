@@ -4,12 +4,113 @@ Ordered by value. Rationale is kept with each item because most of these exist
 in response to something that actually broke, and that context is the reason to
 do them in this order rather than a more obvious one.
 
-Status as of 2026-09-07: 9,596 eligible uploads (Croatia), 2,245 films in the
-unrestricted tree and 2,797 in HR, 114 tests passing. The next catalogue build
-re-resolves everything at resolver version 13; measured against the current
-warehouse that is accept 5,038 -> 5,370 and review 2,853 -> 2,517.
+Status as of 2026-09-07, after the three entries below: 9,491 eligible uploads
+(Croatia, down 115 with alefilmy dropped), 2,345 films and 349 episodes across
+20 shows in the unrestricted tree, 2,967 in HR, 116 tests passing. The
+warehouse is fully re-resolved at resolver version 13 against the 2026-09-07
+IMDb dataset and stands at accept 5,357, review 2,492, reject 1,642 — so the
+gain the previous status line projected is banked, and the next dispatch will
+not move those numbers again on its own.
+
+`docs/` has been republished from that warehouse and conformance is clean on
+the unrestricted tree and all 20 regions. **The resolver change still needs a
+`build-catalog` dispatch to reach viewers** — `deploy-site` fires only on
+`src/dwh/publish.js`, `src/publish.js` and `src/report.js`, and a change to
+`src/transform/title.js` is not on that list.
 
 ---
+
+## DONE — the third systematic gate: one unhandled bracket (2026-09-07)
+
+Item 3 asked for a third gate before anything was promoted by hand. This is it,
+and like the first two it was found by characterising a bucket on a signal the
+gate does not test — here, `no-candidates` by channel rather than by score:
+
+    經典華語老電影   92 of  99 uploads  (93%)   <- the whole channel, dark
+    CineMo          194 of 336 uploads  (58%)
+    Mosfilm         129 of 282 uploads  (46%)
+    PizzaFlix        38 of 1417 uploads  (3%)
+
+93% is not a matching problem, it is a parsing problem. That channel stamps
+every upload with a bracketed language label — `【粵語】` (Cantonese),
+`【國語/ENG】` (Mandarin). `cleanTitle`'s bracket rule knew the ASCII and
+fullwidth pairs but not the CJK pair, so the `【` was later stripped as leading
+junk while the `】` survived mid-string: `九龍冰室` came out as `粵語】九龍冰室`
+and matched nothing. Exactly 95 clean titles in the warehouse still carried an
+orphaned `】`, against 99 uploads on the channel.
+
+Removing the label is the entire fix — IMDb carries these films under the plain
+Chinese title in `title.akas` (`九龍冰室` -> tt0304098, `賭神` -> tt0097244), so
+there was no need to prefer the English segment instead. Measured old vs new
+over all 9,606 kept uploads, counting exact index hits:
+
+    old-hit 7,036   new-hit 7,104   delta +68   gained 68   lost 0
+
+All 68 on that one channel, nothing lost anywhere. The pattern is bounded to 12
+characters so it stays a label and cannot eat a bracketed title.
+
+**It published nothing, and that is the honest number.** Through the pipeline
+the 68 moved from `reject/no-candidates` to `review/low-score`, not to accept:
+
+    accept  5,372 -> 5,357     review 2,521 -> 2,492     reject 1,713 -> 1,642
+
+and every one of those movements is the alefilmy drop (-15 accept, -96 review,
+-4 reject) plus 68 rejects becoming reviews. A count of index hits is not a
+count of films; this is the same trap as the changes that scored well and were
+rejected anyway.
+
+What it bought is that the channel is now *visible* — 92 uploads that could not
+be scored at all can now be worked. Sampled 14 of them by hand and every id is
+right (`九龍冰室` -> tt0304098, `南海十三郎` -> tt0134836, `絕代雙驕` -> tt0104572),
+with runtimes 1-2 minutes under IMDb because IMDb counts the credits.
+
+And they all sit at **confidence 84**, one point under the floor, which is the
+cliff this project keeps rediscovering. The shape is `44 + 20 + 20 + 0`: the
+title matched an *aka* rather than a primary, and `exact-aka` scores 44 where
+`exact-primary` scores 50. For a film whose only English-language identity is
+an aka, that 6-point discount is the whole difference. That is a real question
+for item 5, and unlike the yearless shape it has nothing to do with a missing
+year — the year is right there in the title and scoring a full 20.
+
+No `RESOLVER_VERSION` bump: `inputHash` already covers `name`, which is
+`clean_title`, so precisely the 68 changed rows re-resolve and the other 9,538
+keep their checkpoint. Scoring is untouched — 13 still describes the scorer.
+
+## DONE — a channel whose matches were right and should not have been published (2026-09-07)
+
+Found while working the `low-score` bucket for the gate above, and it inverts
+what item 3 assumed. `low-score` by channel:
+
+    alefilmy        89 of 115 uploads  (77%)   <- outlier
+    Grjngo         266 of 1009 (26%)
+    PizzaFlix       97 of 3000  (3%)
+
+The 89 are a single uniform shape — exact-aka title, PAL-band runtime, a cast
+hit, `44+12+17+10` — and every sampled one is a *correct* match. That is the
+problem. They are modern commercial features with Polish lektor voiceover, and
+14 of the 15 that already cleared the floor and were being **published** are
+from 2000 or later, spanning Newmarket, Warner, StudioCanal, DreamWorks, Focus
+and Screen Gems. No single licensor holds that spread.
+
+`channels.json` already states the test this fails: `currentReleases` marks the
+four channels that are the rights holder, and on an unmarked channel a modern
+match is anomalous. alefilmy carries no marker. Dropped via `config/exclude.json`
+`groups`, the Wu Tang precedent, since it is the only channel in group `Polish`.
+
+Two things worth keeping from this:
+
+- **`fct_upload.licensed` means nothing here.** It reads 1 on all of them. It
+  is YouTube's `contentDetails.licensedContent`, which says a Content ID owner
+  claimed the video — not that the uploader has rights. For pirated uploads it
+  is *more* likely to be 1, so the field's name is actively misleading.
+- **The score floor was the only thing holding the other 89 back.** Any
+  loosening of §4 aimed at the yearless-neutral shape would have published
+  them. That is now a reason the floor stays where it is, and it is not a
+  reason §4 was originally written for. See item 5.
+
+Grjngo and Cult Cinema Classics were checked the same way and are clean: their
+modern titles are genuine low-budget indie westerns and thrillers, no
+major-studio releases.
 
 ## DONE — TV series (2026-09-06)
 
@@ -721,11 +822,22 @@ Notes on the shape of the fix, for whoever touches it next:
 The sampled ones are still mostly *correct* matches sitting under the 85 floor —
 "The Swan (1930)" resolved to `One Romantic Night` at 84.
 
-Two systematic gates have now been found this way and both were worth more than
-any number of hand promotions: the PAL runtime band (+170) and the channel
-premise behind `recent-year` (+324). Keep looking for a third before promoting
-anything by hand. The method both times was the same, and it is the part worth
-copying:
+**A third gate has now been found and the method still holds — keep using it
+before promoting anything by hand.** The three so far, each worth more than any
+batch of hand promotions: the PAL runtime band (+170), the channel premise
+behind `recent-year` (+324), and the CJK bracket in `cleanTitle` (+68 index
+hits, nothing lost — though it published nothing, see the entry at the top). The third came out of the
+`no-candidates` bucket rather than `low-score`, which is worth remembering:
+this item points at `low-score` because it is the biggest, but the bucket that
+paid was the one where titles never reached the scorer at all.
+
+The same pass turned up something this item did not anticipate — a channel
+whose matches are *correct* and should not be published at all. That is the
+alefilmy entry above, and it is the reason `low-score` is now 2,517 minus its
+89. Working this queue is not only about promoting; twice now the right answer
+was to drop something.
+
+The method each time was the same, and it is the part worth copying:
 
 1. Take a bucket and characterise it on a signal **other than the one the gate
    tests** — runtime, when the gate is about years.
@@ -733,9 +845,13 @@ copying:
 3. Check that the "before" you are diffing against still reproduces.
 4. Hand-verify the low-confidence tail, which is where a wrong id would be.
 
-`low-score` at 1,700 is the obvious next target, and item 5 already names a
-candidate shape inside it: the yearless neutral 8 putting exact-title,
-exact-runtime matches under the floor.
+`low-score` at 1,700 is still the biggest bucket, but read item 5 before
+attacking the shape inside it: the 82-point yearless-neutral matches are
+genuinely correct *and* promoting them on two signals would also have published
+the 89 alefilmy uploads. The remaining `no-candidates` on the CJK channels are
+the cleaner target — the bracket fix took 68 of the 92 on 經典華語老電影 and the
+rest are mostly fullwidth roman numerals (`Ⅲ` U+2162 against ASCII `III`), which
+`normalize()` does not fold. That is a bounded, measurable next gate.
 
 - promote confirmed pairs into `config/overrides.json` (confidence 100, PR-able)
 - the `src/resolve/probe.js` tool exists for exactly this: it prints the full
@@ -744,20 +860,74 @@ exact-runtime matches under the floor.
 This is the catalog's largest untapped asset. It is ahead of weight tuning
 because promoted entries are also the labelled set that tuning needs.
 
-## 4. Build the §7 labelled fixture set (40 pairs)
+## DONE — the §7 labelled fixture set (2026-09-07)
 
-Hand-verified `(rawTitle, channel, runtimeMin) -> tconst`, weighted toward the
-non-English channels — Mosfilm, Korean Classic Film, Cinema Mei Ah — since those
-are the cases the resolver is least able to self-check.
+`test/fixtures/labelled.json`, 41 pairs, 25 of them (61%) from the non-English
+channels. Korean Classic Film and Goldmines are named in §7 but no longer exist
+in `channels.json` — Goldmines went with the Devanagari exclusion — so the
+weight went to Mosfilm (12), Cinema Mei Ah (6) and 經典華語老電影 (7).
 
-Must be hand-verified. Generating it from the resolver's own output would
-measure the resolver against itself.
+Verified by looking each film up in the IMDb datasets **directly** and
+confirming year and runtime, never by accepting what the resolver returned.
+`test/labelled.test.js` asserts §7's precision >= 0.98 on the accept tier and
+skips when `.cache/imdb.sqlite` is absent, so a fresh clone can still run
+`npm test` with no network.
 
-## 5. Tune the §4 weights
+**Current result: 17 accepted, precision 1.000, zero wrong ids.** The other 24
+are not failures — §7 makes recall secondary on purpose — but they are the best
+evidence item 5 has, so see below.
 
-**Only after the items above.** Today's evidence: `no-candidates` was ~98% of all
-rejections, meaning titles never reached the scorer at all. Tuning a scorer
-that is not being called teaches the wrong lesson.
+Hand-verification earned its keep by *rejecting* six candidates rather than
+guessing: *Prehistoric Women* (upload 73m sits between the 1950 film at 74m and
+the cut release of the 1967 Hammer film at 91m), *Her Sister from Paris*
+(99m against IMDb's 70m — silent-era framerate, not a match error), *War and
+Peace Part One* (147m against 373m for the complete cut, which trips the
+split-upload reject by design), the 2004 HK *Blood Brothers* (no aka), and
+*Operation Y* / *The Irony of Fate* (no exact index hit at all).
+
+One pair was wrong in the first draft and is worth recording: a `LIKE` on the
+English title matched the *sequel* upload while it carried the base film's
+tconst. Both are in the set now — *The Crazy Companies* 97m against tt0096512's
+99m, and *The Crazy Companies 2* 97m against tt0098718's 98m, same year, one
+minute apart. That is the case §2 keeps trailing roman numerals for, and it now
+fails here rather than in the catalogue.
+
+## 5. Tune the §4 weights — still last, and now for a better reason
+
+**The `KNOWN ISSUE` this item was pinned to is gone.** `test/scoring.test.js`
+now reads *"Was* KNOWN ISSUE": `relaxYearless` lifts the neutral to 12 when the
+runtime corroborates, so the shape scores 82 rather than 78, and a weak third
+signal such as a cast mention reaches 88 where it used to reach 84 and fail.
+The original text below is kept because the reasoning still holds.
+
+**The ordering argument survives, re-measured.** `no-candidates` is 1,571 of
+1,713 rejections — 92%, not the ~98% quoted below, but the point is unchanged:
+most failures never reach the scorer, so tuning it teaches the wrong lesson.
+The bracket gate above is exactly that kind of fix and was worth +68 on its own.
+
+**What the labelled set says.** Of its 24 non-accepts, 13 are RIGHT-ID sitting
+at confidence 82 with the identical shape `50 + 12 + 20 + 0` — exact primary
+title, perfect runtime, no cast mention — three points under the floor. Named,
+they are *Gentlemen of Fortune*, *Come and See*, *Moscow Does Not Believe in
+Tears*, *Solaris*, *Dersu Uzala*, *Office Romance*, *They Fought for Their
+Country*, *God of Gamblers*, *Black Eagle*, *Garden of Evil*, *Mimino* (79),
+*The Tricky Master* (84) and *White Tiger* (70). Six of the seven remaining are
+`no-candidates` on CJK titles, and two are `too-many-candidates` on *Stalker*
+and *The Mirror*, which collide 7 ways each.
+
+So the tempting change is +3 somewhere in that shape. **Do not make it without
+reading the alefilmy entry above.** Those 89 uploads sit at `44+12+17+10` and
+are correct matches to films that should not be in a catalogue of films legally
+on YouTube; the floor was the only thing holding them back. A change that
+promotes the 13 above on two signals promotes those too. If this is attempted,
+the third signal has to be something that separates them — the labelled set is
+now the place to prove it, and it will show the gain as named films.
+
+### The original note, kept
+
+Today's evidence: `no-candidates` was ~98% of all rejections, meaning titles
+never reached the scorer at all. Tuning a scorer that is not being called
+teaches the wrong lesson.
 
 The known defect, pinned in `test/scoring.test.js` as `KNOWN ISSUE`: an exact
 title with a *perfect* runtime scores 50 + 8 + 20 = 78, under the 85 floor. So
@@ -862,15 +1032,15 @@ video that is minutes, and buys what the API cannot supply:
 
 Verify the diff, never the catalog. Discovery stays on the API.
 
-## 7. Deploy to GitHub Pages
+## DONE — deploy to GitHub Pages (closed 2026-09-07)
 
-`docs/` is 11 MB over 2,152 files, largest 1.17 MB — far under the 100 MB
-per-file limit. Push, add `YT_API_KEY` as a repo secret, enable Pages on
-`/docs`. The workflow in `.github/workflows/build-catalog.yml` already handles
-the weekly rebuild.
+Live and serving: `manifest.json` returns 200, the Pages API reports
+`status: built` with `build_type: workflow`, and `deploy-site` has been green
+on push for weeks. The item sat open only because nobody closed it.
 
-An addon must answer whenever Stremio opens, and the dev VM cannot do that —
-it was killed roughly nine times during one session.
+The original rationale still explains the shape of the thing: an addon must
+answer whenever Stremio opens, and the dev VM could not do that — it was
+killed roughly nine times during one session.
 
 ## ~~8. Fix the Actions cache key~~ (done 2026-09-05)
 

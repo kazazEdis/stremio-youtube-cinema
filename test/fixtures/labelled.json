@@ -1,0 +1,417 @@
+{
+  "_comment": "Spec §7 labelled set: hand-verified (rawTitle, channel, runtimeMin) -> tconst pairs. Verified by looking each film up in the IMDb datasets DIRECTLY and confirming year and runtime, never by accepting what the resolver returned — a set generated from resolver output would measure the resolver against itself. 25 of the 41 (61%) are from the non-English channels, which are the cases the resolver is least able to self-check. runtimeDeltaPct is (upload - IMDb)/IMDb and is recorded so a weight change that moves a band shows up here as a named film rather than a count.",
+  "_sequels": "The Crazy Companies pair is deliberate and was a bug in the first draft of this file: a LIKE on the English title matched the SEQUEL upload while it was labelled with the base film tconst. Both are here now, 97m against 99m and 98m, one minute apart with the same year — which is the case §2 keeps trailing roman numerals for. Any change that starts matching one to the other will fail here rather than in the catalogue.",
+  "_rejected": "Six candidates were dropped during verification rather than guessed at, and the reason the set is hand-made: Prehistoric Women (upload 73m sits between the 1950 film at 74m and the cut release of the 1967 Hammer film at 91m), Her Sister from Paris (upload 99m against IMDb 70m — silent-era framerate, not a match error), War and Peace Part One (147m against IMDb 373m for the complete cut, which trips the split-upload reject by design), and the 2004 HK film Blood Brothers (IMDb carries no aka under that name). Operation Y and The Irony of Fate have no exact index hit at all and are left out for the same reason.",
+  "pairs": [
+    {
+      "rawTitle": "Gentlemen of Fortune | COMEDY | FULL MOVIE",
+      "channel": "Mosfilm",
+      "runtimeMin": 87,
+      "tconst": "tt0068519",
+      "imdbYear": 1971,
+      "imdbRuntime": 88,
+      "runtimeDeltaPct": -1.1,
+      "note": "yearless; runtime -1%"
+    },
+    {
+      "rawTitle": "Come and See | WAR FILM | FULL MOVIE",
+      "channel": "Mosfilm",
+      "runtimeMin": 143,
+      "tconst": "tt0091251",
+      "imdbYear": 1985,
+      "imdbRuntime": 142,
+      "runtimeDeltaPct": 0.7,
+      "note": "collides with a 2019 film of the same title"
+    },
+    {
+      "rawTitle": "Moscow does not believe in tears | AWARD WINNING | FULL MOVIE",
+      "channel": "Mosfilm",
+      "runtimeMin": 148,
+      "tconst": "tt0079579",
+      "imdbYear": 1980,
+      "imdbRuntime": 150,
+      "runtimeDeltaPct": -1.3,
+      "note": "yearless; lowercase marketing title"
+    },
+    {
+      "rawTitle": "Stalker | FULL MOVIE | Directed by Andrey Tarkovsky",
+      "channel": "Mosfilm",
+      "runtimeMin": 162,
+      "tconst": "tt0079944",
+      "imdbYear": 1979,
+      "imdbRuntime": 162,
+      "runtimeDeltaPct": 0,
+      "note": "7 index collisions; runtime alone picks it"
+    },
+    {
+      "rawTitle": "Solaris | SCIENCE FICTION | FULL MOVIE | directed by Tarkovsky",
+      "channel": "Mosfilm",
+      "runtimeMin": 167,
+      "tconst": "tt0069293",
+      "imdbYear": 1972,
+      "imdbRuntime": 167,
+      "runtimeDeltaPct": 0,
+      "note": "1968 tvMovie 142m and 2002 remake 99m both collide"
+    },
+    {
+      "rawTitle": "Dersu Uzala | DRAMA | FULL MOVIE",
+      "channel": "Mosfilm",
+      "runtimeMin": 142,
+      "tconst": "tt0071411",
+      "imdbYear": 1975,
+      "imdbRuntime": 142,
+      "runtimeDeltaPct": 0,
+      "note": "collides with a 1961 film 86m"
+    },
+    {
+      "rawTitle": "Office Romance | ROMANTIC COMEDY | FULL MOVIE",
+      "channel": "Mosfilm",
+      "runtimeMin": 157,
+      "tconst": "tt0076727",
+      "imdbYear": 1977,
+      "imdbRuntime": 159,
+      "runtimeDeltaPct": -1.3,
+      "note": "yearless; 4 collisions"
+    },
+    {
+      "rawTitle": "Mimino | COMEDY | FULL MOVIE",
+      "channel": "Mosfilm",
+      "runtimeMin": 91,
+      "tconst": "tt0076391",
+      "imdbYear": 1977,
+      "imdbRuntime": 95,
+      "runtimeDeltaPct": -4.2,
+      "note": "PAL band -4%"
+    },
+    {
+      "rawTitle": "They Fought for Their Country | WAR MOVIE | FULL MOVIE",
+      "channel": "Mosfilm",
+      "runtimeMin": 157,
+      "tconst": "tt0073488",
+      "imdbYear": 1975,
+      "imdbRuntime": 158,
+      "runtimeDeltaPct": -0.6,
+      "note": "long runtime, unique title"
+    },
+    {
+      "rawTitle": "The Mirror | FULL MOVIE | Directed by Andrey Tarkovsky",
+      "channel": "Mosfilm",
+      "runtimeMin": 106,
+      "tconst": "tt0072443",
+      "imdbYear": 1975,
+      "imdbRuntime": 107,
+      "runtimeDeltaPct": -0.9,
+      "note": "7 collisions incl. 3 non-English"
+    },
+    {
+      "rawTitle": "White Tiger | WAR MOVIE | ENGLISH DUBBING | Directed by Karen Shakhnazarov",
+      "channel": "Mosfilm",
+      "runtimeMin": 109,
+      "tconst": "tt2318405",
+      "imdbYear": 2012,
+      "imdbRuntime": 104,
+      "runtimeDeltaPct": 4.8,
+      "note": "year in title; 4 collisions"
+    },
+    {
+      "rawTitle": "On the Road to Berlin | WAR MOVIE | FULL MOVIE (2015)",
+      "channel": "Mosfilm",
+      "runtimeMin": 86,
+      "tconst": "tt4686604",
+      "imdbYear": 2015,
+      "imdbRuntime": 82,
+      "runtimeDeltaPct": 4.9,
+      "note": "restored band +5%"
+    },
+    {
+      "rawTitle": "周潤發《賭神》開創賭片×劉德華最強師徒組合盛世 80年代末港產黑幫片的巔峰質感與淒美愛情｜賭神 (God Of Gamblers)｜張敏、王祖賢、向華強｜粵語中字｜美亞影院 Cinema Mei Ah",
+      "channel": "美亞影院 Cinema Mei Ah - 香港電影 (HK Movie)",
+      "runtimeMin": 126,
+      "tconst": "tt0097244",
+      "imdbYear": 1989,
+      "imdbRuntime": 126,
+      "runtimeDeltaPct": 0,
+      "note": "Cantonese; title only in the aka rows"
+    },
+    {
+      "rawTitle": "林青霞 封神之作震撼武林 武俠電影不敗傳奇再現 動作×美學×經典角色全面爆發｜笑傲江湖II東方不敗 (Swordsman II)｜李連杰、關之琳、李嘉欣｜粵語中字｜美亞影院 Cinema Mei Ah",
+      "channel": "美亞影院 Cinema Mei Ah - 香港電影 (HK Movie)",
+      "runtimeMin": 104,
+      "tconst": "tt0103295",
+      "imdbYear": 1992,
+      "imdbRuntime": 112,
+      "runtimeDeltaPct": -7.1,
+      "note": "TV-edit band -7%"
+    },
+    {
+      "rawTitle": "周星馳 化身「黃師虎」傳授千術 張家輝如何從烏龍臥底變身賭壇高手｜千王之王2000 (The Tricky Master)｜吳君如、王晶、林熙蕾、關秀媚｜粵語中字｜美亞影院 Cinema Mei Ah",
+      "channel": "美亞影院 Cinema Mei Ah - 香港電影 (HK Movie)",
+      "runtimeMin": 93,
+      "tconst": "tt0212864",
+      "imdbYear": 1999,
+      "imdbRuntime": 91,
+      "runtimeDeltaPct": 2.2,
+      "note": "title says 2000, IMDb says 1999 — year +/-1"
+    },
+    {
+      "rawTitle": "懷念 許紹雄 經典風采 楊千嬅×吳彥祖 笑料與浪漫齊飛喜劇｜新紮師妹 (Love Undercover)｜楊千嬅、吳彥祖、許紹雄、森美、黃浩然｜粵語中字｜2002｜美亞影院 Cinema Mei Ah",
+      "channel": "美亞影院 Cinema Mei Ah - 香港電影 (HK Movie)",
+      "runtimeMin": 102,
+      "tconst": "tt0367104",
+      "imdbYear": 2002,
+      "imdbRuntime": 103,
+      "runtimeDeltaPct": -1,
+      "note": "collides with two later tvSeries"
+    },
+    {
+      "rawTitle": "這陣容現在拍不出來！周星馳、鄭秀文、舒淇、楊恭如夢幻同台 重溫1998年最強賀歲片｜行運一條龍 (The Lucky Guy)｜葛民輝、陳曉東、吳孟達｜粵語中字｜美亞影院 Cinema Mei Ah",
+      "channel": "美亞影院 Cinema Mei Ah - 香港電影 (HK Movie)",
+      "runtimeMin": 100,
+      "tconst": "tt0138587",
+      "imdbYear": 1998,
+      "imdbRuntime": 100,
+      "runtimeDeltaPct": 0,
+      "note": "collides with a 1994 video and a 2023 series"
+    },
+    {
+      "rawTitle": "劉德華黑獄逆襲 90年代港片暴烈巔峰 黎姿美色爆棚誘惑大銀幕｜獄中龍 (Dragon in Jail)｜劉德華、何家勁、黎姿、程東｜鄭則仕導演｜粵語中字｜1990｜美亞影院 Cinema Mei Ah",
+      "channel": "美亞影院 Cinema Mei Ah - 香港電影 (HK Movie)",
+      "runtimeMin": 99,
+      "tconst": "tt0100995",
+      "imdbYear": 1990,
+      "imdbRuntime": 97,
+      "runtimeDeltaPct": 2.1,
+      "note": "unique"
+    },
+    {
+      "rawTitle": "【粵語】古惑仔Ⅲ之隻手遮天 (1996) 1080P | Young and Dangerous Ⅲ (鄭伊健 / 陳小春 / 張耀揚) | 幫派暗鬥危機四伏 |#經典華語老電影",
+      "channel": "經典華語老電影",
+      "runtimeMin": 96,
+      "tconst": "tt0116455",
+      "imdbYear": 1996,
+      "imdbRuntime": 98,
+      "runtimeDeltaPct": -2,
+      "note": "numbered sequel must not match the base title"
+    },
+    {
+      "rawTitle": "【粵語】逃學威龍Ⅲ (1993) 1080P | Fight Back to SchoolⅢ(周星馳，梅艷芳，陳百祥) | 假扮富翁調查案件迷案重重 |#經典華語老電影",
+      "channel": "經典華語老電影",
+      "runtimeMin": 86,
+      "tconst": "tt0108293",
+      "imdbYear": 1993,
+      "imdbRuntime": 89,
+      "runtimeDeltaPct": -3.4,
+      "note": "roman-numeral sequel; PAL band"
+    },
+    {
+      "rawTitle": "【粵語】九龍冰室 (2001) 1080P | Goodbye Mr. Cool (鄭伊健/莫文蔚/李彩樺/黃品源) | 隱匿江湖的老大遭遇暗算 |#經典華語老電影",
+      "channel": "經典華語老電影",
+      "runtimeMin": 99,
+      "tconst": "tt0304098",
+      "imdbYear": 2001,
+      "imdbRuntime": 101,
+      "runtimeDeltaPct": -2,
+      "note": "punctuation differs from the IMDb title"
+    },
+    {
+      "rawTitle": "【粵語】最佳損友 (1988) | The Crazy Companies (劉德華 / 陳百祥 / 馮淬帆 / 邱淑貞 / 陳玉蓮) | 為了繼承遺產想盡辦法 |#經典華語老電影",
+      "channel": "經典華語老電影",
+      "runtimeMin": 97,
+      "tconst": "tt0096512",
+      "imdbYear": 1988,
+      "imdbRuntime": 99,
+      "runtimeDeltaPct": -2,
+      "note": "base film; the sequel below must not match this tconst"
+    },
+    {
+      "rawTitle": "【粵語】最佳損友2 (1988) | The Crazy Companies 2 (劉德華/關之琳/邱淑貞) | 負債纍纍後決定潛入競爭對手的公司 |#經典華語老電影",
+      "channel": "經典華語老電影",
+      "runtimeMin": 97,
+      "tconst": "tt0098718",
+      "imdbYear": 1988,
+      "imdbRuntime": 98,
+      "runtimeDeltaPct": -1,
+      "note": "numbered sequel one minute from the base film — the case §2 keeps roman numerals for"
+    },
+    {
+      "rawTitle": "【粵語】棟篤特工 (2018) 1080P | Agent Mr. Chan (黃子華/佘詩曼/譚詠麟) | 落魄特工與女警聯手調查離奇藥物 |#經典華語老電影",
+      "channel": "經典華語老電影",
+      "runtimeMin": 97,
+      "tconst": "tt7759626",
+      "imdbYear": 2018,
+      "imdbRuntime": 101,
+      "runtimeDeltaPct": -4,
+      "note": "PAL band -4%"
+    },
+    {
+      "rawTitle": "【粵語】至尊計狀元才 (1990) | No Risk, No Gain (譚詠麟 / 劉德華 / 陳百祥 / 黃秋生) | 臺灣賭王挑戰美國賭王沒想到是一場陰謀 |#經典華語老電影",
+      "channel": "經典華語老電影",
+      "runtimeMin": 104,
+      "tconst": "tt0101011",
+      "imdbYear": 1990,
+      "imdbRuntime": 108,
+      "runtimeDeltaPct": -3.7,
+      "note": "IMDb primary carries a subtitle the upload omits"
+    },
+    {
+      "rawTitle": "And Then There Were None (1945) AGATHA CHRISTIE",
+      "channel": "PizzaFlix",
+      "runtimeMin": 97,
+      "tconst": "tt0037515",
+      "imdbYear": 1945,
+      "imdbRuntime": 97,
+      "runtimeDeltaPct": 0,
+      "note": "7 collisions incl. two Ten Little Indians"
+    },
+    {
+      "rawTitle": "Patterns (1956) ROD SERLING",
+      "channel": "PizzaFlix",
+      "runtimeMin": 84,
+      "tconst": "tt0049601",
+      "imdbYear": 1956,
+      "imdbRuntime": 83,
+      "runtimeDeltaPct": 1.2,
+      "note": "generic one-word title"
+    },
+    {
+      "rawTitle": "Rage at Dawn (1955) RANDOLPH SCOTT",
+      "channel": "PizzaFlix",
+      "runtimeMin": 87,
+      "tconst": "tt0048535",
+      "imdbYear": 1955,
+      "imdbRuntime": 87,
+      "runtimeDeltaPct": 0,
+      "note": "unique"
+    },
+    {
+      "rawTitle": "The Last Time I Saw Paris (1954) ELIZABETH TAYLOR",
+      "channel": "PizzaFlix",
+      "runtimeMin": 114,
+      "tconst": "tt0047162",
+      "imdbYear": 1954,
+      "imdbRuntime": 116,
+      "runtimeDeltaPct": -1.7,
+      "note": "unique"
+    },
+    {
+      "rawTitle": "The Outlaw (1943) JANE RUSSELL",
+      "channel": "PizzaFlix",
+      "runtimeMin": 116,
+      "tconst": "tt0036241",
+      "imdbYear": 1943,
+      "imdbRuntime": 116,
+      "runtimeDeltaPct": 0,
+      "note": "7 collisions across 5 decades"
+    },
+    {
+      "rawTitle": "Lady Frankenstein (1971) | HD 1080P | Public Domain Movies",
+      "channel": "Public Domain Movies",
+      "runtimeMin": 99,
+      "tconst": "tt0067321",
+      "imdbYear": 1971,
+      "imdbRuntime": 99,
+      "runtimeDeltaPct": 0,
+      "note": "exact"
+    },
+    {
+      "rawTitle": "The Beachcomber (1938) || Full movie || Public Domain Movies",
+      "channel": "Public Domain Movies",
+      "runtimeMin": 88,
+      "tconst": "tt0030933",
+      "imdbYear": 1938,
+      "imdbRuntime": 92,
+      "runtimeDeltaPct": -4.3,
+      "note": "1954 remake 82m collides; year discriminates"
+    },
+    {
+      "rawTitle": "Lionheart (1990) Jean-Claude Van Damme | No mercy. No limits. Only fists and fury. 4K",
+      "channel": "Cult Cinema Classics",
+      "runtimeMin": 105,
+      "tconst": "tt0100029",
+      "imdbYear": 1990,
+      "imdbRuntime": 108,
+      "runtimeDeltaPct": -2.8,
+      "note": "1987 Lionheart 104m is nearer the upload runtime — year discriminates"
+    },
+    {
+      "rawTitle": "Van Damme - Black Eagle 1988 - There are no enemies. There is no glory. This fight is one on one. 4K",
+      "channel": "Cult Cinema Classics",
+      "runtimeMin": 104,
+      "tconst": "tt0094750",
+      "imdbYear": 1988,
+      "imdbRuntime": 93,
+      "runtimeDeltaPct": 11.8,
+      "note": "6 collisions; restored band +12%"
+    },
+    {
+      "rawTitle": "Dark Night of the Scarecrow (1981) Slasher Horror Film | Directed by Frank De Felitta",
+      "channel": "Cult Cinema Classics",
+      "runtimeMin": 97,
+      "tconst": "tt0082235",
+      "imdbYear": 1981,
+      "imdbRuntime": 96,
+      "runtimeDeltaPct": 1,
+      "note": "tvMovie type"
+    },
+    {
+      "rawTitle": "White Apache (1987) Spaghetti Western - Based on a true story Directed Bruno Mattei",
+      "channel": "Cult Cinema Classics",
+      "runtimeMin": 94,
+      "tconst": "tt0090652",
+      "imdbYear": 1987,
+      "imdbRuntime": 100,
+      "runtimeDeltaPct": -6,
+      "note": "PAL band lower edge -6%"
+    },
+    {
+      "rawTitle": "A Town Called Hell (1971 Western) starring Telly Savalas | You're lucky to get out alive.",
+      "channel": "Cult Cinema Classics",
+      "runtimeMin": 97,
+      "tconst": "tt0067870",
+      "imdbYear": 1971,
+      "imdbRuntime": 95,
+      "runtimeDeltaPct": 2.1,
+      "note": "IMDb original title differs"
+    },
+    {
+      "rawTitle": "4K -The Island on Bird Street (1997) Based on a True Story | Directed by Søren Kragh-Jacobsen",
+      "channel": "Cult Cinema Classics",
+      "runtimeMin": 108,
+      "tconst": "tt0119389",
+      "imdbYear": 1997,
+      "imdbRuntime": 107,
+      "runtimeDeltaPct": 0.9,
+      "note": "4K prefix in the raw title"
+    },
+    {
+      "rawTitle": "Jean-Claude Van Damme 1998 - Knock Off - There is no substitute.",
+      "channel": "Cult Cinema Classics",
+      "runtimeMin": 90,
+      "tconst": "tt0120724",
+      "imdbYear": 1998,
+      "imdbRuntime": 91,
+      "runtimeDeltaPct": -1.1,
+      "note": "two-word title that is also a common phrase"
+    },
+    {
+      "rawTitle": "Garden of Evil | Gary Cooper | Western Movie | Action | Romance | Full Movie English",
+      "channel": "Grjngo - Western Movies",
+      "runtimeMin": 100,
+      "tconst": "tt0047013",
+      "imdbYear": 1954,
+      "imdbRuntime": 100,
+      "runtimeDeltaPct": 0,
+      "note": "5 collisions; PAL band -6%"
+    },
+    {
+      "rawTitle": "Molly And Lawless John (1972 American Western, Full Length, English, HD) *free full moves*",
+      "channel": "Grjngo - Western Movies",
+      "runtimeMin": 97,
+      "tconst": "tt0068962",
+      "imdbYear": 1972,
+      "imdbRuntime": 98,
+      "runtimeDeltaPct": -1,
+      "note": "unique"
+    }
+  ]
+}

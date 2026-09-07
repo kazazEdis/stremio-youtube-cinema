@@ -1,10 +1,13 @@
 {
-  "_comment": "Catalog exclusions, applied before resolving. `scripts` drops uploads whose ORIGINAL YouTube title contains that writing system — the reliable signal for language, since the public IMDb datasets carry no language or country field. `groups` drops whole config/channels.json groups. `imdbIds` and `ytIds` are precise manual escape hatches. Everything here is reported in the run summary, so nothing disappears silently. groups currently holds MartialArts, whose only channel is the Wu Tang Collection: 2,372 features resolving at 13.4%, and its 888 unresolved uploads are per-distributor English release names that IMDb carries under no aka. Dropped by the owner's decision on 2026-09-06, not by a heuristic.",
+  "_comment": "Catalog exclusions, applied before resolving. `scripts` drops uploads whose ORIGINAL YouTube title contains that writing system — the reliable signal for language, since the public IMDb datasets carry no language or country field. `groups` drops whole config/channels.json groups. `imdbIds` and `ytIds` are precise manual escape hatches. Everything here is reported in the run summary, so nothing disappears silently.",
+  "_groups_MartialArts": "Only channel is the Wu Tang Collection: 2,372 features resolving at 13.4%, and its 888 unresolved uploads are per-distributor English release names that IMDb carries under no aka. Dropped by the owner's decision on 2026-09-06, not by a heuristic.",
+  "_groups_Polish": "Only channel is @alefilmy, dropped 2026-09-07 on a licensing judgement, not a match-quality one — its matches are correct, which is the problem. 14 of its 15 accepted films are from 2000 or later (Memento, Michael Clayton, Paddington, Need for Speed, Sinister 2, Arlington Road), spanning Newmarket, Warner, StudioCanal, DreamWorks, Focus and Screen Gems — a spread no single licensor holds — and every upload carries Polish lektor voiceover. The channel has no `currentReleases` marker, and channels.json reserves that for the four rights holders; by its own stated test a modern match on an unmarked channel is anomalous. The score floor was the only thing holding the other 89 back: they sit in low-score at a uniform 44+12+17+10=79, so any loosening of §4 aimed at the yearless-neutral shape would have published them. Note `fct_upload.licensed` reads 1 on all of them and means nothing here — it is YouTube's contentDetails.licensedContent, which says a Content ID owner claimed the video, not that the uploader holds rights.",
   "scripts": [
     "devanagari"
   ],
   "groups": [
-    "MartialArts"
+    "MartialArts",
+    "Polish"
   ],
   "imdbIds": [],
   "ytIds": []
