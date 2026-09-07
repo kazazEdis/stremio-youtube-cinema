@@ -211,12 +211,28 @@ problem. They are modern commercial features with Polish lektor voiceover, and
 Warner, StudioCanal, DreamWorks, Focus and Screen Gems. No single licensor holds
 that spread.
 
-**None of them were ever served, and the first draft of this entry said
-otherwise.** Checked against the live `catalog.json`: 0 of the 15 are in it.
-They were `accept` in the warehouse but the deployed tree predates the v13
-re-resolve, so they were among the gains the **next dispatch** would have
-introduced. The exclusion stopped that. The distinction matters for how this
-reads later — the exposure is a `build-catalog` dispatch, not a merge.
+**These are live right now, and this entry twice said otherwise before the
+right check was run.** All 115 alefilmy uploads are `allowed_regions=PL`, and
+PL is one of the twenty published regions. Region-locked films never appear in
+the unrestricted `catalog.json` by construction, so checking that file — which
+is what the previous two drafts did — cannot see them and wrongly reads as
+"never served". The check that answers the question is the regional stream
+endpoint:
+
+    GET /region=pl/stream/movie/tt0209144.json  -> 200
+    {"streams":[{"ytId":"-rg5GhmZ5zo","title":"alefilmy • 113 min • match 89"…
+
+15 of 15 sampled titles return 200 from the live PL tree. **The exclusion is
+committed but the deployed site still serves them**, because `deploy-site` does
+not fire on these paths and only a `build-catalog` dispatch rebuilds the
+regional trees.
+
+The general lesson, which cost two wrong entries: **for a region-locked film,
+the unrestricted catalogue is the wrong place to look.** Check
+`region=<code>/stream/movie/<tconst>.json` on the deployed site.
+
+By contrast the CineMo uploads excluded in the entry above really were
+unreachable — `allowed_regions=PH`, and no PH tree is published.
 
 `channels.json` already states the test this fails: `currentReleases` marks the
 four channels that are the rights holder, and on an unmarked channel a modern
