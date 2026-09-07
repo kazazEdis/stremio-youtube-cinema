@@ -554,7 +554,8 @@ export function resolveOne(video, index, opts = {}) {
   if (candidates.length > MAX_CANDIDATES) {
     return { status: 'review', ytId: video.ytId, name: video.name, rawTitle: video.rawTitle,
              channel: video.channel, reason: 'too-many-candidates',
-             candidateCount: candidates.length, candidates: [] };
+             candidateCount: candidates.length, rivalCount: candidates.length,
+             candidates: [] };
   }
 
   const scored = candidates
@@ -584,6 +585,11 @@ export function resolveOne(video, index, opts = {}) {
   // use for the tuning it exists to serve.
   const rawScore = best.score;
   const candidateCount = scored.length;
+  // What the 25-cap actually judged. scoreRuntime's hard-reject runs between
+  // generation and scoring, so `scored` can be one row where `candidates` was
+  // twelve -- and the margin is then 100 by definition rather than by
+  // measurement. Recording both is what lets that be audited from SQL.
+  const rivalCount = candidates.length;
 
   relaxYearless(video, best);
 
@@ -594,14 +600,14 @@ export function resolveOne(video, index, opts = {}) {
 
   const flag = hardFlag(best, best.score, now, currentReleaseChannels.has(video.channelRef));
   if (flag) {
-    return { status: 'review', ...publicShape(video, best, margin, { rawScore, candidateCount }),
+    return { status: 'review', ...publicShape(video, best, margin, { rawScore, candidateCount, rivalCount }),
              rawTitle: video.rawTitle, reason: flag, tier, candidates: top5 };
   }
   if (best.score >= THRESHOLDS.accept && margin >= THRESHOLDS.margin) {
-    return { status: 'accept', ...publicShape(video, best, margin, { rawScore, candidateCount }), tier };
+    return { status: 'accept', ...publicShape(video, best, margin, { rawScore, candidateCount, rivalCount }), tier };
   }
   if (best.score >= THRESHOLDS.review) {
-    return { status: 'review', ...publicShape(video, best, margin, { rawScore, candidateCount }),
+    return { status: 'review', ...publicShape(video, best, margin, { rawScore, candidateCount, rivalCount }),
              reason: best.score >= THRESHOLDS.accept ? 'narrow-margin' : 'low-score',
              tier, candidates: top5 };
   }

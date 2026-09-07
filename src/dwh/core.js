@@ -129,11 +129,21 @@ const SCHEMA = [
      margin           REAL,
      score            REAL,                          -- what §4 alone produced,
                                                      -- before the yearless lift
-     candidate_count  INTEGER,                       -- how many were scored
+     candidate_count  INTEGER,                       -- how many were SCORED
+     -- how many the tier GENERATED, before scoreRuntime's hard-reject dropped
+     -- any. candidate_count counts survivors, so a title with a dozen rivals
+     -- all shot on runtime records 1 and a margin of 100 -- indistinguishable
+     -- in SQL from a genuine lone candidate. 136 accepted rows are that shape.
+     rival_count      INTEGER,
      sig_title        REAL,
      sig_year         INTEGER,
      sig_runtime      INTEGER,
      sig_corrob       INTEGER,
+     -- An episode is scored with typeMatch IN PLACE OF runtime (IMDb's series
+     -- runtime is a nominal slot length), so without this column the four
+     -- signals above cannot add up to the confidence on any series row -- all
+     -- 647 of them, which is every series row there is.
+     sig_type_match   INTEGER,
      is_override      INTEGER NOT NULL DEFAULT 0,
      tier             TEXT,
      dataset          TEXT NOT NULL,
@@ -355,6 +365,13 @@ export function migrateColumns(db) {
     fct_resolution: {
       stremio_type: "TEXT NOT NULL DEFAULT 'movie'", published_id: 'TEXT',
       season: 'INTEGER', episode: 'INTEGER',
+      // Declaring a column in the DDL above is NOT enough: CREATE TABLE IF NOT
+      // EXISTS does nothing to a table that already exists, and this map is
+      // hand-maintained rather than read from the DDL. A new column added in
+      // one place and not the other fails at the INSERT with "table
+      // fct_resolution has no column named ..." on every existing warehouse
+      // while passing every test on a fresh one.
+      rival_count: 'INTEGER', sig_type_match: 'INTEGER',
     },
     fct_playback: { fail_count: 'INTEGER NOT NULL DEFAULT 0' },
   };

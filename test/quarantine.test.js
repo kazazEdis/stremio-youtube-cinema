@@ -77,6 +77,28 @@ test('the fail_count column reaches a warehouse that predates it', () => {
   reopened.close();
 });
 
+test('the resolution diagnostics reach a warehouse that predates them', () => {
+  // Third time. `season` on fct_upload, then `fail_count` on fct_playback, and
+  // now rival_count/sig_type_match on fct_resolution: declaring a column in the
+  // DDL is not enough, because CREATE TABLE IF NOT EXISTS does nothing to a
+  // table that already exists and migrateColumns' map is hand-maintained rather
+  // than read from the DDL. Miss the map and every existing warehouse dies at
+  // the INSERT with "table fct_resolution has no column named rival_count"
+  // while a fresh one passes every test.
+  const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'old-res-')), 'core.sqlite');
+  const first = openCore(file);
+  first.exec('ALTER TABLE fct_resolution DROP COLUMN rival_count');
+  first.exec('ALTER TABLE fct_resolution DROP COLUMN sig_type_match');
+  first.close();
+
+  const reopened = openCore(file);            // migrateColumns runs here
+  const cols = new Set(reopened.prepare("SELECT name FROM pragma_table_info('fct_resolution')")
+    .all().map(c => c.name));
+  assert.ok(cols.has('rival_count'), 'rival_count was not migrated back');
+  assert.ok(cols.has('sig_type_match'), 'sig_type_match was not migrated back');
+  reopened.close();
+});
+
 test('gated and dead are different problems and get different treatment', () => {
   // A gated upload still works for a viewer signed in on YouTube, which is why
   // it is kept and labelled when it is the only copy. Nothing else that fails

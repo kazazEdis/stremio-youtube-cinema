@@ -290,8 +290,9 @@ export function resolutionRow(r, ctx) {
     r.imdbId ? (r.year ?? null) : null,
     r.imdbRuntimeMin ?? null, r.genres ?? null,
     r.confidence ?? null, r.margin ?? null, r.rawScore ?? null,
-    r.candidateCount ?? null,
+    r.candidateCount ?? null, r.rivalCount ?? null,
     s.title ?? null, s.year ?? null, s.runtime ?? null, s.corroboration ?? null,
+    s.typeMatch ?? null,
     r.override ? 1 : 0, r.tier ?? null,
     ctx.dataset, r.__hash, ctx.overridesHash, RESOLVER_VERSION, ctx.now, ctx.runId,
   ];
@@ -301,9 +302,10 @@ async function resolvePending(wh, index, ctx, args) {
   const ins = wh.prepare(`INSERT INTO fct_resolution
     (ytId,status,reason,imdb_id,stremio_type,published_id,season,episode,
      match_name,imdb_year,imdb_runtime,genres,
-     confidence,margin,score,candidate_count,sig_title,sig_year,sig_runtime,sig_corrob,
+     confidence,margin,score,candidate_count,rival_count,
+     sig_title,sig_year,sig_runtime,sig_corrob,sig_type_match,
      is_override,tier,dataset,input_hash,overrides_hash,resolver_version,resolved_at,run_id)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     ON CONFLICT(ytId) DO UPDATE SET
       status=excluded.status, reason=excluded.reason, imdb_id=excluded.imdb_id,
       stremio_type=excluded.stremio_type, published_id=excluded.published_id,
@@ -311,7 +313,8 @@ async function resolvePending(wh, index, ctx, args) {
       match_name=excluded.match_name, imdb_year=excluded.imdb_year,
       imdb_runtime=excluded.imdb_runtime, genres=excluded.genres,
       confidence=excluded.confidence, margin=excluded.margin, score=excluded.score,
-      candidate_count=excluded.candidate_count, sig_title=excluded.sig_title,
+      candidate_count=excluded.candidate_count, rival_count=excluded.rival_count,
+      sig_type_match=excluded.sig_type_match, sig_title=excluded.sig_title,
       sig_year=excluded.sig_year, sig_runtime=excluded.sig_runtime,
       sig_corrob=excluded.sig_corrob, is_override=excluded.is_override,
       tier=excluded.tier, dataset=excluded.dataset, input_hash=excluded.input_hash,
