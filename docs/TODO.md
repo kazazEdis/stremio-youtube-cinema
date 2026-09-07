@@ -55,7 +55,7 @@ grade. That is one paragraph applied 3,000 times, not a scatter of errors.
 **The 900 cap is therefore an accidental safety mechanism.** It is the only
 thing currently containing a scorer that treats a common word as evidence.
 
-### Three cures, all measured, all dead
+### Four cures, all measured, all dead
 
 1. **Lift the cap wholesale.** Trades 67 known films for an unbounded surface
    that grows every time a channel lengthens a description.
@@ -75,15 +75,39 @@ capitalised occurrence kills the ordinary-word class outright. It does **not**
 kill *Hong Kong* (1,537 capitalised, it is a proper noun) or a review naming a
 real person, so it is worth having and is not sufficient alone.
 
-### The direction that has evidence behind it
+4. **Require the token to sit inside a credits block** — implemented, measured,
+   **dead, and the most instructive of the four.** A `Starring:` / `Directed
+   by:` / `Cast:` cue with a 240-character window keeps *F. W. Murnau* and
+   *D. W. Griffith* and rejects boilerplate, and it passes all 123 tests
+   unchanged. Run against the corpus it **loses 1,542 accepts** — 29% of the
+   published catalogue.
 
-**Where the token appears, not what it is.** Of 181 genuine winner-gains from
-the untruncated text, **163 were inside an explicit credits block** — a
-`Starring:` / `Directed by:` / `Cast:` cue. That keeps *F. W. Murnau* and
-*D. W. Griffith*, and rejects boilerplate and review prose, which carry no such
-cue. Prototype it against `src/resolve/compare.js` (`--variant full-description`)
-before touching `stage.js:101`: with a context rule in place the cap becomes a
-storage question rather than a correctness one.
+   The reasoning error is worth naming because it is easy to repeat. The
+   evidence for this rule was "163 of 181 genuine winner-gains sat inside a
+   credits block" — but that was measured on the *newly visible tail text*,
+   where GEM writes literal `Starring:` blocks. It says nothing about the
+   corroborations that already exist in the first 900 characters, which come
+   overwhelmingly from ordinary synopsis prose. Measured directly: of the 6,824
+   rows scoring corroboration today, **39% have no credits cue anywhere in the
+   description at all**, and among the 61% that do the matching name is often
+   nowhere near it. A statistic about one population was applied to another.
+
+### What the four failures have in common
+
+Corroboration today is *"a credited name appears somewhere in the text"*. That
+is why it is simultaneously useful and unsafe: it is the same rule that finds
+*Murnau* in a synopsis and awards 10 points for the word *love*. Every cheap fix
+tried so far either restricts the position (destroys 29% of accepts), the token
+count (breaks abbreviated first names), or the token identity (rarity does not
+separate genuine from spurious). **The signal is weak by construction, and the
+900-character cap is what bounds the damage.**
+
+**So the cap stays.** Lifting it is worth +72 accepts and cannot be made safe by
+a filter; making it safe needs a different kind of evidence — matching the full
+name as a phrase rather than tokens, or scoring the *number* of distinct credits
+that corroborate rather than the best single one, so a lone common word cannot
+reach 10. Both are real changes, not one-line ones, and both should be measured
+with `src/resolve/compare.js` before `stage.js:101` moves at all.
 
 ### Three defects in stage.js, true regardless of the cap
 
