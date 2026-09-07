@@ -166,7 +166,27 @@ place they would have been published by the back door by the first §4 change
 that worked. Only the `<Star> in <TITLE>` marker was used to pick them, never
 the `| Action |` one that produced the false positives above.
 
-Pipeline: eligible 9,491 -> 9,463, accept 5,403 -> 5,389, review 2,466 -> 2,452.
+**Closed out the same day at 33.** The residue was reported here as 52; that
+was the unreliable marker's error, not a count. Split on the channel's OWN
+convention — a `| CineMo` suffix or `| FULL MOVIE |` — the confidence-82 band
+is **47 genuine Filipino films and 5 foreign**, not 52 foreign. The five are
+*Daughter of the Wolf*, *The Expendables 3*, *Cabin Fever 3*, *Gallowwalkers*
+and *Ninja*.
+
+**And the `ytIds`-not-`imdbIds` rule is now proven rather than argued.**
+`tt7615052` and `tt1182921` are also on **Movie Central**, a `currentReleases`
+rights holder, exactly as `tt3779300` was on The Midnight Screening. Both
+regional entries serving *Daughter of the Wolf* today are backed by
+`RLwDbp7K_wI` — Movie Central's upload — while CineMo's copy was never the one
+serving. A global `imdbIds` exclusion would have deleted three licensed copies
+to remove uploads that were not being served. **Run the join before every
+exclusion.**
+
+Excluding the five changed no published film, because none of them was serving:
+four were in no tree at all and the fifth was served from the rights holder's
+copy. It removes them from the accept-eligible set, which is what item 5 needs.
+
+Pipeline: eligible 9,491 -> 9,458, accept 5,403 -> 5,389, review 2,466 -> 2,447.
 
 ## DONE — 111 accepts and 0, separated by one character (2026-09-07)
 
