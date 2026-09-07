@@ -10,5 +10,35 @@
     "Polish"
   ],
   "imdbIds": [],
-  "ytIds": []
+  "ytIds": [
+    "zJrD4voE6Kc",
+    "A7V7skQ0O2c",
+    "F3Eff7cgpwk",
+    "KE1thrxUB9A",
+    "chRsYt13-wA",
+    "h7LhI43D8uA",
+    "x735PcaytUc",
+    "0u5CJ38xgSA",
+    "7OlIssY_t2U",
+    "pO6Z4CBYMDw",
+    "6a7pb3LEuhg",
+    "6a8FD0iChyc",
+    "9YZ3z3bqSJY",
+    "RsHBlUVEA3k",
+    "4g5n2PisxRQ",
+    "8_sJdAT2lAs",
+    "GZJ93jboKZY",
+    "HSWlQz-STPU",
+    "IWwioB2FVVo",
+    "JvFg2eRY1Do",
+    "PNeSCxa9nf4",
+    "RQIY3wYQdyw",
+    "TZH1NehAIqM",
+    "_OmRtcGfZJ8",
+    "j9AZH_Cp-n8",
+    "qI0-IFouwvQ",
+    "rl1_WDrhNAQ",
+    "tDr_3f6Xa6o"
+  ],
+  "_ytIds_CineMo": "CineMo, 2026-09-07. A licensing call like the alefilmy one, but the channel is MIXED, so the group hammer would have destroyed a real catalogue: its Filipino films (A Mother's Story, Home Alone da Riber, Action Is Not Missing) are its own and stay. The 14 below are Western studio and direct-to-video action titles uploaded under a separate convention — '<Star> in <TITLE> | Action | Full Movie HD in English' rather than the channel's own '<Title> | FULL MOVIE | <cast> | CineMo'. None were ever served: checked against the live catalog.json, 0 of 14 are in it, but all 14 are accept in the warehouse and would have shipped on the next build-catalog dispatch. ytIds, not imdbIds, and that distinction is load-bearing: tt3779300 (War Pigs) is ALSO on The Midnight Screening, which is a currentReleases rights holder and accepts it legitimately. A global imdbIds exclusion would have removed that licensed copy too. ytIds is channel-specific by construction and cannot collaterally drop another channel's copy, now or later. The title pattern that found these is a search tool, not a verdict — it has false positives. It flagged tt7415582 'Riding in Tandem', a genuine Filipino CineMo film caught only because its own title contains ' in ', and it flagged two probable WRONG matches on generic one-word titles: tt0050762 'Nine Lives' (1957) on an upload whose listed cast belongs to a different film, and tt5162870 'Underworld' (2008). Those three are deliberately NOT excluded; the last two are resolver bugs to investigate, not licensing. Extended the same day to the review tier as well, 14 accepted plus 14 in review, 28 total. Review entries are never served, so they were not exposure today — but several sit at confidence 88-92, above the 85 floor and held only by the recent-year flag or a short margin, and the whole point of the conf-82 work in item 5 is to promote things out of exactly this queue. Leaving them would have meant a later +3 publishing them by the back door. Only the '<Star> in <TITLE>' marker was used to select these, never the '| Action |' one: the second marker is what produced the false positives named above."
 }

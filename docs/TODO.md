@@ -24,6 +24,56 @@ the unrestricted tree and all 20 regions. **The resolver change still needs a
 
 ---
 
+## DONE — the same licensing shape, on a channel that is half legitimate (2026-09-07)
+
+CineMo is the second channel found this way and it could not be handled like
+alefilmy, because dropping the group would have destroyed a real catalogue.
+Its Filipino films — *A Mother's Story*, *Home Alone da Riber*, *Action Is Not
+Missing* — are its own and stay. Alongside them it uploads Western studio and
+direct-to-video action titles under a visibly different convention:
+
+    its own          <Title> | FULL MOVIE | <cast> | CineMo
+    the foreign ones <Star> in <TITLE> | Action | Full Movie HD in English
+
+Of 17 accepted films, 14 were the foreign kind. None were ever served — checked
+against the live `catalog.json`, 0 of 14 are in it — but all 14 were `accept`
+in the warehouse and would have shipped on the next dispatch. Same as alefilmy:
+the exposure is a dispatch, not a merge.
+
+**Excluded by `ytIds`, not `imdbIds`, and that is the whole point of the
+entry.** `tt3779300` (*War Pigs*) is **also on The Midnight Screening**, which
+is a `currentReleases` rights holder and accepts it legitimately. A global
+`imdbIds` exclusion would have removed that licensed copy as collateral.
+`ytIds` names the individual upload, so it cannot reach another channel's copy
+now or after any future re-resolve. Check for this before ever reaching for
+`imdbIds`: the query is one join from `fct_resolution` back to `fct_upload`.
+
+**The title pattern that found these is a search tool, not a verdict.** Run
+over the channel it flagged 38 uploads, and three of them are wrong:
+
+- `tt7415582` *Riding in Tandem* — a genuine Filipino CineMo film, caught only
+  because its own title contains the word "in"
+- `tt0050762` *Nine Lives* (1957) and `tt5162870` *Underworld* (2008) — these
+  look like **wrong matches** rather than licensing problems: both are generic
+  one-word titles matched `exact-primary`, and the *Nine Lives* upload lists a
+  cast belonging to a different film entirely
+
+None of the three is excluded. The last two are a resolver bug worth chasing
+separately — a generic single-word title reaching `exact-primary` on the wrong
+film is exactly the failure the margin gate exists for, and it is not firing
+here.
+
+**Extended to the review tier the same day: 14 accepted plus 14 in review, 28
+in total.** Review entries are never served, so the second 14 were not exposure
+today. They were taken out anyway because several sit at confidence 88-92 —
+*above* the 85 floor, held only by the `recent-year` flag or a short margin —
+and item 5 is explicitly about promoting things out of that queue. Left in
+place they would have been published by the back door by the first §4 change
+that worked. Only the `<Star> in <TITLE>` marker was used to pick them, never
+the `| Action |` one that produced the false positives above.
+
+Pipeline: eligible 9,491 -> 9,463, accept 5,403 -> 5,389, review 2,466 -> 2,452.
+
 ## DONE — 111 accepts and 0, separated by one character (2026-09-07)
 
 Two Hong Kong channels carry the same catalogue and got opposite outcomes, and
@@ -992,6 +1042,25 @@ The original text below is kept because the reasoning still holds.
 1,713 rejections — 92%, not the ~98% quoted below, but the point is unchanged:
 most failures never reach the scorer, so tuning it teaches the wrong lesson.
 The bracket gate above is exactly that kind of fix and was worth +68 on its own.
+
+**The licensing blocker, measured after both exclusions.** The 82 band holds
+467 uploads, 234 of them from 2000 or later. Split by whether the channel is a
+declared rights holder:
+
+    rights holder (safe)      175   Movie Central 103, Shout! 57, Midnight 8, GEM 7
+    NO currentReleases         59   CineMo 52, and 7 across four other channels
+
+So the risk is not spread — it is **CineMo's residual 52**. The 28 uploads
+excluded above were selected on the reliable `<Star> in <TITLE>` marker; these
+52 use the channel's other convention, plain `<TITLE> | Action | Full Movie HD
+in English`, which cannot be used as a selector because it also matches genuine
+Filipino films and two probable wrong matches (see the CineMo entry).
+
+**That is the blocker, and it is a bounded one.** Resolve those 52 — by hand,
+or by finding a signal that separates them the way the star prefix does — and
+§4 tuning stops being a licensing question. Until then a blanket +3 publishes
+them, which is precisely the alefilmy mistake with a different channel's name
+on it.
 
 **What the labelled set says.** Of its 24 non-accepts, 13 are RIGHT-ID sitting
 at confidence 82 with the identical shape `50 + 12 + 20 + 0` — exact primary
