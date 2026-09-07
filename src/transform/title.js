@@ -109,6 +109,12 @@ export function stripPrintTag(t) {
 // punctuation that ends a clickbait hook.
 const BOUNDARY = /[|✦•●★◆♦♥♣※▶►—–!?:;~]+|[\u{1F000}-\u{1FAFF}]|[\u{2600}-\u{27BF}]/gu;
 
+// Which script a segment is written in. Deliberately without /g: MARKETING and
+// GENRE carry it and are used only with .replace(), because a g-flagged .test()
+// carries lastIndex between calls and silently alternates.
+const CJK_SCRIPT   = /[\p{sc=Han}\p{sc=Hiragana}\p{sc=Katakana}\p{sc=Hangul}]/u;
+const LATIN_SCRIPT = /\p{sc=Latin}/u;
+
 /**
  * Pull the film title out using the release year as an anchor.
  *
@@ -237,8 +243,9 @@ function castIndices(segments) {
   return out;
 }
 
+const body = s => s.replace(MARKETING, ' ').replace(/\s{2,}/g, ' ').trim();
+
 function pickSegment(segments) {
-  const body = s => s.replace(MARKETING, ' ').replace(/\s{2,}/g, ' ').trim();
   const cast = castIndices(segments);
   // A body with no letters is a bare year or a rating, never a title.
   const usable = (s, i) => /\p{L}/u.test(body(s)) && !looksLikeHook(s)
@@ -306,6 +313,53 @@ function pickSegment(segments) {
 }
 
 /**
+ * The title in the other script, when a channel writes both.
+ *
+ * 經典華語老電影 files every upload as
+ *   【粵語】九龍冰室 (2001) 1080P | Goodbye Mr. Cool (鄭伊健/…) | <hook> | #<channel>
+ * so pickSegment takes the Han segment and the English title goes out with
+ * segment 2. The Han title exists in IMDb only as an `aka` row, worth 44 to §4,
+ * and 44 + 20 year + 20 runtime + 0 corroboration is 84 — one point under the
+ * floor, on all 74 uploads that matched at all. The channel scored zero
+ * accepts. Cinema Mei Ah carries the same catalogue and takes 111, purely
+ * because it separates with a fullwidth ｜ that is not in BOUNDARY, so its
+ * string survives whole and the resolver's bracket rule finds the English title
+ * inside it.
+ *
+ * Returning this segment INSTEAD of the pick was measured and is wrong: it
+ * throws the aka anchor away, and an English title that does not resolve
+ * exactly then drops to the fuzzy tier onto a sibling film —
+ * "古惑仔Ⅲ之隻手遮天" reached *Young and Dangerous 2* at confidence 87.4 that
+ * way, which is the failure test/fixtures/labelled.json exists to pin.
+ *
+ * So it is returned as an ADDITION and cleanTitle writes both in Mei Ah's own
+ * shape, "<Han> (<Latin>)". generateCandidates' derive() then offers both keys
+ * and keeps the stronger source per tconst, which is the aka's 44 promoted to a
+ * primary's 50. Nothing is given up: the Han key is still there when the Latin
+ * one finds nothing. Measured over the channel: accept 0 -> 46, lost 0.
+ */
+function altScriptSegment(segments, picked) {
+  // body(), not the raw segment: MARKETING already covers 1080p/720p/hd/4k, so
+  // "九龍冰室 (2001) 1080P" correctly reads as CJK-only rather than as mixed.
+  if (!CJK_SCRIPT.test(picked) || LATIN_SCRIPT.test(body(picked))) return null;
+  const latin = segments.filter(s => s !== picked && LATIN_SCRIPT.test(body(s)));
+  if (!latin.length) return null;
+
+  // Reuse the hook, cast-run and marketing vetoes rather than take the first
+  // Latin segment on faith. This channel offers exactly one today, so the
+  // branch is a formality — it is here for the next channel that offers two.
+  let alt = latin.length > 1 ? pickSegment(latin) : latin[0];
+
+  // The cast hangs off the English title in brackets. Left in, it goes into the
+  // normalized key and puts derive()'s "text before the first bracket" in the
+  // wrong place. Only CJK-only brackets go: a Latin one may be part of the title.
+  alt = alt.replace(/[（([]\s*([^)）\]]{1,60})\s*[)）\]]/g,
+                    (whole, inner) => CJK_SCRIPT.test(inner) && !LATIN_SCRIPT.test(inner) ? ' ' : whole);
+  alt = stripPrintTag(alt.replace(/^[^\p{L}\p{N}]+/u, '').replace(/\s{2,}/g, ' ').trim());
+  return alt && alt.length >= 3 && LATIN_SCRIPT.test(alt) ? alt : null;
+}
+
+/**
  * Strip channel marketing from titles so the resolver has something to match.
  * "FULL MOVIE | The Sea Wolf (1941) | Free Drama 4K" -> "The Sea Wolf (1941)"
  * "🍕Cavalry Command (1963) Full HD Movie | John Agar" -> "Cavalry Command (1963)"
@@ -337,6 +391,7 @@ export function cleanTitle(raw, channel = '') {
 
   const segments = input.split('|').map(s => s.trim()).filter(Boolean);
   let t = segments.length > 1 ? pickSegment(segments) : input;
+  const alt = segments.length > 1 ? altScriptSegment(segments, t) : null;
 
   // The year anchor beats every other heuristic when it is present.
   const anchored = titleBeforeYear(t);
@@ -374,7 +429,12 @@ export function cleanTitle(raw, channel = '') {
   t = t.replace(/\s{2,}/g, ' ').trim();
   t = t.replace(/^[-–—:,\s]+|[-–—:,\s]+$/g, '');
   t = stripPrintTag(t) || t;
-  return t || input.trim() || raw.trim();
+  t = t || input.trim() || raw.trim();
+  // Appended last on purpose: `t` has been through titleBeforeYear, so its own
+  // "(2001)" is already gone and this is the only bracket left — which is where
+  // derive() looks. The alt was cleaned inside the helper so it never meets the
+  // dash-splitting above, which would mangle a "… - Part III" shaped alt.
+  return alt && alt !== t ? `${t} (${alt})` : t;
 }
 
 export function extractYear(raw) {

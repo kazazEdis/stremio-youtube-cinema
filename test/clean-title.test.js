@@ -304,3 +304,38 @@ test('a print label is never allowed to eat the title', () => {
   assert.equal(cleanTitle('New Orleans Uncensored | English Full Movie | Film-Noir Crime Drama', 'X'),
                'New Orleans Uncensored');
 });
+
+// #region ------------------------------------------------ alternate script
+test('a CJK title keeps its aka anchor and gains the English one', () => {
+  // 經典華語老電影 files both titles and pickSegment took only the Han one, so
+  // every match came off an IMDb aka row at 44. 44 + 20 + 20 + 0 is 84 against
+  // a floor of 85: the channel scored zero accepts out of 99 uploads.
+  assert.equal(
+    cleanTitle('【粵語】九龍冰室 (2001) 1080P | Goodbye Mr. Cool (鄭伊健/莫文蔚/李彩樺/黃品源) | 隱匿江湖的老大遭遇暗算 |#經典華語老電影'),
+    '九龍冰室 (Goodbye Mr. Cool)');
+
+  // Appended, never substituted. Returning the English segment INSTEAD was
+  // measured: it drops the Han anchor, and a title that then misses exactly
+  // falls to the fuzzy tier onto a sibling film — 古惑仔Ⅲ之隻手遮天 reached
+  // Young and Dangerous *2* at confidence 87.4 that way.
+  assert.ok(cleanTitle('【粵語】最佳損友2 (1988) | The Crazy Companies 2 (劉德華/關之琳/邱淑貞) | 負債 |#經典華語老電影')
+    .startsWith('最佳損友2'));
+});
+
+test('the fullwidth pipe is still not a separator', () => {
+  // Cinema Mei Ah's 111 accepts are exact-derived hits that exist only because
+  // its string survives whole and the bracket rule finds the English title
+  // inside it. U+FF5C is deliberately absent from BOUNDARY; splitting on it, by
+  // any route, is what this pins.
+  const raw = '周潤發《賭神》開創賭片×劉德華最強師徒組合盛世｜賭神 (God Of Gamblers)｜張敏、王祖賢、向華強｜粵語中字｜美亞影院';
+  assert.ok(cleanTitle(raw).includes('(God Of Gamblers)'));
+  assert.ok(cleanTitle(raw).includes('｜'), 'the fullwidth pipe must survive');
+});
+
+test('a Latin-only title never reaches the alternate-script branch', () => {
+  // The CJK test guards 9,207 uploads on the English-language channels: with no
+  // Han/Kana/Hangul in the pick, altScriptSegment returns on its first line.
+  assert.equal(cleanTitle('Hunt Club | Full Movie | Action Survival | Casper Van Dien', 'X'), 'Hunt Club');
+  assert.equal(cleanTitle('And Then There Were None (1945) AGATHA CHRISTIE', 'X'), 'And Then There Were None');
+});
+// #endregion

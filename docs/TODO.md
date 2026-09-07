@@ -4,13 +4,17 @@ Ordered by value. Rationale is kept with each item because most of these exist
 in response to something that actually broke, and that context is the reason to
 do them in this order rather than a more obvious one.
 
-Status as of 2026-09-07, after the three entries below: 9,491 eligible uploads
-(Croatia, down 115 with alefilmy dropped), 2,345 films and 349 episodes across
-20 shows in the unrestricted tree, 2,967 in HR, 116 tests passing. The
-warehouse is fully re-resolved at resolver version 13 against the 2026-09-07
-IMDb dataset and stands at accept 5,357, review 2,492, reject 1,642 — so the
-gain the previous status line projected is banked, and the next dispatch will
-not move those numbers again on its own.
+Status as of 2026-09-07, after the entries below: 9,491 eligible uploads
+(Croatia, down 115 with alefilmy dropped), **2,372 films** and 349 episodes
+across 20 shows in the unrestricted tree, 2,994 in HR, **119 tests** passing.
+The warehouse is fully re-resolved at resolver version 13 against the
+2026-09-07 IMDb dataset and stands at **accept 5,403, review 2,466, reject
+1,622** — so the gain the previous status line projected is banked, and the
+next dispatch will not move those numbers again on its own.
+
+The catalogue now carries **nine** groups and eleven catalogues rather than
+eight and ten: Archive/China published its first film this session, having
+scored zero out of 99 uploads until the separator entry below.
 
 `docs/` has been republished from that warehouse and conformance is clean on
 the unrestricted tree and all 20 regions. **The resolver change still needs a
@@ -19,6 +23,71 @@ the unrestricted tree and all 20 regions. **The resolver change still needs a
 `src/transform/title.js` is not on that list.
 
 ---
+
+## DONE — 111 accepts and 0, separated by one character (2026-09-07)
+
+Two Hong Kong channels carry the same catalogue and got opposite outcomes, and
+the cause is not licensing, quality or the resolver. It is which pipe they type.
+
+| | separator | what `cleanTitle` keeps | accepts |
+|---|---|---|---|
+| Cinema Mei Ah | fullwidth `｜` U+FF5C — **not** in `BOUNDARY` | the whole string, English title intact inside it | **111** |
+| 經典華語老電影 | ASCII `\|` — **is** a boundary | the leading Han segment only | **0** |
+
+Mei Ah's 111 are `exact-derived`: the string survives whole, so §3's bracket
+rule finds `(God Of Gamblers)` — an IMDb *primary* title, 50 points.
+經典華語老電影 gets split, the English segment in position 2 is discarded, and
+what is left matches only a Han `aka` row at 44. The ceiling is then
+arithmetic: `44 + 20 year + 20 runtime + 0 corroboration = 84`, against a floor
+of 85, on all 74 uploads that matched at all. Corroboration is 0 on every one
+because the descriptions list cast in Han characters while the index's
+`credits` holds romanized names. **Zero accepts out of 99, one point short.**
+
+**The fix appends rather than replaces.** `clean_title` becomes
+`九龍冰室 (Goodbye Mr. Cool)` — Mei Ah's own layout, reproduced deliberately.
+`derive()` then offers both keys and the resolver already keeps the stronger
+source per tconst, so the aka's 44 is promoted to a primary's 50 for free. No
+resolver change at all.
+
+Substituting instead of appending was measured and is wrong. It throws the aka
+anchor away, and an English title that then misses exactly drops to the fuzzy
+tier onto a sibling film: `古惑仔Ⅲ之隻手遮天` reached *Young and Dangerous 2* at
+confidence 87.4 that way. Same accept count, one wrong id — the trap CLAUDE.md
+describes, and the reason
+[`test/fixtures/labelled.json`](../test/fixtures/labelled.json) pins both
+roman-numeral sequels.
+
+Measured at four levels, because **the obvious harness rejects this change**:
+counting exact `title_norm` hits on `clean_title` alone reports `gained 0, lost
+70`, since `九龍冰室 goodbye mr cool` is in no index row. The entire gain lives
+in `derive()`, which a clean-title harness does not model. Levels that do:
+
+    L1  clean_title identity   93 of 9,491 changed, all one channel
+                               Mei Ah 0/185, other channels 0/9,207
+    L2  candidate strength     aka->primary 56, none->primary 18, none->aka 2
+                               0 uploads lost all exact candidates
+    L3  resolveOne             accept 0 -> 46   GAINED 46  LOST 0
+                               conf max 84 -> 90, mean 78.8 -> 83.1
+    L4  labelled set           17/41 -> 20/41 accepted, wrong 0
+
+Through the pipeline: **accept 5,357 -> 5,403**, review 2,492 -> 2,466, reject
+1,642 -> 1,622. Exactly 93 rows re-resolved.
+
+It also fixes a wrong id that was already there: `最佳損友2` resolved through
+the fuzzy tier to tt0096512, the *base* film. It now resolves `exact-derived`
+to tt0098718, the sequel. Still in review at 84 — but right rather than wrong.
+
+**The cost, recorded rather than mitigated.** Three uploads lose a promotable
+right id from the review queue to `too-many-candidates`, because their English
+titles are generic: *Lost and Found* (53 candidates) twice and *True Love* (33)
+once. No accept was lost and nothing crossed into accept wrongly; `MAX_CANDIDATES`
+is doing the job it was written for. The only way to avoid it inside
+`title.js` is not to append, which costs all 46.
+
+Guard rail for whoever tunes this next: do **not** relax the
+`!LATIN_SCRIPT.test(body(picked))` predicate to "no Latin *word*". That variant
+was measured, scores the same accept count, and produces the Young-and-Dangerous-2
+wrong id. `body()` is what makes `1080P` not count as Latin, via `MARKETING`.
 
 ## DONE — the third systematic gate: one unhandled bracket (2026-09-07)
 
