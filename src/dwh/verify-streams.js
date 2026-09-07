@@ -85,6 +85,9 @@ export async function publishedStreams(outDir) {
   return out;
 }
 
+/** The region that is no region -- publish.js exports the same idea. */
+export const FREE = null;
+
 /**
  * Mirrors playableInRegion in publish.js, against live API data rather than
  * the copy landed whenever this video was last hydrated. The staleness between
@@ -93,9 +96,28 @@ export async function publishedStreams(outDir) {
 export function regionVerdict(restriction, region) {
   const blocked = restriction?.blocked ?? [];
   const allowed = restriction?.allowed ?? [];
+  // FREE is not a region, it is the absence of one, and publish.js says so in
+  // as many words: the unrestricted build carries only uploads with no
+  // restriction at all, so that a viewer in Bogota and one in Zagreb can
+  // install the same URL. ANY list disqualifies, blocked included -- passing
+  // null through the branches below would have returned 'ok' for a video with
+  // a blocked list and an empty allowed list, which is the one case that most
+  // needs catching.
+  if (region === FREE) {
+    return (blocked.length || allowed.length) ? 'restricted' : 'ok';
+  }
   if (blocked.includes(region)) return 'blocked';
   if (allowed.length && !allowed.includes(region)) return 'not-allowed';
   return 'ok';
+}
+
+/**
+ * The region a published tree is for. `docs/region=ca` is CA; `docs` itself is
+ * FREE, because the unrestricted tree is not a region.
+ */
+export function rootRegion(root) {
+  const m = /(?:^|[\\/])region=([A-Za-z]{2})$/.exec(root);
+  return m ? m[1].toUpperCase() : FREE;
 }
 
 /** Classify one videos.list item, or its absence. */
@@ -163,14 +185,20 @@ async function main() {
     throw err;
   }
 
+  // Per published ENTRY, judged in the tree it was published to -- not once per
+  // video against one global region. A video allowed in CA,US is correct in
+  // region=us and wrong in region=hr, and the same row cannot be both. Judging
+  // all 21 trees against `--region HR` reported 3,662 problems of which nearly
+  // every one was the checker's own error: GKs2Dsdm-GU and its siblings are
+  // allowed in CA and US, listed in region=ca and region=us, and were called
+  // broken because HR is not on their list. A tool that cries wolf 3,662 times
+  // cannot do the job this one exists for.
   const byVerdict = new Map();
   const problems = [];
-  for (const ytId of todo) {
-    const verdict = classify(seen.get(ytId), args.region);
+  for (const s of streams) {
+    const verdict = classify(seen.get(s.ytId), rootRegion(s.root));
     byVerdict.set(verdict, (byVerdict.get(verdict) ?? 0) + 1);
-    if (verdict !== 'ok') {
-      for (const s of byYtId.get(ytId)) problems.push({ ...s, verdict });
-    }
+    if (verdict !== 'ok') problems.push({ ...s, verdict });
   }
 
   const health = {
@@ -186,8 +214,8 @@ async function main() {
   await fsp.writeFile(file, JSON.stringify(health, null, 2));
 
   const ok = byVerdict.get('ok') ?? 0;
-  console.log(`[verify]   ${ok.toLocaleString()} of ${todo.length.toLocaleString()} playable ` +
-              `(${((100 * ok) / todo.length).toFixed(1)}%) -> ${file}`);
+  console.log(`[verify]   ${ok.toLocaleString()} of ${streams.length.toLocaleString()} entries playable ` +
+              `(${((100 * ok) / streams.length).toFixed(1)}%) -> ${file}`);
   for (const [verdict, n] of Object.entries(health.verdicts)) {
     if (verdict !== 'ok') console.log(`   ${verdict.padEnd(22)} ${n}`);
   }

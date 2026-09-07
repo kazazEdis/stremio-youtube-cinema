@@ -24,6 +24,69 @@ the unrestricted tree and all 20 regions. **The resolver change still needs a
 
 ---
 
+## DONE — the checker could not see the trees it was checking (2026-09-07)
+
+`verify-streams` exists so that "if those two ever disagree this is the tool
+that should notice". It was noticing 3,662 times a run, and almost none of it
+was real. From the deployed `docs/health.json`:
+
+    before   entries 87,470   ok 4,179   region:not-allowed 1,148
+                              region:blocked 42   gone 1     problems 3,662
+    after    entries 87,470   ok 87,449                      problems 21
+
+The cause is one argument. The verdict was computed **once per video against
+`--region HR`** and then attached to that video's entries in every tree, even
+though the walk deliberately covers `docs/region=*` because those trees exist
+*because* of a region. `GKs2Dsdm-GU` and 528 siblings are allowed in
+`AS,CA,FM,GU,MH,MP,PR,PW,UM,US,VI`; their `region=ca` and `region=us` listings
+are correct, and they were reported broken because HR is not on the list.
+`publish.js` was per-region correct all along (`playableIn(region, …)`) and so
+was `conformance.js`; this was the only one of the three that was not.
+
+Now each published **entry** is judged in the tree it was published to.
+
+**The subtlety, which the tests now pin.** The bare `docs` root is not a region.
+`publish.js` defines `FREE = null` and means it literally: the unrestricted
+build carries only uploads with *no restriction at all*, so a viewer anywhere
+can install one URL. Passing `null` through the ordinary branches returned
+`'ok'` for a video with a blocked list and no allowed list — the one case that
+most needs catching — so `regionVerdict` has an explicit FREE branch mirroring
+`playableIn`, returning a new `restricted` verdict.
+
+**What survived is the whole point.** The 21 remaining problems are a single
+dead video published across all 21 trees (`qPouvF2_w0Y` -> `tt0107806`). It was
+in the old report too, as `gone: 1` among 3,662 — present, and invisible. A tool
+that cries wolf 3,662 times cannot do the job this one exists for.
+
+Counts are per entry now, not per video, which is why one dead video reads as
+21: that is the number of published places a viewer can click it.
+
+## DONE — Cult Cinema Classics investigated and cleared (2026-09-07)
+
+Flagged by a region-locked audit and **not** excluded. It is the only channel
+that meets all three criteria `_groups_Polish` used on alefilmy — no
+`currentReleases` flag, modern matches, an archive channel whose unrestricted
+median year is 1957 — with 42 uploads in one Italian-territory band
+(`CH,HR,IT,SI,SM,VA`), 34 accepted, 35 films live in `region=it` and
+`region=hr` and absent from the unrestricted catalogue.
+
+The evidence went the other way once it was looked at:
+
+- **18 distinct territorial bands**, not one: Italian, French-with-overseas
+  (WF, YT, PM, NC…), LatAm, US-plus-territories, worldwide-minus-a-few. Nobody
+  uploading unlicensed content builds eighteen precise allow-lists.
+- **8 of the 34 are also carried by declared rights holders** — six by Shout!
+  Studios, one by GEM, both `currentReleases`. Multiple licensees holding one
+  film in different territories is what territorial licensing looks like.
+- **Spread over 18 months** (2025-03 to 2026-08), not a dump.
+- Shout! Factory distributes exactly this cult/genre catalogue.
+
+A precise geo-restriction is evidence *for* a real deal, not against one:
+restrictions are set by the rights holder or Content ID owner. alefilmy was
+different in kind — Polish lektor dubs, where the dub itself is unauthorised,
+with no territorial logic at all. **Recorded here so the next audit does not
+re-raise it.**
+
 ## DONE — the same licensing shape, on a channel that is half legitimate (2026-09-07)
 
 CineMo is the second channel found this way and it could not be handled like
@@ -58,10 +121,41 @@ over the channel it flagged 38 uploads, and three of them are wrong:
   one-word titles matched `exact-primary`, and the *Nine Lives* upload lists a
   cast belonging to a different film entirely
 
-None of the three is excluded. The last two are a resolver bug worth chasing
-separately — a generic single-word title reaching `exact-primary` on the wrong
-film is exactly the failure the margin gate exists for, and it is not firing
-here.
+None of the three is excluded. **The sentence that stood here — that the margin
+gate "is not firing" on the last two — was wrong, and the warehouse says so.**
+Both are `status=1`, not accepted, with margins of **6 and 5** against a floor
+of 12: the gate fired, and so did the score floor. They are wrong ids sitting
+near the top of the *review* queue, which still matters because item 5 is about
+promoting things out of that queue.
+
+What the diagnosis actually found is worth more than the guess it replaces:
+
+- **`Nine Lives` lost to the aka penalty and nothing else.** `tt0349889`
+  *Unstoppable* carries "Nine Lives" as an aka, runs **96 min against the
+  upload's 96**, and IMDb credits the very actor the upload's own title names.
+  It scored 6 under `tt0050762` — and 6 is exactly
+  `scoreTitle('primary') - scoreTitle('aka')`. Year absent for both, runtime
+  tied, corroboration nil. The only discriminator left was **which IMDb table
+  the title happens to live in**, which says nothing about which film it is.
+- **The deciding signal was present and thrown away.** §4 defines corroboration
+  as a name found in the *description*, and `scoreCandidate` follows it
+  exactly — but this channel puts the cast in the **title** and leaves the
+  description as boilerplate. Had the raw title been in the haystack the right
+  film would have gained 6 and tied. That is a spec question, not a code bug.
+- **`margin = 100` does not mean "no rival".** It means one *survivor*: when
+  the runtime hard-reject kills every competitor, `scored.length === 1` and the
+  margin is 100 by definition. **136 accepted rows carry margin 100 while more
+  than one same-titled candidate was generated**, 67 of them one- or two-word
+  titles. `Family Reunion` reports margin 100 against 12 same-title rivals.
+- **`candidate_count` records survivors, not rivals** — it is written after the
+  runtime reject but the 25-cap is tested before it, so the stored number is
+  not the one the cap judged, and all 136 of those rows record `1`.
+
+The cap itself is faithful to §3: it *routes* to `too-many-candidates` rather
+than truncating and scoring the remainder (186 rows took that path). What §3
+did not anticipate is that below the cap a wide field is treated exactly like a
+narrow one, and the margin — a runtime differential — tends to *widen* as the
+field grows. Three accepted films sit at exactly 25.
 
 **Extended to the review tier the same day: 14 accepted plus 14 in review, 28
 in total.** Review entries are never served, so the second 14 were not exposure
