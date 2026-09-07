@@ -24,6 +24,86 @@ the unrestricted tree and all 20 regions. **The resolver change still needs a
 
 ---
 
+## 6. Corroboration fires on one token, and the 900-char cap is what hides it
+
+**Not done, and the three obvious fixes are already dead.** Recorded in full
+because each was ruled out by measurement and re-deriving them is expensive.
+
+`src/dwh/stage.js:101` truncates every description to 900 characters. The
+constant arrived in the first commit with no comment and no mention in any
+spec — the one number in the pipeline nobody defended. It is a hard cliff for
+the long-description channels: 2,046 of 2,428 Movie Central blurbs, 1,010 of
+1,018 Shout!, 787 of 790 Grjngo sit exactly at it.
+
+Lifting it looks excellent and is not. Measured over all 9,458 eligible uploads
+with the real resolver: **+72 accepts, 67 of them new films**, against 4 lost
+and 11 changed ids of which 5 are corrections. The gains are concentrated where
+the tail is a clean credits block — GEM writes literally `Starring: … /
+Directed by: …` — and the losses where it is prose about other films.
+
+**Why it must not ship as-is.** `scoreCorroboration`
+(`src/resolve/index.js:164-178`) awards the full 10 points for **one** token of
+≥4 characters. So the ordinary English word *love* is a token of director
+`nick love`, and an IMDb review pasted into a description cost the correct 1943
+*The Outlaw* its accept. Counted against the index: `brown` is a token of 6,281
+credits (1,155 directors), `young` 4,011, `love` 1,833. Worse, it scales —
+Shout!'s fixed corporate paragraph sits past character 900 on ~3,000 uploads and
+contains *Hong Kong*, *more*, *fast*; lifting the cap would corroborate roughly
+1,600 distinct IMDb titles on **every one of them**, several hundred at director
+grade. That is one paragraph applied 3,000 times, not a scatter of errors.
+
+**The 900 cap is therefore an accidental safety mechanism.** It is the only
+thing currently containing a scorer that treats a common word as evidence.
+
+### Three cures, all measured, all dead
+
+1. **Lift the cap wholesale.** Trades 67 known films for an unbounded surface
+   that grows every time a channel lengthens a description.
+2. **Require two tokens of the credited name.** Kills the boilerplate class
+   cleanly — but breaks abbreviated first names, which are normal:
+   `friedrich murnau` against "Directed by F. W. Murnau" matches only `murnau`.
+   `test/scoring.test.js` caught this within a minute of the change. Do not
+   weaken that test to make the rule pass.
+3. **Weight by token rarity.** Does not discriminate. `griffith` (721 credits,
+   genuine) is commoner than `kong` (433, spurious) and `baldi` (84, spurious)
+   is rarer than both, so no threshold separates them.
+
+**Capitalisation is a partial fourth.** `normalize()` lowercases, discarding the
+signal. Measured over the real descriptions, *love* appears 260 capitalised
+against 2,334 lowercase, *young* 326/2,361, *more* 244/5,605 — so requiring a
+capitalised occurrence kills the ordinary-word class outright. It does **not**
+kill *Hong Kong* (1,537 capitalised, it is a proper noun) or a review naming a
+real person, so it is worth having and is not sufficient alone.
+
+### The direction that has evidence behind it
+
+**Where the token appears, not what it is.** Of 181 genuine winner-gains from
+the untruncated text, **163 were inside an explicit credits block** — a
+`Starring:` / `Directed by:` / `Cast:` cue. That keeps *F. W. Murnau* and
+*D. W. Griffith*, and rejects boilerplate and review prose, which carry no such
+cue. Prototype it against `src/resolve/compare.js` (`--variant full-description`)
+before touching `stage.js:101`: with a context rule in place the cap becomes a
+storage question rather than a correctness one.
+
+### Three defects in stage.js, true regardless of the cap
+
+- `.slice(0, 900)` **splits surrogate pairs** — 20 blurbs end in half an emoji,
+  stored as U+FFFD, so `stg_blurb` is not byte-reproducible from landing, which
+  is the property the layer's own header comment claims for it.
+- `:155 if (r.description)` **is a one-way write.** There is no delete, so a
+  channel that clears a description leaves the old text scoring corroboration
+  for ever.
+- **17 `stg_upload` rows have no `landed_video` row at all**, two of them
+  currently accepted. The staging layer is documented as disposable and is not:
+  the tables are only ever `INSERT OR REPLACE`d, never truncated.
+
+### A measurement trap worth knowing
+
+`SELECT COUNT(*) ... WHERE LENGTH(text)=900` undercounts the rows at the cap —
+SQLite's `LENGTH` counts characters while `String.slice` counts UTF-16 units,
+and Movie Central puts eight emoji in every description. The true eligible
+figure is 5,997, not the 4,388 that query returns.
+
 ## DONE — the checker could not see the trees it was checking (2026-09-07)
 
 `verify-streams` exists so that "if those two ever disagree this is the tool
