@@ -88,9 +88,16 @@ what item 3 assumed. `low-score` by channel:
 The 89 are a single uniform shape — exact-aka title, PAL-band runtime, a cast
 hit, `44+12+17+10` — and every sampled one is a *correct* match. That is the
 problem. They are modern commercial features with Polish lektor voiceover, and
-14 of the 15 that already cleared the floor and were being **published** are
-from 2000 or later, spanning Newmarket, Warner, StudioCanal, DreamWorks, Focus
-and Screen Gems. No single licensor holds that spread.
+14 of the 15 that cleared the floor are from 2000 or later, spanning Newmarket,
+Warner, StudioCanal, DreamWorks, Focus and Screen Gems. No single licensor holds
+that spread.
+
+**None of them were ever served, and the first draft of this entry said
+otherwise.** Checked against the live `catalog.json`: 0 of the 15 are in it.
+They were `accept` in the warehouse but the deployed tree predates the v13
+re-resolve, so they were among the gains the **next dispatch** would have
+introduced. The exclusion stopped that. The distinction matters for how this
+reads later — the exposure is a `build-catalog` dispatch, not a merge.
 
 `channels.json` already states the test this fails: `currentReleases` marks the
 four channels that are the rights holder, and on an unmarked channel a modern
@@ -850,8 +857,20 @@ attacking the shape inside it: the 82-point yearless-neutral matches are
 genuinely correct *and* promoting them on two signals would also have published
 the 89 alefilmy uploads. The remaining `no-candidates` on the CJK channels are
 the cleaner target — the bracket fix took 68 of the 92 on 經典華語老電影 and the
-rest are mostly fullwidth roman numerals (`Ⅲ` U+2162 against ASCII `III`), which
-`normalize()` does not fold. That is a bounded, measurable next gate.
+rest are **not** one gate. Corpus-wide only **3** clean titles carry a fullwidth
+roman numeral (U+2160-217F) and **zero** carry a fullwidth digit, so the earlier
+note here calling that "a bounded, measurable next gate" was wrong — it is a
+two-film gate. Looked up individually, the 25 break down as:
+
+    14  IMDb carries no Han aka at all, or Simplified only where the upload
+        is Traditional  — a data gap, not fixable in the cleaner
+     6  near-miss aka variants (a dropped subtitle, one homophone character)
+     2  fullwidth roman numerals
+     1  a leading `MULTI SUB ` the cleaner does not strip
+     2  IMDb's Chinese aka is a genuinely different Chinese title
+
+The real gate on that channel is not in this bucket at all — see the separator
+entry above.
 
 - promote confirmed pairs into `config/overrides.json` (confidence 100, PR-able)
 - the `src/resolve/probe.js` tool exists for exactly this: it prints the full
