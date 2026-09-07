@@ -132,7 +132,7 @@ const title = (tconst, primaryTitle, startYear, runtimeMinutes, extra = {}) => (
 const upload = (over = {}) => ({
   ytId: 'vid1', name: 'nosferatu', rawTitle: 'Nosferatu FULL MOVIE',
   year: null, runtimeMin: 94, description: '', channel: 'PizzaFlix',
-  group: 'PublicDomain', ...over,
+  channelRef: '@PizzaFlix', group: 'PublicDomain', ...over,
 });
 
 test('golden: three real collisions, separated on runtime alone', () => {
@@ -264,6 +264,43 @@ test('hard flags override a high score', () => {
 
   const adult = stubIndex([title('tt8888888', 'nosferatu', 1922, 94, { isAdult: 1 })]);
   assert.equal(resolveOne(upload(), adult, { now }).reason, 'adult');
+});
+
+test('recent-year is about the channel, not the year alone', () => {
+  // §5 justifies the flag as "a recent theatrical title on a FREE channel".
+  // On the four channels that are the rights holder the premise is false --
+  // their catalogue IS current releases -- and the flag was holding back 333
+  // matches whose runtime agreed with IMDb to a median of 0.00%.
+  const now = new Date('2026-09-05T00:00:00Z');
+  const recent = stubIndex([title('tt9999999', 'nosferatu', 2024, 94)]);
+  const rights = new Set(['@ShoutStudios']);
+
+  const shout = resolveOne(
+    upload({ year: 2024, channel: 'Shout! Studios', channelRef: '@ShoutStudios' }),
+    recent, { now, currentReleaseChannels: rights });
+  assert.equal(shout.status, 'accept');
+  assert.equal(shout.reason, undefined);
+
+  // Same film, same year, an archive channel: still flagged. This is the half
+  // that caught `Spider Island (1962)` reaching a 2026 title of that name --
+  // on a channel whose median film is from 1943 the recency IS the evidence.
+  const pizza = resolveOne(upload({ year: 2024 }), recent,
+                           { now, currentReleaseChannels: rights });
+  assert.equal(pizza.status, 'review');
+  assert.equal(pizza.reason, 'recent-year');
+
+  // The exemption is scoped to recent-year. An adult title on an exempt
+  // channel is still flagged, or the Set would be a blanket bypass of §5.
+  const adult = stubIndex([title('tt8888888', 'nosferatu', 2024, 94, { isAdult: 1 })]);
+  assert.equal(resolveOne(
+    upload({ year: 2024, channelRef: '@ShoutStudios' }),
+    adult, { now, currentReleaseChannels: rights }).reason, 'adult');
+
+  // And it is opt-in: a caller that knows nothing about config/channels.json
+  // -- probe.js, say -- gets the strict behaviour.
+  assert.equal(resolveOne(
+    upload({ year: 2024, channelRef: '@ShoutStudios' }), recent, { now }).reason,
+    'recent-year');
 });
 
 test('overrides bypass scoring entirely', () => {

@@ -32,7 +32,7 @@ import { buildIndex, resolveOne } from '../resolve/index.js';
  * Bump when resolve/index.js changes scoring semantics. Stored on every
  * resolution so a stale one is recomputed rather than silently trusted.
  */
-export const RESOLVER_VERSION = 12;  // 12: the yearless lift reaches the 17 runtime band
+export const RESOLVER_VERSION = 13;  // 13: recent-year exempts the rights-holder channels
                                      // 10: episodes earn the yearless lift from type agreement
                                      // 9: dash segments and a shouted "<cast> in <TITLE>" as derived keys
                                      // 8: derived keys only when the title as written finds nothing
@@ -161,6 +161,10 @@ export function toResolverInput(u, description) {
     runtimeMin: u.runtime_min,
     description: description ?? '',
     channel: u.channel_name,
+    // The ref, not the name: config/channels.json keys on it and it survives
+    // the renames dim_channel exists to track. hardFlag's recent-year
+    // exemption is looked up with it.
+    channelRef: u.channel_ref,
     group: u.grp,
     poster: thumbUrl(u.ytId, u.thumb_tier),
   };
@@ -341,7 +345,10 @@ async function resolvePending(wh, index, ctx, args) {
       const video = toResolverInput(u, u.description);
       const episode = u.season != null && u.episode != null
         ? { season: u.season, episode: u.episode } : null;
-      const res = resolveOne(video, index, { overrides: ctx.overrides, episode });
+      const res = resolveOne(video, index, {
+        overrides: ctx.overrides, episode,
+        currentReleaseChannels: ctx.currentReleaseChannels,
+      });
       res.__hash = u.input_hash;
       ins.run(...resolutionRow(res, ctx));
       delCand.run(u.ytId);
@@ -406,6 +413,12 @@ async function main() {
       overrides: Object.fromEntries(Object.entries(overridesDoc?.overrides ?? {})
         .filter(([k]) => !k.startsWith('_'))),
       overridesHash: hashObject(overridesDoc?.overrides ?? {}),
+      // §5's recent-year exemption, per channel. Not in dim_channel and not in
+      // fct_upload on purpose: it is resolver *policy* read from config, the
+      // same kind of input as overrides, and putting it in the warehouse would
+      // freeze a policy decision into rows that a re-resolve then has to undo.
+      currentReleaseChannels: new Set(
+        (cfg.channels ?? []).filter(c => c.currentReleases).map(c => c.ref)),
       now, runId,
     }, args);
     // Ratings ride along with the index that is already open. Doing it here

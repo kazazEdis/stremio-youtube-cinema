@@ -4,8 +4,10 @@ Ordered by value. Rationale is kept with each item because most of these exist
 in response to something that actually broke, and that context is the reason to
 do them in this order rather than a more obvious one.
 
-Status as of 2026-09-05: 8,276 films indexed (Croatia), 2,102 published,
-2,404 in review, 25.4% resolve rate, 33 tests passing.
+Status as of 2026-09-07: 9,596 eligible uploads (Croatia), 2,245 films in the
+unrestricted tree and 2,797 in HR, 114 tests passing. The next catalogue build
+re-resolves everything at resolver version 13; measured against the current
+warehouse that is accept 5,038 -> 5,370 and review 2,853 -> 2,517.
 
 ---
 
@@ -637,16 +639,103 @@ akas doing their job (*A Certain Justice* -> **Puncture Wounds**, *Hot Enough
 For June* -> **Agent 8 3/4**). Of the 29 with a real competitor, runtime is what
 discriminates — *Bye Bye Birdie* at 131m takes the 1995 version over the 1963.
 
+## DONE — recent-year was testing the wrong thing (2026-09-07)
+
+The second systematic gate, found the same way as the first. §5 justifies the
+flag as *"a recent theatrical title on a **free channel** is almost always an
+unlicensed upload"*. The premise is about the channel, and the code only ever
+looked at the year.
+
+`config/channels.json` is a hand-curated whitelist, and four of the channels in
+it **are the rights holder** — Movie Central, Shout! Studios, GEM: Film Library,
+The Midnight Screening. Current releases are their catalogue, so on those
+channels the year carries no information about whether an upload is licensed.
+**500 of the 526 flagged uploads were theirs.**
+
+Confirmed on a signal the year flag knows nothing about — runtime against IMDb,
+over the 333 that also cleared the floor and the margin:
+
+    median delta   0.00%        within +/-3%   291 of 333
+
+**The flag is kept everywhere else, and the data says exactly why.** All five
+genuinely wrong matches in the bucket were *archive* channels reaching a modern
+film of the same name — *Spider Island (1962)* -> a 2026 `Spider Island`,
+*Goodbye Love (1933)* -> a 2025 one, *The King of the Mountains (1962)* -> 2025.
+On a channel whose median film is from 1943 the recency **is** the evidence.
+That is why the exemption is per-channel and hand-declared rather than a global
+relaxation of the five-year window:
+
+    Movie Central      median 2017   21.5% >=2021      PizzaFlix     median 1943   0.1%
+    Midnight Screening median 2013   14.7%             Public Domain median 1954   0.0%
+    GEM: Film Library  median 1997    7.5%             Grjngo        median 1968   0.5%
+    Shout! Studios     median 1995    6.4%             Cult Cinema   median 1961   0.4%
+
+Whole corpus, old against new: **gained 324, lost 0, ids displaced 0.**
+
+    accept  5,038 -> 5,370        review/recent-year  526 -> 26
+    of the 500 flagged: 332 accept, 128 low-score, 35 narrow-margin, 4 reject
+
+The 332 accepts net to 324 films because eight were re-uploads of titles already
+published — `settleDuplicates` settled them, which is why the harness runs it
+over *both* corpora. A per-row diff would have called those a gain.
+
+**The "before" was checked rather than assumed.** The warehouse is uniformly at
+resolver version 12 under one overrides hash, so its stored rows are the before
+for every upload — but only if they still reproduce against the rebuilt index.
+400 unflagged rows on the same four channels were re-resolved as a control:
+**0 drifted**. Without that the comparison would have been against rows written
+by a different index.
+
+Gained list read rather than counted. The five lowest-confidence entries all
+matched a title unlike the upload's, and all five are legitimate:
+
+| upload | match | via |
+|---|---|---|
+| Crocodile Vengeance | `tt14045614` **Croc!** | that *is* its `originalTitle` |
+| ASSAULT ON STATION 33 | `tt12064810` **Assault on VA-33** | `aka GB` |
+| The Last Day of the Rest of My Life | `tt11061084` **The Mass Shooting Monologues** | `aka XWW` |
+| The Demon's Child | `tt14242974` **The Solemn Vow** | `aka XWW`; runner-up a 1954 film at 69 |
+
+Notes on the shape of the fix, for whoever touches it next:
+
+- It rides `opts`, like `overrides`, and is **not** a `dim_channel` column.
+  It is resolver *policy* read from config; freezing a policy call into
+  warehouse rows means the next re-resolve has to undo it.
+- It defaults **off**. A caller that knows nothing about `config/channels.json`
+  — `probe.js`, a test — gets the strict §5 behaviour.
+- It is scoped to `recent-year` alone. `adult` and `video-type` still fire on an
+  exempt channel, pinned in `test/scoring.test.js`, or the set would quietly
+  become a blanket §5 bypass.
+- `ScreamFactoryTV` and `FilmRise` are the same kind of distributor but are
+  **not** marked: every one of their uploads is dropped on duration, so there is
+  no evidence either way and marking them would be a guess wearing a
+  measurement's clothes.
+
 ## 3. Work the rest of the review queue
 
-2,853 entries left: `low-score` 1,624, `recent-year` 526, `narrow-margin` 373,
-`too-many-candidates` 182. The sampled ones are still mostly *correct* matches
-sitting under the 85 floor — "The Swan (1930)" resolved to `One Romantic Night`
-at 84.
+**2,517 entries left**, after the recent-year work above:
 
-Before promoting anything by hand, look for another shape like the one above:
-a systematic gate that is excluding a population measurably known to be right is
-worth more than a hundred overrides, and it is testable.
+    low-score  1,700     narrow-margin  460     too-many-candidates  182
+    video-type   134     recent-year     26     adult                 15
+
+The sampled ones are still mostly *correct* matches sitting under the 85 floor —
+"The Swan (1930)" resolved to `One Romantic Night` at 84.
+
+Two systematic gates have now been found this way and both were worth more than
+any number of hand promotions: the PAL runtime band (+170) and the channel
+premise behind `recent-year` (+324). Keep looking for a third before promoting
+anything by hand. The method both times was the same, and it is the part worth
+copying:
+
+1. Take a bucket and characterise it on a signal **other than the one the gate
+   tests** — runtime, when the gate is about years.
+2. Read the gained *and* lost lists, never the totals.
+3. Check that the "before" you are diffing against still reproduces.
+4. Hand-verify the low-confidence tail, which is where a wrong id would be.
+
+`low-score` at 1,700 is the obvious next target, and item 5 already names a
+candidate shape inside it: the yearless neutral 8 putting exact-title,
+exact-runtime matches under the floor.
 
 - promote confirmed pairs into `config/overrides.json` (confidence 100, PR-able)
 - the `src/resolve/probe.js` tool exists for exactly this: it prints the full

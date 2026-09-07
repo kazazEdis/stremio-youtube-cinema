@@ -1,16 +1,19 @@
 {
   "_comment": "Whitelist of channels uploading full features under licence or public domain. 'ref' is an @handle or a UC... id. 'eu' flags general playability outside the US. Hindi/Bollywood channels were removed deliberately: they were 28% of indexed uploads for 6% of published films, because the titles are Devanagari with heavy marketing and the dubbed releases are frequently absent from IMDb under the dubbed name.",
+  "_currentReleases": "currentReleases marks a channel that is the rights holder for current releases, so §5's recent-year hard flag does not fire on it -- the spec's premise for that flag is 'a recent theatrical title on a FREE channel', which is not what these are. Set it only with evidence: the four here have a median resolved year of 1995-2017 and, across the 333 recent-year uploads that also clear the score floor, a median runtime delta against IMDb of 0.00%. It stays off for the archive channels (PizzaFlix median 1943, Public Domain Movies 1954, Grjngo 1968), where a modern match is anomalous and is in fact where every wrong match in that bucket was found.",
   "channels": [
     {
       "ref": "@themidnightscreening",
       "group": "Licensed",
-      "eu": true
+      "eu": true,
+      "currentReleases": true
     },
     {
       "ref": "UCGBzBkV-MinlBvHBzZawfLQ",
       "name": "Movie Central",
       "group": "Licensed",
-      "eu": true
+      "eu": true,
+      "currentReleases": true
     },
     {
       "ref": "@FilmRise",
@@ -20,7 +23,8 @@
     {
       "ref": "@ShoutStudios",
       "group": "Licensed",
-      "eu": true
+      "eu": true,
+      "currentReleases": true
     },
     {
       "ref": "@ScreamFactoryTV",
@@ -45,7 +49,8 @@
     {
       "ref": "@gem-filmlibrary",
       "group": "Licensed",
-      "eu": true
+      "eu": true,
+      "currentReleases": true
     },
     {
       "ref": "@PizzaFlix",

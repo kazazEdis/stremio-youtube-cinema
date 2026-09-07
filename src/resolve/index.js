@@ -25,6 +25,11 @@ export const THRESHOLDS = { accept: 85, margin: 12, review: 60 };
 
 const SERIES_TYPES = new Set(['tvSeries', 'tvMiniSeries']);
 
+// Default for opts.currentReleaseChannels: no channel is exempt from the
+// recent-year flag unless the caller names it. A probe or a test that knows
+// nothing about config/channels.json therefore gets the strict §5 behaviour.
+const EMPTY_SET = new Set();
+
 // #region ---------------------------------------------------------- index
 /**
  * Open the SQLite index built by build-index.js.
@@ -437,10 +442,29 @@ function scoreCandidate(video, candidate, index, isEpisode) {
  * §5 hard flags. These override the score and always route to review — a high
  * score on a film that came out last year is a well-matched piracy upload, not
  * a catalog entry.
+ *
+ * `currentReleaseChannels` is the exception, and it exists because the spec's
+ * premise for `recent-year` is "a recent theatrical title *on a free channel*".
+ * That premise fails for the four channels that are the rights holder: their
+ * catalogue *is* current releases, so the year carries no information about
+ * whether the upload is licensed, and the flag was rejecting the whole modern
+ * half of their output.
+ *
+ * Measured over the 526 flagged uploads: 500 are on those channels, and of the
+ * 333 that also clear the score floor and the margin the runtime delta against
+ * IMDb has a median of 0.00% with 291 inside ±3% — runtime being the one signal
+ * the year flag knows nothing about. The flag was not catching piracy there.
+ *
+ * It is kept everywhere else, and that is not caution for its own sake: all
+ * five genuinely wrong matches in the bucket were on *archive* channels, where
+ * a modern hit is anomalous — `Spider Island (1962)` reaching a 2026 title of
+ * the same name, `Goodbye Love (1933)` reaching a 2025 one. On a channel whose
+ * median film is from 1943 the recency *is* the evidence, so it still fires.
  */
-function hardFlag(candidate, score, now = new Date()) {
+function hardFlag(candidate, score, now = new Date(), currentReleases = false) {
   if (candidate.isAdult) return 'adult';
-  if (candidate.startYear != null && candidate.startYear >= now.getFullYear() - 5) {
+  if (!currentReleases
+      && candidate.startYear != null && candidate.startYear >= now.getFullYear() - 5) {
     return 'recent-year';
   }
   if (candidate.titleType === 'video' && score < 90) return 'video-type';
@@ -484,7 +508,8 @@ const publicShape = (video, best, margin, extra = {}) => ({
  * is consulted before any scoring happens and is trusted absolutely.
  */
 export function resolveOne(video, index, opts = {}) {
-  const { overrides = {}, now = new Date(), episode = null } = opts;
+  const { overrides = {}, now = new Date(), episode = null,
+          currentReleaseChannels = EMPTY_SET } = opts;
   // Carried on the video rather than passed down every call site; publicShape
   // and scoreCandidate are the only readers.
   video = episode ? { ...video, __episode: episode } : video;
@@ -567,7 +592,7 @@ export function resolveOne(video, index, opts = {}) {
     runtimeMinutes: c.runtimeMinutes, score: c.score, kind: c.kind, signals: c.signals,
   }));
 
-  const flag = hardFlag(best, best.score, now);
+  const flag = hardFlag(best, best.score, now, currentReleaseChannels.has(video.channelRef));
   if (flag) {
     return { status: 'review', ...publicShape(video, best, margin, { rawScore, candidateCount }),
              rawTitle: video.rawTitle, reason: flag, tier, candidates: top5 };

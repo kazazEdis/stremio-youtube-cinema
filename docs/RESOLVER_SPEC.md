@@ -142,7 +142,15 @@ a coin flip dressed up as confidence — send it to review.
 ### Hard flags — override the score, always route to review
 
 - `imdb.startYear >= currentYear - 5` — a recent theatrical title on a free
-  channel is almost always an unlicensed upload, whatever the match quality
+  channel is almost always an unlicensed upload, whatever the match quality.
+  **Exempt: channels marked `currentReleases` in `config/channels.json`.** The
+  premise above is "on a *free* channel"; for the four channels that are the
+  rights holder, current releases are the catalogue, so the year says nothing
+  about whether the upload is licensed. Measured over the 526 flagged uploads,
+  500 were on those channels and the 333 that also cleared the floor had a
+  median runtime delta against IMDb of 0.00%. The flag stays on everywhere
+  else, and that is where it earns its keep: every wrong match in the bucket
+  was an *archive* channel reaching a modern same-titled film
 - `imdb.isAdult == 1`
 - the same `tconst` resolved from two different videos — keep the higher score,
   flag the loser as a duplicate
