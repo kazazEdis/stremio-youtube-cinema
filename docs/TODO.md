@@ -1466,16 +1466,34 @@ corroboration — and 133 of those are held under the floor only because the
 title matched an aka rather than a primary. Those are not the population the
 floor exists to exclude; they already have the third signal this item asks for.
 
-### The targeted version, untested
+### The targeted version — proposed, then withdrawn on inspection
 
-Do not move the global constant. The index already stores `title_norm.region`
-and `title_norm.language`, so an aka whose region matches the film's own origin
-is strong evidence rather than weak — a Russian aka on a Mosfilm upload, a
-Chinese one on Cinema Mei Ah. Scoring *that* at full title weight would lift the
-133 without lifting every rival aka in the corpus, which is precisely what the
-44 -> 47 experiment did wrong. Accepted rows are 4,650 `exact-primary` against
-162 `exact-aka`, so the tier is 3% of the catalogue and the blast radius is
-small either way.
+The idea was: `title_norm` stores `region` and `language`, so score an aka at
+full weight when its region matches the film's own origin — a Russian aka on a
+Mosfilm upload, a Chinese one on Cinema Mei Ah. **It does not survive contact
+with the data, and the aka penalty is better founded than that suggestion
+implied.**
+
+- **`scoreTitle` already returns 50 for `original`, not only `primary`.** A
+  film's original-language title is therefore *already* at full weight. The 44
+  applies only to `source='aka'` rows, which are the regional variants —
+  8,267,350 of them against 136,300 originals and 1,363,493 primaries.
+- **There is nothing to match a region against.** `title_norm.region` is null on
+  1,359,746 aka rows, and the populated values (US 856k, GB 522k, CA 510k, IN
+  444k, AU 422k, ZA 384k) are *distribution territories* — where a film was
+  released, not where it came from. `config/exclude.json` already records why:
+  the public IMDb datasets carry no country or language field for the title
+  itself.
+
+So an aka match really is weaker evidence than a primary or original one, and
+the 6-point gap is defensible. The 133 rows held under the floor by it are held
+by a penalty that is doing its job.
+
+**What that leaves.** The 82 band's genuinely under-served population is not the
+aka rows but the 97 films scored `50 + 12 + 20 + 0` — exact title, perfect
+runtime, and no third signal at all — plus the 93 episodes. Any future attempt
+belongs there, and must find a *third signal* rather than move a weight; the
+44 -> 47 measurement above is what moving a weight looks like.
 
 ## 5b. The original note, kept
 
