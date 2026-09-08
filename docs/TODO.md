@@ -24,6 +24,39 @@ the unrestricted tree and all 20 regions. **The resolver change still needs a
 
 ---
 
+## 7. clean_title is sometimes the channel's own name, and 13 uploads share one wrong id
+
+28 uploads have a `clean_title` equal to the name of the channel that posted
+them. `cleanTitle` strips the channel name as a *prefix* but will still return
+it when it is a whole `|`-segment — and "The Midnight Screening" is itself a
+real 2012 film, so **13 rows resolve to tt2226595**: unrelated uploads of
+*Four*, *Hacked*, *Acceleration*, *Demon*, *The Killing of Billy the Kid* and
+others, all confidently wrong. Four CineMo films collapse to `"CineMo"` the
+same way.
+
+### A fix was tried, destroyed 13 published films, and was reverted
+
+The obvious implementation — drop the branded segment from the array before
+`pickSegment` — is wrong, and wrong in a way worth recording. `pickSegment`
+calls `castIndices(segments)`, which returns a set of **positions**. Removing an
+element shifts every index after it, so the cast-list veto stops lining up and
+the picker starts choosing genre labels and actors' names instead of titles:
+
+    Sunfall FULL MOVIE | Disaster Movies | The Midnight Screening
+      -> "Disaster Movies"          (was "Sunfall", accepted)
+    Premonition FULL MOVIE | Thriller Movies | Casper Van Dien | ...
+      -> "Casper Van Dien"          (was "Premonition", accepted)
+
+13 accepted films dropped to `reject / no-candidates`. **The totals hid it
+completely** — accept went 5,389 -> 5,390, a net +1, because the run-together
+fix landing in the same pass gained 15 while this lost 14. Only the named
+lost-list showed it. This is the `CLAUDE.md` rule earning its keep: read the
+gained and lost lists, never the totals.
+
+**The correct shape** is to veto the branded segment *in place* rather than
+filter the array — pass the channel into `pickSegment` and add it to the
+`usable()` predicate, so indices are preserved. Not yet attempted.
+
 ## 6. Corroboration fires on one token, and the 900-char cap is what hides it
 
 **Not done, and the three obvious fixes are already dead.** Recorded in full
