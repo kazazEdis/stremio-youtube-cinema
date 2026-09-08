@@ -102,12 +102,46 @@ count (breaks abbreviated first names), or the token identity (rarity does not
 separate genuine from spurious). **The signal is weak by construction, and the
 900-character cap is what bounds the damage.**
 
-**So the cap stays.** Lifting it is worth +72 accepts and cannot be made safe by
-a filter; making it safe needs a different kind of evidence — matching the full
-name as a phrase rather than tokens, or scoring the *number* of distinct credits
-that corroborate rather than the best single one, so a lone common word cannot
-reach 10. Both are real changes, not one-line ones, and both should be measured
-with `src/resolve/compare.js` before `stage.js:101` moves at all.
+**So the cap stays** until the scorer is fixed. But the fix now has a shape, and
+it is none of the four above.
+
+### Measured: it is not *whether* a token matched, it is *which*
+
+Three candidate rules, scored against the 6,824 rows that corroborate today
+(5,288 of them accepted):
+
+    >=1 token (today)          100% of rows   100% of accepts
+    >=2 distinct credits        93%            94%
+    full name as a phrase       95%            95%
+
+Both are far better than the credits-cue rule's 29% loss — but the phrase rule
+still drops 242 accepts, and splitting those by **what actually matched** is
+what settles it:
+
+    first-name only   171     david (in 24,728 credits), richard (12,152),
+                              claire (2,453), lucy (1,478), buddy (396)
+    surname only       71     beckett of `scotty beckett`, yuasa of
+                              `noriaki yuasa`, batalov of `aleksey batalov`
+    middle name         0
+
+The 171 are worthless evidence — `david` appears in 24,728 credits and
+discriminates nothing. The 71 are the *Murnau* shape, genuine, and exactly what
+the two-token rule broke.
+
+**So require the surname** — the last token — rather than any token or all of
+them. It keeps all 71 genuine surname-only matches, kills all 171 first-name
+matches, and needs no window, no rarity threshold and no phrase.
+
+Two things to check before shipping it, because five confident calls in this
+session were wrong before measurement:
+
+- **Are the 171 correct matches?** They lose corroboration, so they drop out of
+  the catalogue. If most were right, that is 171 films lost for a principle; if
+  many were wrong, it is the cardinal rule working. Judge them by name.
+- **It does not fix the cap.** `love` is the surname of `nick love` and `baldi`
+  of `ferdinando baldi`, so the Outlaw-class regressions survive this rule
+  untouched. Surname-required is a standalone safety improvement to today's
+  scorer; the cap needs its own answer on top.
 
 ### Three defects in stage.js, true regardless of the cap
 
