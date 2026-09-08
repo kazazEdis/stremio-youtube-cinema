@@ -55,7 +55,7 @@ grade. That is one paragraph applied 3,000 times, not a scatter of errors.
 **The 900 cap is therefore an accidental safety mechanism.** It is the only
 thing currently containing a scorer that treats a common word as evidence.
 
-### Four cures, all measured, all dead
+### Five cures, all measured, all dead
 
 1. **Lift the cap wholesale.** Trades 67 known films for an unbounded surface
    that grows every time a channel lengthens a description.
@@ -128,20 +128,118 @@ The 171 are worthless evidence — `david` appears in 24,728 credits and
 discriminates nothing. The 71 are the *Murnau* shape, genuine, and exactly what
 the two-token rule broke.
 
-**So require the surname** — the last token — rather than any token or all of
-them. It keeps all 71 genuine surname-only matches, kills all 171 first-name
-matches, and needs no window, no rarity threshold and no phrase.
+5. **Require the surname — meaning the last token.** Measured, **dead**, and it
+   took the split above down with it.
 
-Two things to check before shipping it, because five confident calls in this
-session were wrong before measurement:
+   `credits.tokens` is built at `src/resolve/build-index.js:596` by dropping
+   every token under four characters. So `tokens.at(-1)` does not mean "the
+   surname", it means "the last token that survived the filter", and the two
+   diverge in 4.5% of all credits, 4.9% of the reachable set, and — verified
+   directly:
 
-- **Are the 171 correct matches?** They lose corroboration, so they drop out of
-  the catalogue. If most were right, that is 171 films lost for a principle; if
-  many were wrong, it is the cardinal rule working. Judge them by name.
-- **It does not fix the cap.** `love` is the surname of `nick love` and `baldi`
-  of `ferdinando baldi`, so the Outlaw-class regressions survive this rule
-  untouched. Surname-required is a standalone safety improvement to today's
-  scorer; the cap needs its own answer on top.
+       andy lau            -> [andy]                john woo -> [john]
+       jet li              -> []                    myrna loy -> [myrna]
+       richard dix         -> [richard]             tony leung chiu wai -> [tony,leung,chiu]
+
+   The rule would therefore test **`richard`** for `richard dix` — one of the
+   very tokens it was designed to eliminate — and would judge a *given* name
+   while believing it a surname on **591 accepted pairs**. It is structurally
+   inapplicable to **46% of Cinema Mei Ah's** credits and **43% of
+   經典華語老電影's**; that is latent rather than realised only because those
+   channels write their descriptions in Chinese.
+
+   **And the 171/71 split above is unreliable for the same reason** — it used
+   `tokens.at(-1)` as a proxy for "surname", so every single-token credit was
+   miscounted as a surname match. The measurement was wrong, not just the
+   conclusion.
+
+   Cost if shipped anyway: 306 rows lose score, 67 fall under the floor, 49 of
+   them currently published — of which only ~11 are genuine surname-position
+   failures. **The test suite offers no protection at all**: every fixture in
+   `test/scoring.test.js` is `given surname` with a five-plus-character surname,
+   so it goes green either way.
+
+   Do **not** reach for "first or last token" as a compromise. 95.7% of
+   reachable multi-token credits have exactly two tokens, so for them first-or-
+   last *is* every token — it is a revert wearing a different name.
+
+   **And the population was 99% correct, which is the real reason this is dead.**
+   Judged individually: 221 rows (not 171 — that count came from a different
+   tie-break over multi-credit rows), **219 right, 2 wrong — 99.1% precision**,
+   the same as the catalogue at large. The rule would discard **21.5 correct
+   rows per wrong row prevented**, removing 15 correct titles including an
+   entire 27-episode series.
+
+   The token match fails for a mechanical reason nobody had looked for:
+
+       148  run-together names. Descriptions scraped from IMDb concatenate
+            credits with no space -- "Stars Buddy EbsenDonna DouglasIrene Ryan"
+            normalises to "buddy ebsendonna douglasirene ryan", so `ebsen`
+            never becomes a word. The surname IS in the text.
+        47  a different credit of the same film matched in FULL, but
+            scoreCorroboration takes Math.max, so a spurious director 10
+            out-ranked a genuine cast 6
+        11  spelling or transliteration differs (Le Borg / leborg, Seastrom
+            for Sjöström)
+        10  the full name was cut mid-word by the 900-char truncation
+         5  no independent support at all -- and only 2 of those are wrong
+
+### The two wrong ids, and how cheaply they can be caught
+
+Worth naming because they are the entire prize, and neither needs a scorer rule:
+
+- `tt0495104` *Endangered Species* (2004) — a **documentary with one credit**,
+  matched to a feature upload. The token `robert` scored 10 as its director's
+  forename; the description actually names Robert Urich and JoBeth Williams,
+  the cast of `tt0083885`, the **correct** 1982 film, which was runner-up.
+- `tt2226595` *The Midnight Screening* — the upload is *Assassin* (2015). The
+  root cause is title extraction: `clean_title` became **the uploading
+  channel's own name**, and corroboration then certified it.
+
+### The fixes that get those two without the collateral
+
+In order of value, and none is the scorer guessing better:
+
+1. **Split run-together names** — insert a boundary at lowercase→uppercase
+   transitions in the raw description before `normalize()`. Recovers the
+   surname in **148 of 221** rows, and makes every stricter rule nearly free
+   afterwards.
+2. **Prefer a complete-name match over a partial one** when `scoreCorroboration`
+   picks its `best`. Today `Math.max` lets a one-token hit at director grade
+   (10) beat a full-name cast match (6). Preferring the complete match drops
+   both wrong ids above and leaves the 47 fall-back rows alone.
+3. **Guard the two failure modes directly** — a single-credit Documentary
+   against a feature runtime, and a `clean_title` equal to the uploading
+   channel's own name. Both are free checks.
+4. Raise the 900-char cap: **60 of these 221** sit exactly on it, and it caused
+   the 10 mid-name truncations.
+
+### If a stricter token rule is ever revisited, the index is where it belongs
+
+Every cure above failed trying to make a better decision from `tokens`, which
+has already thrown away what the decision needs. `src/resolve/build-index.js`
+should record more, not `scoreCorroboration` guess better:
+
+- **A `surname` column** — the final word of `normalize(primaryName)`
+  *regardless of length*, minus a trailing `jr|sr|ii|iii|iv`. That makes
+  `myrna loy -> loy`, `andy lau -> lau`, `dolores del rio -> rio` and
+  `lon chaney jr -> chaney` all mean what they say.
+- **A `phrase` column**, and when the surname is under four characters require
+  the full name adjacently — `' andy lau '`, `' jet li '`. Adjacency supplies
+  the discrimination a two-character token cannot, it is script-agnostic, and
+  it reaches the **26,469 credits that currently have no tokens at all** and can
+  never corroborate under any token rule (`jet li`, `sam hui`, `kim ki duk`).
+- **First-or-last only for 3+ token credits** (850 reachable, 4.3%), which
+  covers `tony leung chiu wai` and `bong joon ho` without touching the 19,096
+  two-token credits where the tightening does its work.
+
+This needs an index rebuild (~16 min) and should be measured with
+`src/resolve/compare.js --baseline warehouse`, which does not exist yet — the
+harness compares two *inputs*, and this is a change to the *scorer*.
+
+**It still does not fix the cap.** `love` is the surname of `nick love`, `baldi`
+of `ferdinando baldi` — both genuinely last, both genuinely surnames. The
+Outlaw-class regressions survive every rule tried so far.
 
 ### Three defects in stage.js, true regardless of the cap
 
