@@ -1429,7 +1429,55 @@ tconst. Both are in the set now — *The Crazy Companies* 97m against tt0096512'
 minute apart. That is the case §2 keeps trailing roman numerals for, and it now
 fails here rather than in the catalogue.
 
-## 5. Tune the §4 weights — still last, and now for a better reason
+## 5. Tune the §4 weights — and a blanket shift is now measured, not just warned about
+
+**Measured 2026-09-07: raising `scoreTitle('aka')` from 44 to 47 costs 44
+published films.** It gains 108 and loses 44, and every single loss has the
+same signature:
+
+    tt1309379  Sam                       conf 88 -> 88   margin 12 -> 9
+    tt0027869  The Last Of The Mohicans  conf 88 -> 88   margin 12 -> 9
+    tt1657284  Ice Quake                 conf 88 -> 88   margin 12 -> 9
+
+Confidence unchanged, margin down by exactly 3. Raising the aka score lifts the
+*rival* aka candidates by the same amount, so every row sitting exactly on the
+margin-12 gate falls off it. It also flips 17 tconsts, several at margins of 1
+to 3 — coin flips, not improvements.
+
+**That is the empirical form of this item's own warning.** A blanket constant
+adds no information; it moves the scale, and rows at the gate fall off the
+bottom while rows below the floor come up. Anything that shifts a §4 weight
+globally will behave this way. Do not re-derive it.
+
+### What the band actually contains, now that all five signals are recorded
+
+`sig_type_match` (added 2026-09-07) makes a shape visible that could not be read
+before — **93 of the 318 rows in the 82 band are episodes**, scored
+`50 + 12 + 0 + 0 + typeMatch 20`, where the type agreement stands in for runtime:
+
+     97  50+12+20+0          films, exact title, perfect runtime, NO third signal
+     58  50+12+0+0+tm20      episodes
+     48  44+12+17+10         aka title, PAL runtime, WITH corroboration
+     42  44+12+20+6          aka title, perfect runtime, WITH corroboration
+     19  50+6+0+6+tm20       episodes with corroboration
+
+**624 review rows carry all four signals** — title, year, runtime *and*
+corroboration — and 133 of those are held under the floor only because the
+title matched an aka rather than a primary. Those are not the population the
+floor exists to exclude; they already have the third signal this item asks for.
+
+### The targeted version, untested
+
+Do not move the global constant. The index already stores `title_norm.region`
+and `title_norm.language`, so an aka whose region matches the film's own origin
+is strong evidence rather than weak — a Russian aka on a Mosfilm upload, a
+Chinese one on Cinema Mei Ah. Scoring *that* at full title weight would lift the
+133 without lifting every rival aka in the corpus, which is precisely what the
+44 -> 47 experiment did wrong. Accepted rows are 4,650 `exact-primary` against
+162 `exact-aka`, so the tier is 3% of the catalogue and the blast radius is
+small either way.
+
+## 5b. The original note, kept
 
 **The `KNOWN ISSUE` this item was pinned to is gone.** `test/scoring.test.js`
 now reads *"Was* KNOWN ISSUE": `relaxYearless` lifts the neutral to 12 when the
