@@ -161,9 +161,28 @@ export function scoreRuntime(ytMin, imdbMin) {
  * are also the stronger signal — channels put "starring" names in descriptions
  * far more loosely than they credit a director.
  */
+/**
+ * Descriptions scraped from IMDb run credit names together with no separator:
+ * "Stars Buddy EbsenDonna DouglasIrene Ryan". normalize() only splits on
+ * non-letters, so that becomes "buddy ebsendonna douglasirene ryan" and
+ * `ebsen` never exists as a word -- the surname is in the text and unmatchable.
+ * Measured, this is 148 of the 221 accepted rows whose corroboration came from
+ * a forename alone.
+ *
+ * Splitting at a lowercase->uppercase boundary recovers them. It is applied as
+ * an ADDITIONAL haystack rather than a replacement, because the same split
+ * breaks names that legitimately carry an internal capital: "Frank McDonald"
+ * would become "frank mc donald" and stop matching `mcdonald`. Searching both
+ * can only add a match, never remove one.
+ */
+const deconcatenate = s => s.replace(/([a-z])([A-Z])/g, '$1 $2');
+
 export function scoreCorroboration(description, credits) {
   if (!description || !credits?.length) return 0;
   const hay = ` ${normalize(description)} `;
+  const split = deconcatenate(description);
+  const hay2 = split === description ? null : ` ${normalize(split)} `;
+  const present = t => hay.includes(` ${t} `) || (hay2 !== null && hay2.includes(` ${t} `));
 
   let best = 0;
   for (const c of credits) {
@@ -171,7 +190,7 @@ export function scoreCorroboration(description, credits) {
     // "kim" match ordinary prose and are not evidence of anything.
     const tokens = (c.tokens || '').split(' ').filter(Boolean);
     if (!tokens.length) continue;
-    if (!tokens.some(t => hay.includes(` ${t} `))) continue;
+    if (!tokens.some(present)) continue;
     best = Math.max(best, c.category === 'director' ? 10 : 6);
   }
   return best;

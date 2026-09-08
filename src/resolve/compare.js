@@ -25,6 +25,9 @@ import { DatabaseSync } from 'node:sqlite';
 import { buildIndex, resolveOne } from './index.js';
 import { openLanding, readLanded } from '../dwh/landing.js';
 
+/** fct_resolution.status is an integer; core.js owns the mapping. */
+const STATUS_NAME = ['accept', 'review', 'reject'];
+
 // #region ---------------------------------------------------------- variants
 /**
  * A variant is a pure transform of the resolver's input. Both questions this
@@ -56,11 +59,13 @@ const VARIANTS = {
 // #endregion
 
 function parseArgs(argv) {
-  const a = { variant: null, warehouse: 'data/warehouse.sqlite', landing: 'data/landing.sqlite',
+  const a = { variant: null, baseline: null, warehouse: 'data/warehouse.sqlite',
+              landing: 'data/landing.sqlite',
               cache: '.cache', limit: 0, channel: null, show: 40 };
   for (let i = 2; i < argv.length; i++) {
     const k = argv[i];
     if (k === '--variant') a.variant = argv[++i];
+    else if (k === '--baseline') a.baseline = argv[++i];
     else if (k === '--limit') a.limit = Number(argv[++i]);
     else if (k === '--channel') a.channel = argv[++i];
     else if (k === '--show') a.show = Number(argv[++i]);
@@ -85,9 +90,16 @@ function fullDescriptions(landingFile) {
 
 async function main() {
   const args = parseArgs(process.argv);
-  const variant = VARIANTS[args.variant];
+  // Two modes. `--variant` compares two INPUTS under the same code, which is
+  // what an input question needs. `--baseline warehouse` compares the CURRENT
+  // code against what the warehouse already stored, which is the only way to
+  // measure a change to the SCORER -- with a variant, both arms would run the
+  // new code and the diff would be empty.
+  const warehouseBaseline = args.baseline === 'warehouse';
+  const variant = warehouseBaseline ? (v => v) : VARIANTS[args.variant];
   if (!variant) {
-    console.error(`--variant is required, one of: ${Object.keys(VARIANTS).join(', ')}`);
+    console.error(`--variant is required, one of: ${Object.keys(VARIANTS).join(', ')}` +
+                  `\n   (or --baseline warehouse to diff the current code against stored resolutions)`);
     process.exit(1);
   }
 
@@ -95,14 +107,18 @@ async function main() {
   const rows = wh.prepare(`
     SELECT u.ytId, u.clean_title, u.raw_title, u.extracted_year, u.runtime_min,
            u.channel_name, u.channel_ref, u.grp, u.season, u.episode,
-           COALESCE(b.text, '') AS description
+           COALESCE(b.text, '') AS description,
+           f.status AS was_status, f.imdb_id AS was_id,
+           f.confidence AS was_conf, f.margin AS was_margin
       FROM fct_upload u LEFT JOIN stg_blurb b ON b.ytId = u.ytId
+      JOIN fct_resolution f ON f.ytId = u.ytId
      WHERE u.drop_reason IS NULL ${args.channel ? 'AND u.channel_name = ?' : ''}
      ORDER BY u.ytId ${args.limit ? 'LIMIT ' + args.limit : ''}`)
     .all(...(args.channel ? [args.channel] : []));
 
-  const ctx = { full: args.variant.startsWith('full-description') ? fullDescriptions(args.landing) : new Map() };
-  if (args.variant.startsWith('full-description')) {
+  const wantsFull = !warehouseBaseline && args.variant.startsWith('full-description');
+  const ctx = { full: wantsFull ? fullDescriptions(args.landing) : new Map() };
+  if (wantsFull) {
     console.log(`[compare]  ${ctx.full.size.toLocaleString()} untruncated descriptions recovered from landing`);
   }
 
@@ -141,11 +157,18 @@ async function main() {
     // such a row twice is pure cost: 5,070 of 9,458 uploads have no truncated
     // description at all, so the first run of this spent 54% of half an hour
     // proving that identical inputs give identical outputs.
-    if (w.description === v.description && w.rawTitle === v.rawTitle) { unchanged++; continue; }
+    if (!warehouseBaseline && w.description === v.description && w.rawTitle === v.rawTitle) {
+      unchanged++; continue;
+    }
 
     const episode = r.season != null && r.episode != null
       ? { season: r.season, episode: r.episode } : null;
-    const a = resolveOne(v, index, { ...opts, episode });
+    // In warehouse mode the "before" is the stored row, not a second resolve --
+    // which also halves the work.
+    const a = warehouseBaseline
+      ? { status: STATUS_NAME[r.was_status], imdbId: r.was_id,
+          confidence: r.was_conf ?? 0, margin: r.was_margin ?? 0 }
+      : resolveOne(v, index, { ...opts, episode });
     const b = resolveOne(w, index, { ...opts, episode });
     if (++done % 500 === 0) {
       const rate = done / ((Date.now() - started) / 1000);
@@ -167,7 +190,8 @@ async function main() {
   index.close();
 
   const p = (n, w = 5) => String(n).padStart(w);
-  console.log(`\n[compare]  variant ${args.variant}   ${rows.length.toLocaleString()} uploads\n`);
+  const label = warehouseBaseline ? 'current code vs stored resolutions' : `variant ${args.variant}`;
+  console.log(`\n[compare]  ${label}   ${rows.length.toLocaleString()} uploads\n`);
   for (const [k, n] of [...matrix].sort((x, y) => y[1] - x[1])) console.log(`  ${p(n)}  ${k}`);
 
   const show = (label, list) => {
