@@ -339,3 +339,31 @@ test('a Latin-only title never reaches the alternate-script branch', () => {
   assert.equal(cleanTitle('And Then There Were None (1945) AGATHA CHRISTIE', 'X'), 'And Then There Were None');
 });
 // #endregion
+
+// #region ------------------------------------------------ channel branding
+test('the channel name is never the film, and vetoing it does not disturb the pick', () => {
+  const MS = 'The Midnight Screening';
+  // The brand wins on merit when the real title is one word glued to marketing:
+  // "FOUR Full Movie" fails `intact` (body differs) and `titled` (one word),
+  // the actors are a vetoed cast run, "Thriller Movies" strips to nothing --
+  // leaving the brand as the only untouched segment. And "The Midnight
+  // Screening" is itself a real 2012 film, so 13 unrelated uploads resolved
+  // confidently to tt2226595.
+  assert.equal(cleanTitle('FOUR Full Movie | Martin Compston | Craig Conway | Thriller Movies | The Midnight Screening', MS), 'FOUR');
+  assert.equal(cleanTitle('Hacked FULL MOVIE | Thriller Movies | The Midnight Screening', MS), 'Hacked');
+  assert.equal(cleanTitle('Takot Ako, Eh | FULL MOVIE | CineMo', 'CineMo'), 'Takot Ako, Eh');
+
+  // The half of this that actually needs pinning. The first attempt FILTERED
+  // the branded segment out of the array, and the brand is usually
+  // person-shaped -- so it was the second member of the cast run that vetoed
+  // the actor beside it. Removing it shortened the run to one, un-vetoed the
+  // actor, and cost 13 correct films their match: these three returned
+  // "Disaster Movies", "Casper Van Dien" and "Robert John Burke".
+  assert.equal(cleanTitle('Sunfall FULL MOVIE | Disaster Movies | The Midnight Screening', MS), 'Sunfall');
+  assert.equal(cleanTitle('Premonition FULL MOVIE | Thriller Movies | Casper Van Dien | The Midnight Screening', MS), 'Premonition');
+  assert.equal(cleanTitle('Being FULL MOVIE | Sci-Fi Thriller Movies | Robert John Burke | The Midnight Screening', MS), 'Being');
+
+  // A channel whose name merely CONTAINS a word must not lose that word.
+  assert.equal(cleanTitle('The Sea Wolf (1941) | FULL MOVIE', 'PizzaFlix'), 'The Sea Wolf');
+});
+// #endregion

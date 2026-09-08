@@ -243,13 +243,31 @@ function castIndices(segments) {
   return out;
 }
 
+/** Case- and punctuation-insensitive, for comparing a segment to a brand. */
+const normalizeLoose = s => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+
 const body = s => s.replace(MARKETING, ' ').replace(/\s{2,}/g, ' ').trim();
 
-function pickSegment(segments) {
+function pickSegment(segments, brand = '') {
   const cast = castIndices(segments);
+  // A segment that IS the uploading channel's name is never the film, and it
+  // wins on merit more often than you would guess: "FOUR Full Movie | Martin
+  // Compston | Craig Conway | Thriller Movies | The Midnight Screening" has a
+  // one-word title glued to marketing (failing both `intact` and `titled`), a
+  // vetoed cast run, and a genre tag that strips to nothing -- leaving the
+  // brand as the only untouched segment. 13 uploads resolved to tt2226595 that
+  // way, because "The Midnight Screening" is also a real 2012 film.
+  //
+  // Vetoed here rather than filtered out of `segments`, and that distinction is
+  // the lesson: the brand is usually person-shaped, so it forms the SECOND
+  // member of the cast run that vetoes the actor beside it. Removing it
+  // shortened the run to one, un-vetoed "Casper Van Dien", and cost 13 correct
+  // films their match. The array stays intact; only the choosing changes.
+  const isBrand = s => brand !== '' && normalizeLoose(s) === brand;
   // A body with no letters is a bare year or a rating, never a title.
   const usable = (s, i) => /\p{L}/u.test(body(s)) && !looksLikeHook(s)
                       && !looksLikeCastList(s) && !castHint(s)
+                      && !isBrand(s)
                       && !cast.has(i);
 
   // A parenthesised year beats every heuristic below, because titleBeforeYear
@@ -299,7 +317,7 @@ function pickSegment(segments) {
   // Nothing clean survived the usable test, so trust an untouched segment even
   // if it reads long -- "Go Tell It On The Mountain" is a title that happens to
   // look like a hook, and the alternative here is always a genre tag.
-  const untouched = pool.find(s => /\p{L}/u.test(s) && intact(s)
+  const untouched = pool.find(s => /\p{L}/u.test(s) && intact(s) && !isBrand(s)
                                    && !looksLikeCastList(s) && !cast.has(segments.indexOf(s)));
   if (untouched) return untouched;
 
@@ -308,6 +326,7 @@ function pickSegment(segments) {
 
   const score = s => (body(s) ? body(s).length : -Infinity)
                      - (looksLikeCastList(s) ? 1000 : 0)
+                     - (isBrand(s) ? 1000 : 0)
                      - (castHint(s) ? 25 : 0);
   return pool.reduce((best, s) => (score(s) > score(best) ? s : best), pool[0]);
 }
@@ -390,7 +409,7 @@ export function cleanTitle(raw, channel = '') {
   input = input.replace(/^\s*【[^】]{0,12}】\s*/u, '');
 
   const segments = input.split('|').map(s => s.trim()).filter(Boolean);
-  let t = segments.length > 1 ? pickSegment(segments) : input;
+  let t = segments.length > 1 ? pickSegment(segments, normalizeLoose(channel)) : input;
   const alt = segments.length > 1 ? altScriptSegment(segments, t) : null;
 
   // The year anchor beats every other heuristic when it is present.
