@@ -1,16 +1,16 @@
 {
-  "checkedAt": "2026-10-05T11:51:43.657Z",
+  "checkedAt": "2026-10-12T12:18:09.530Z",
   "region": "HR",
-  "videos": 5525,
-  "entries": 90059,
-  "apiCalls": 111,
+  "videos": 5562,
+  "entries": 90755,
+  "apiCalls": 112,
   "verdicts": {
-    "ok": 89500,
-    "gone": 455,
-    "region:blocked": 40,
+    "ok": 89968,
+    "gone": 657,
+    "not-public": 42,
+    "region:blocked": 42,
     "region:not-allowed": 38,
-    "not-public": 21,
-    "region:restricted": 5
+    "region:restricted": 8
   },
   "problems": [
     {
@@ -182,6 +182,174 @@
       "verdict": "not-public"
     },
     {
+      "id": "tt0024561",
+      "type": "movie",
+      "ytId": "XiJe1ZS44bs",
+      "rank": 2,
+      "root": "docs",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0024561",
+      "type": "movie",
+      "ytId": "XiJe1ZS44bs",
+      "rank": 2,
+      "root": "docs/region=au",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0024561",
+      "type": "movie",
+      "ytId": "XiJe1ZS44bs",
+      "rank": 2,
+      "root": "docs/region=br",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0024561",
+      "type": "movie",
+      "ytId": "XiJe1ZS44bs",
+      "rank": 2,
+      "root": "docs/region=ca",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0024561",
+      "type": "movie",
+      "ytId": "XiJe1ZS44bs",
+      "rank": 2,
+      "root": "docs/region=de",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0024561",
+      "type": "movie",
+      "ytId": "XiJe1ZS44bs",
+      "rank": 2,
+      "root": "docs/region=es",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0024561",
+      "type": "movie",
+      "ytId": "XiJe1ZS44bs",
+      "rank": 2,
+      "root": "docs/region=fr",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0024561",
+      "type": "movie",
+      "ytId": "XiJe1ZS44bs",
+      "rank": 2,
+      "root": "docs/region=gb",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0024561",
+      "type": "movie",
+      "ytId": "XiJe1ZS44bs",
+      "rank": 2,
+      "root": "docs/region=hr",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0024561",
+      "type": "movie",
+      "ytId": "XiJe1ZS44bs",
+      "rank": 2,
+      "root": "docs/region=ie",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0024561",
+      "type": "movie",
+      "ytId": "XiJe1ZS44bs",
+      "rank": 2,
+      "root": "docs/region=in",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0024561",
+      "type": "movie",
+      "ytId": "XiJe1ZS44bs",
+      "rank": 2,
+      "root": "docs/region=it",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0024561",
+      "type": "movie",
+      "ytId": "XiJe1ZS44bs",
+      "rank": 2,
+      "root": "docs/region=jp",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0024561",
+      "type": "movie",
+      "ytId": "XiJe1ZS44bs",
+      "rank": 2,
+      "root": "docs/region=mx",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0024561",
+      "type": "movie",
+      "ytId": "XiJe1ZS44bs",
+      "rank": 2,
+      "root": "docs/region=nl",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0024561",
+      "type": "movie",
+      "ytId": "XiJe1ZS44bs",
+      "rank": 2,
+      "root": "docs/region=nz",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0024561",
+      "type": "movie",
+      "ytId": "XiJe1ZS44bs",
+      "rank": 2,
+      "root": "docs/region=pl",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0024561",
+      "type": "movie",
+      "ytId": "XiJe1ZS44bs",
+      "rank": 2,
+      "root": "docs/region=rs",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0024561",
+      "type": "movie",
+      "ytId": "XiJe1ZS44bs",
+      "rank": 2,
+      "root": "docs/region=se",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0024561",
+      "type": "movie",
+      "ytId": "XiJe1ZS44bs",
+      "rank": 2,
+      "root": "docs/region=tr",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0024561",
+      "type": "movie",
+      "ytId": "XiJe1ZS44bs",
+      "rank": 2,
+      "root": "docs/region=us",
+      "verdict": "gone"
+    },
+    {
       "id": "tt0047495",
       "type": "movie",
       "ytId": "dGa8j6l7FuE",
@@ -646,6 +814,174 @@
       "verdict": "gone"
     },
     {
+      "id": "tt0055902",
+      "type": "movie",
+      "ytId": "5u-3jhyS-6I",
+      "rank": 1,
+      "root": "docs",
+      "verdict": "not-public"
+    },
+    {
+      "id": "tt0055902",
+      "type": "movie",
+      "ytId": "5u-3jhyS-6I",
+      "rank": 1,
+      "root": "docs/region=au",
+      "verdict": "not-public"
+    },
+    {
+      "id": "tt0055902",
+      "type": "movie",
+      "ytId": "5u-3jhyS-6I",
+      "rank": 1,
+      "root": "docs/region=br",
+      "verdict": "not-public"
+    },
+    {
+      "id": "tt0055902",
+      "type": "movie",
+      "ytId": "5u-3jhyS-6I",
+      "rank": 1,
+      "root": "docs/region=ca",
+      "verdict": "not-public"
+    },
+    {
+      "id": "tt0055902",
+      "type": "movie",
+      "ytId": "5u-3jhyS-6I",
+      "rank": 1,
+      "root": "docs/region=de",
+      "verdict": "not-public"
+    },
+    {
+      "id": "tt0055902",
+      "type": "movie",
+      "ytId": "5u-3jhyS-6I",
+      "rank": 1,
+      "root": "docs/region=es",
+      "verdict": "not-public"
+    },
+    {
+      "id": "tt0055902",
+      "type": "movie",
+      "ytId": "5u-3jhyS-6I",
+      "rank": 1,
+      "root": "docs/region=fr",
+      "verdict": "not-public"
+    },
+    {
+      "id": "tt0055902",
+      "type": "movie",
+      "ytId": "5u-3jhyS-6I",
+      "rank": 1,
+      "root": "docs/region=gb",
+      "verdict": "not-public"
+    },
+    {
+      "id": "tt0055902",
+      "type": "movie",
+      "ytId": "5u-3jhyS-6I",
+      "rank": 1,
+      "root": "docs/region=hr",
+      "verdict": "not-public"
+    },
+    {
+      "id": "tt0055902",
+      "type": "movie",
+      "ytId": "5u-3jhyS-6I",
+      "rank": 1,
+      "root": "docs/region=ie",
+      "verdict": "not-public"
+    },
+    {
+      "id": "tt0055902",
+      "type": "movie",
+      "ytId": "5u-3jhyS-6I",
+      "rank": 1,
+      "root": "docs/region=in",
+      "verdict": "not-public"
+    },
+    {
+      "id": "tt0055902",
+      "type": "movie",
+      "ytId": "5u-3jhyS-6I",
+      "rank": 1,
+      "root": "docs/region=it",
+      "verdict": "not-public"
+    },
+    {
+      "id": "tt0055902",
+      "type": "movie",
+      "ytId": "5u-3jhyS-6I",
+      "rank": 1,
+      "root": "docs/region=jp",
+      "verdict": "not-public"
+    },
+    {
+      "id": "tt0055902",
+      "type": "movie",
+      "ytId": "5u-3jhyS-6I",
+      "rank": 1,
+      "root": "docs/region=mx",
+      "verdict": "not-public"
+    },
+    {
+      "id": "tt0055902",
+      "type": "movie",
+      "ytId": "5u-3jhyS-6I",
+      "rank": 1,
+      "root": "docs/region=nl",
+      "verdict": "not-public"
+    },
+    {
+      "id": "tt0055902",
+      "type": "movie",
+      "ytId": "5u-3jhyS-6I",
+      "rank": 1,
+      "root": "docs/region=nz",
+      "verdict": "not-public"
+    },
+    {
+      "id": "tt0055902",
+      "type": "movie",
+      "ytId": "5u-3jhyS-6I",
+      "rank": 1,
+      "root": "docs/region=pl",
+      "verdict": "not-public"
+    },
+    {
+      "id": "tt0055902",
+      "type": "movie",
+      "ytId": "5u-3jhyS-6I",
+      "rank": 1,
+      "root": "docs/region=rs",
+      "verdict": "not-public"
+    },
+    {
+      "id": "tt0055902",
+      "type": "movie",
+      "ytId": "5u-3jhyS-6I",
+      "rank": 1,
+      "root": "docs/region=se",
+      "verdict": "not-public"
+    },
+    {
+      "id": "tt0055902",
+      "type": "movie",
+      "ytId": "5u-3jhyS-6I",
+      "rank": 1,
+      "root": "docs/region=tr",
+      "verdict": "not-public"
+    },
+    {
+      "id": "tt0055902",
+      "type": "movie",
+      "ytId": "5u-3jhyS-6I",
+      "rank": 1,
+      "root": "docs/region=us",
+      "verdict": "not-public"
+    },
+    {
       "id": "tt0057298",
       "type": "movie",
       "ytId": "9L44YX4lw0M",
@@ -739,6 +1075,126 @@
       "ytId": "9L44YX4lw0M",
       "rank": 0,
       "root": "docs/region=tr",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0061040",
+      "type": "movie",
+      "ytId": "bBFfGMYCf6I",
+      "rank": 1,
+      "root": "docs/region=au",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0061040",
+      "type": "movie",
+      "ytId": "bBFfGMYCf6I",
+      "rank": 1,
+      "root": "docs/region=br",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0061040",
+      "type": "movie",
+      "ytId": "bBFfGMYCf6I",
+      "rank": 1,
+      "root": "docs/region=ca",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0061040",
+      "type": "movie",
+      "ytId": "bBFfGMYCf6I",
+      "rank": 1,
+      "root": "docs/region=gb",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0061040",
+      "type": "movie",
+      "ytId": "bBFfGMYCf6I",
+      "rank": 1,
+      "root": "docs/region=hr",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0061040",
+      "type": "movie",
+      "ytId": "bBFfGMYCf6I",
+      "rank": 1,
+      "root": "docs/region=ie",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0061040",
+      "type": "movie",
+      "ytId": "bBFfGMYCf6I",
+      "rank": 1,
+      "root": "docs/region=in",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0061040",
+      "type": "movie",
+      "ytId": "bBFfGMYCf6I",
+      "rank": 1,
+      "root": "docs/region=jp",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0061040",
+      "type": "movie",
+      "ytId": "bBFfGMYCf6I",
+      "rank": 1,
+      "root": "docs/region=mx",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0061040",
+      "type": "movie",
+      "ytId": "bBFfGMYCf6I",
+      "rank": 1,
+      "root": "docs/region=nz",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0061040",
+      "type": "movie",
+      "ytId": "bBFfGMYCf6I",
+      "rank": 1,
+      "root": "docs/region=pl",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0061040",
+      "type": "movie",
+      "ytId": "bBFfGMYCf6I",
+      "rank": 1,
+      "root": "docs/region=rs",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0061040",
+      "type": "movie",
+      "ytId": "bBFfGMYCf6I",
+      "rank": 1,
+      "root": "docs/region=se",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0061040",
+      "type": "movie",
+      "ytId": "bBFfGMYCf6I",
+      "rank": 1,
+      "root": "docs/region=tr",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0061040",
+      "type": "movie",
+      "ytId": "bBFfGMYCf6I",
+      "rank": 1,
+      "root": "docs/region=us",
       "verdict": "gone"
     },
     {
@@ -1350,6 +1806,174 @@
       "verdict": "gone"
     },
     {
+      "id": "tt0073747",
+      "type": "movie",
+      "ytId": "s8SbS4poLRA",
+      "rank": 0,
+      "root": "docs",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0073747",
+      "type": "movie",
+      "ytId": "s8SbS4poLRA",
+      "rank": 0,
+      "root": "docs/region=au",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0073747",
+      "type": "movie",
+      "ytId": "s8SbS4poLRA",
+      "rank": 0,
+      "root": "docs/region=br",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0073747",
+      "type": "movie",
+      "ytId": "s8SbS4poLRA",
+      "rank": 0,
+      "root": "docs/region=ca",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0073747",
+      "type": "movie",
+      "ytId": "s8SbS4poLRA",
+      "rank": 0,
+      "root": "docs/region=de",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0073747",
+      "type": "movie",
+      "ytId": "s8SbS4poLRA",
+      "rank": 0,
+      "root": "docs/region=es",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0073747",
+      "type": "movie",
+      "ytId": "s8SbS4poLRA",
+      "rank": 0,
+      "root": "docs/region=fr",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0073747",
+      "type": "movie",
+      "ytId": "s8SbS4poLRA",
+      "rank": 0,
+      "root": "docs/region=gb",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0073747",
+      "type": "movie",
+      "ytId": "s8SbS4poLRA",
+      "rank": 0,
+      "root": "docs/region=hr",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0073747",
+      "type": "movie",
+      "ytId": "s8SbS4poLRA",
+      "rank": 0,
+      "root": "docs/region=ie",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0073747",
+      "type": "movie",
+      "ytId": "s8SbS4poLRA",
+      "rank": 0,
+      "root": "docs/region=in",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0073747",
+      "type": "movie",
+      "ytId": "s8SbS4poLRA",
+      "rank": 0,
+      "root": "docs/region=it",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0073747",
+      "type": "movie",
+      "ytId": "s8SbS4poLRA",
+      "rank": 0,
+      "root": "docs/region=jp",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0073747",
+      "type": "movie",
+      "ytId": "s8SbS4poLRA",
+      "rank": 0,
+      "root": "docs/region=mx",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0073747",
+      "type": "movie",
+      "ytId": "s8SbS4poLRA",
+      "rank": 0,
+      "root": "docs/region=nl",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0073747",
+      "type": "movie",
+      "ytId": "s8SbS4poLRA",
+      "rank": 0,
+      "root": "docs/region=nz",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0073747",
+      "type": "movie",
+      "ytId": "s8SbS4poLRA",
+      "rank": 0,
+      "root": "docs/region=pl",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0073747",
+      "type": "movie",
+      "ytId": "s8SbS4poLRA",
+      "rank": 0,
+      "root": "docs/region=rs",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0073747",
+      "type": "movie",
+      "ytId": "s8SbS4poLRA",
+      "rank": 0,
+      "root": "docs/region=se",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0073747",
+      "type": "movie",
+      "ytId": "s8SbS4poLRA",
+      "rank": 0,
+      "root": "docs/region=tr",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0073747",
+      "type": "movie",
+      "ytId": "s8SbS4poLRA",
+      "rank": 0,
+      "root": "docs/region=us",
+      "verdict": "gone"
+    },
+    {
       "id": "tt0080683",
       "type": "movie",
       "ytId": "v4LhUHoLxDQ",
@@ -1502,6 +2126,182 @@
       "verdict": "region:not-allowed"
     },
     {
+      "id": "tt0081457",
+      "type": "movie",
+      "ytId": "kgvQeX41P-s",
+      "rank": 0,
+      "root": "docs",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0081457",
+      "type": "movie",
+      "ytId": "kgvQeX41P-s",
+      "rank": 0,
+      "root": "docs/region=au",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0081457",
+      "type": "movie",
+      "ytId": "kgvQeX41P-s",
+      "rank": 0,
+      "root": "docs/region=br",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0081457",
+      "type": "movie",
+      "ytId": "kgvQeX41P-s",
+      "rank": 0,
+      "root": "docs/region=ca",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0081457",
+      "type": "movie",
+      "ytId": "kgvQeX41P-s",
+      "rank": 0,
+      "root": "docs/region=de",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0081457",
+      "type": "movie",
+      "ytId": "kgvQeX41P-s",
+      "rank": 0,
+      "root": "docs/region=es",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0081457",
+      "type": "movie",
+      "ytId": "kgvQeX41P-s",
+      "rank": 0,
+      "root": "docs/region=fr",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0081457",
+      "type": "movie",
+      "ytId": "kgvQeX41P-s",
+      "rank": 0,
+      "root": "docs/region=gb",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0081457",
+      "type": "movie",
+      "ytId": "kgvQeX41P-s",
+      "rank": 0,
+      "root": "docs/region=hr",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0081457",
+      "type": "movie",
+      "ytId": "kgvQeX41P-s",
+      "rank": 0,
+      "root": "docs/region=ie",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0081457",
+      "type": "movie",
+      "ytId": "kgvQeX41P-s",
+      "rank": 0,
+      "root": "docs/region=in",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0081457",
+      "type": "movie",
+      "ytId": "kgvQeX41P-s",
+      "rank": 0,
+      "root": "docs/region=it",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0081457",
+      "type": "movie",
+      "ytId": "kgvQeX41P-s",
+      "rank": 0,
+      "root": "docs/region=jp",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0081457",
+      "type": "movie",
+      "ytId": "kgvQeX41P-s",
+      "rank": 0,
+      "root": "docs/region=mx",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0081457",
+      "type": "movie",
+      "ytId": "kgvQeX41P-s",
+      "rank": 0,
+      "root": "docs/region=nl",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0081457",
+      "type": "movie",
+      "ytId": "kgvQeX41P-s",
+      "rank": 0,
+      "root": "docs/region=nz",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0081457",
+      "type": "movie",
+      "ytId": "kgvQeX41P-s",
+      "rank": 0,
+      "root": "docs/region=pl",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0081457",
+      "type": "movie",
+      "ytId": "kgvQeX41P-s",
+      "rank": 0,
+      "root": "docs/region=rs",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0081457",
+      "type": "movie",
+      "ytId": "kgvQeX41P-s",
+      "rank": 0,
+      "root": "docs/region=se",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0081457",
+      "type": "movie",
+      "ytId": "kgvQeX41P-s",
+      "rank": 0,
+      "root": "docs/region=tr",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0081457",
+      "type": "movie",
+      "ytId": "kgvQeX41P-s",
+      "rank": 0,
+      "root": "docs/region=us",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0084431",
+      "type": "movie",
+      "ytId": "54xg_XF7UdU",
+      "rank": 0,
+      "root": "docs",
+      "verdict": "region:restricted"
+    },
+    {
       "id": "tt0089690",
       "type": "movie",
       "ytId": "OwkHC2FWCOQ",
@@ -1798,6 +2598,14 @@
       "verdict": "gone"
     },
     {
+      "id": "tt0100208",
+      "type": "movie",
+      "ytId": "gZ_p88Sktkw",
+      "rank": 0,
+      "root": "docs",
+      "verdict": "region:restricted"
+    },
+    {
       "id": "tt0103328",
       "type": "movie",
       "ytId": "W67eBgLoDdU",
@@ -1964,6 +2772,302 @@
       "rank": 0,
       "root": "docs/region=us",
       "verdict": "gone"
+    },
+    {
+      "id": "tt0117061",
+      "type": "movie",
+      "ytId": "y5O-JpErKVU",
+      "rank": 0,
+      "root": "docs",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0117061",
+      "type": "movie",
+      "ytId": "y5O-JpErKVU",
+      "rank": 0,
+      "root": "docs/region=au",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0117061",
+      "type": "movie",
+      "ytId": "y5O-JpErKVU",
+      "rank": 0,
+      "root": "docs/region=br",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0117061",
+      "type": "movie",
+      "ytId": "y5O-JpErKVU",
+      "rank": 0,
+      "root": "docs/region=ca",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0117061",
+      "type": "movie",
+      "ytId": "y5O-JpErKVU",
+      "rank": 0,
+      "root": "docs/region=de",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0117061",
+      "type": "movie",
+      "ytId": "y5O-JpErKVU",
+      "rank": 0,
+      "root": "docs/region=es",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0117061",
+      "type": "movie",
+      "ytId": "y5O-JpErKVU",
+      "rank": 0,
+      "root": "docs/region=fr",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0117061",
+      "type": "movie",
+      "ytId": "y5O-JpErKVU",
+      "rank": 0,
+      "root": "docs/region=gb",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0117061",
+      "type": "movie",
+      "ytId": "y5O-JpErKVU",
+      "rank": 0,
+      "root": "docs/region=hr",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0117061",
+      "type": "movie",
+      "ytId": "y5O-JpErKVU",
+      "rank": 0,
+      "root": "docs/region=ie",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0117061",
+      "type": "movie",
+      "ytId": "y5O-JpErKVU",
+      "rank": 0,
+      "root": "docs/region=in",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0117061",
+      "type": "movie",
+      "ytId": "y5O-JpErKVU",
+      "rank": 0,
+      "root": "docs/region=it",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0117061",
+      "type": "movie",
+      "ytId": "y5O-JpErKVU",
+      "rank": 0,
+      "root": "docs/region=jp",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0117061",
+      "type": "movie",
+      "ytId": "y5O-JpErKVU",
+      "rank": 0,
+      "root": "docs/region=mx",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0117061",
+      "type": "movie",
+      "ytId": "y5O-JpErKVU",
+      "rank": 0,
+      "root": "docs/region=nl",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0117061",
+      "type": "movie",
+      "ytId": "y5O-JpErKVU",
+      "rank": 0,
+      "root": "docs/region=nz",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0117061",
+      "type": "movie",
+      "ytId": "y5O-JpErKVU",
+      "rank": 0,
+      "root": "docs/region=pl",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0117061",
+      "type": "movie",
+      "ytId": "y5O-JpErKVU",
+      "rank": 0,
+      "root": "docs/region=rs",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0117061",
+      "type": "movie",
+      "ytId": "y5O-JpErKVU",
+      "rank": 0,
+      "root": "docs/region=se",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0117061",
+      "type": "movie",
+      "ytId": "y5O-JpErKVU",
+      "rank": 0,
+      "root": "docs/region=tr",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0117061",
+      "type": "movie",
+      "ytId": "y5O-JpErKVU",
+      "rank": 0,
+      "root": "docs/region=us",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0144626",
+      "type": "movie",
+      "ytId": "EDjY7XJWkwM",
+      "rank": 0,
+      "root": "docs/region=au",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0144626",
+      "type": "movie",
+      "ytId": "EDjY7XJWkwM",
+      "rank": 0,
+      "root": "docs/region=br",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0144626",
+      "type": "movie",
+      "ytId": "EDjY7XJWkwM",
+      "rank": 0,
+      "root": "docs/region=ca",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0144626",
+      "type": "movie",
+      "ytId": "EDjY7XJWkwM",
+      "rank": 0,
+      "root": "docs/region=gb",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0144626",
+      "type": "movie",
+      "ytId": "EDjY7XJWkwM",
+      "rank": 0,
+      "root": "docs/region=hr",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0144626",
+      "type": "movie",
+      "ytId": "EDjY7XJWkwM",
+      "rank": 0,
+      "root": "docs/region=ie",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0144626",
+      "type": "movie",
+      "ytId": "EDjY7XJWkwM",
+      "rank": 0,
+      "root": "docs/region=in",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0144626",
+      "type": "movie",
+      "ytId": "EDjY7XJWkwM",
+      "rank": 0,
+      "root": "docs/region=jp",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0144626",
+      "type": "movie",
+      "ytId": "EDjY7XJWkwM",
+      "rank": 0,
+      "root": "docs/region=mx",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0144626",
+      "type": "movie",
+      "ytId": "EDjY7XJWkwM",
+      "rank": 0,
+      "root": "docs/region=nz",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0144626",
+      "type": "movie",
+      "ytId": "EDjY7XJWkwM",
+      "rank": 0,
+      "root": "docs/region=pl",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0144626",
+      "type": "movie",
+      "ytId": "EDjY7XJWkwM",
+      "rank": 0,
+      "root": "docs/region=rs",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0144626",
+      "type": "movie",
+      "ytId": "EDjY7XJWkwM",
+      "rank": 0,
+      "root": "docs/region=se",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0144626",
+      "type": "movie",
+      "ytId": "EDjY7XJWkwM",
+      "rank": 0,
+      "root": "docs/region=tr",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0144626",
+      "type": "movie",
+      "ytId": "EDjY7XJWkwM",
+      "rank": 0,
+      "root": "docs/region=us",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt0185510",
+      "type": "movie",
+      "ytId": "Sjb0V4R6jQw",
+      "rank": 0,
+      "root": "docs",
+      "verdict": "region:restricted"
     },
     {
       "id": "tt0235424",
@@ -2470,6 +3574,342 @@
       "verdict": "gone"
     },
     {
+      "id": "tt11666014",
+      "type": "movie",
+      "ytId": "7arywooR-cc",
+      "rank": 0,
+      "root": "docs",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt11666014",
+      "type": "movie",
+      "ytId": "7arywooR-cc",
+      "rank": 0,
+      "root": "docs/region=au",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt11666014",
+      "type": "movie",
+      "ytId": "7arywooR-cc",
+      "rank": 0,
+      "root": "docs/region=br",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt11666014",
+      "type": "movie",
+      "ytId": "7arywooR-cc",
+      "rank": 0,
+      "root": "docs/region=ca",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt11666014",
+      "type": "movie",
+      "ytId": "7arywooR-cc",
+      "rank": 0,
+      "root": "docs/region=de",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt11666014",
+      "type": "movie",
+      "ytId": "7arywooR-cc",
+      "rank": 0,
+      "root": "docs/region=es",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt11666014",
+      "type": "movie",
+      "ytId": "7arywooR-cc",
+      "rank": 0,
+      "root": "docs/region=fr",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt11666014",
+      "type": "movie",
+      "ytId": "7arywooR-cc",
+      "rank": 0,
+      "root": "docs/region=gb",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt11666014",
+      "type": "movie",
+      "ytId": "7arywooR-cc",
+      "rank": 0,
+      "root": "docs/region=hr",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt11666014",
+      "type": "movie",
+      "ytId": "7arywooR-cc",
+      "rank": 0,
+      "root": "docs/region=ie",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt11666014",
+      "type": "movie",
+      "ytId": "7arywooR-cc",
+      "rank": 0,
+      "root": "docs/region=in",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt11666014",
+      "type": "movie",
+      "ytId": "7arywooR-cc",
+      "rank": 0,
+      "root": "docs/region=it",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt11666014",
+      "type": "movie",
+      "ytId": "7arywooR-cc",
+      "rank": 0,
+      "root": "docs/region=jp",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt11666014",
+      "type": "movie",
+      "ytId": "7arywooR-cc",
+      "rank": 0,
+      "root": "docs/region=mx",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt11666014",
+      "type": "movie",
+      "ytId": "7arywooR-cc",
+      "rank": 0,
+      "root": "docs/region=nl",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt11666014",
+      "type": "movie",
+      "ytId": "7arywooR-cc",
+      "rank": 0,
+      "root": "docs/region=nz",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt11666014",
+      "type": "movie",
+      "ytId": "7arywooR-cc",
+      "rank": 0,
+      "root": "docs/region=pl",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt11666014",
+      "type": "movie",
+      "ytId": "7arywooR-cc",
+      "rank": 0,
+      "root": "docs/region=rs",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt11666014",
+      "type": "movie",
+      "ytId": "7arywooR-cc",
+      "rank": 0,
+      "root": "docs/region=se",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt11666014",
+      "type": "movie",
+      "ytId": "7arywooR-cc",
+      "rank": 0,
+      "root": "docs/region=tr",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt11666014",
+      "type": "movie",
+      "ytId": "7arywooR-cc",
+      "rank": 0,
+      "root": "docs/region=us",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt11814322",
+      "type": "movie",
+      "ytId": "Vf-KrZTYKXM",
+      "rank": 0,
+      "root": "docs",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt11814322",
+      "type": "movie",
+      "ytId": "Vf-KrZTYKXM",
+      "rank": 0,
+      "root": "docs/region=au",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt11814322",
+      "type": "movie",
+      "ytId": "Vf-KrZTYKXM",
+      "rank": 0,
+      "root": "docs/region=br",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt11814322",
+      "type": "movie",
+      "ytId": "Vf-KrZTYKXM",
+      "rank": 0,
+      "root": "docs/region=ca",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt11814322",
+      "type": "movie",
+      "ytId": "Vf-KrZTYKXM",
+      "rank": 0,
+      "root": "docs/region=de",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt11814322",
+      "type": "movie",
+      "ytId": "Vf-KrZTYKXM",
+      "rank": 0,
+      "root": "docs/region=es",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt11814322",
+      "type": "movie",
+      "ytId": "Vf-KrZTYKXM",
+      "rank": 0,
+      "root": "docs/region=fr",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt11814322",
+      "type": "movie",
+      "ytId": "Vf-KrZTYKXM",
+      "rank": 0,
+      "root": "docs/region=gb",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt11814322",
+      "type": "movie",
+      "ytId": "Vf-KrZTYKXM",
+      "rank": 0,
+      "root": "docs/region=hr",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt11814322",
+      "type": "movie",
+      "ytId": "Vf-KrZTYKXM",
+      "rank": 0,
+      "root": "docs/region=ie",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt11814322",
+      "type": "movie",
+      "ytId": "Vf-KrZTYKXM",
+      "rank": 0,
+      "root": "docs/region=in",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt11814322",
+      "type": "movie",
+      "ytId": "Vf-KrZTYKXM",
+      "rank": 0,
+      "root": "docs/region=it",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt11814322",
+      "type": "movie",
+      "ytId": "Vf-KrZTYKXM",
+      "rank": 0,
+      "root": "docs/region=jp",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt11814322",
+      "type": "movie",
+      "ytId": "Vf-KrZTYKXM",
+      "rank": 0,
+      "root": "docs/region=mx",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt11814322",
+      "type": "movie",
+      "ytId": "Vf-KrZTYKXM",
+      "rank": 0,
+      "root": "docs/region=nl",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt11814322",
+      "type": "movie",
+      "ytId": "Vf-KrZTYKXM",
+      "rank": 0,
+      "root": "docs/region=nz",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt11814322",
+      "type": "movie",
+      "ytId": "Vf-KrZTYKXM",
+      "rank": 0,
+      "root": "docs/region=pl",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt11814322",
+      "type": "movie",
+      "ytId": "Vf-KrZTYKXM",
+      "rank": 0,
+      "root": "docs/region=rs",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt11814322",
+      "type": "movie",
+      "ytId": "Vf-KrZTYKXM",
+      "rank": 0,
+      "root": "docs/region=se",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt11814322",
+      "type": "movie",
+      "ytId": "Vf-KrZTYKXM",
+      "rank": 0,
+      "root": "docs/region=tr",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt11814322",
+      "type": "movie",
+      "ytId": "Vf-KrZTYKXM",
+      "rank": 0,
+      "root": "docs/region=us",
+      "verdict": "gone"
+    },
+    {
       "id": "tt11815290",
       "type": "movie",
       "ytId": "7Q2-NgZ6Z8c",
@@ -2638,350 +4078,198 @@
       "verdict": "gone"
     },
     {
-      "id": "tt1307064",
+      "id": "tt1241329",
       "type": "movie",
-      "ytId": "X5ABxUdb100",
-      "rank": 0,
-      "root": "docs",
-      "verdict": "gone"
-    },
-    {
-      "id": "tt1307064",
-      "type": "movie",
-      "ytId": "X5ABxUdb100",
-      "rank": 0,
-      "root": "docs/region=au",
-      "verdict": "gone"
-    },
-    {
-      "id": "tt1307064",
-      "type": "movie",
-      "ytId": "X5ABxUdb100",
-      "rank": 0,
-      "root": "docs/region=br",
-      "verdict": "gone"
-    },
-    {
-      "id": "tt1307064",
-      "type": "movie",
-      "ytId": "X5ABxUdb100",
-      "rank": 0,
-      "root": "docs/region=ca",
-      "verdict": "gone"
-    },
-    {
-      "id": "tt1307064",
-      "type": "movie",
-      "ytId": "X5ABxUdb100",
-      "rank": 0,
-      "root": "docs/region=de",
-      "verdict": "gone"
-    },
-    {
-      "id": "tt1307064",
-      "type": "movie",
-      "ytId": "X5ABxUdb100",
-      "rank": 0,
-      "root": "docs/region=es",
-      "verdict": "gone"
-    },
-    {
-      "id": "tt1307064",
-      "type": "movie",
-      "ytId": "X5ABxUdb100",
-      "rank": 0,
-      "root": "docs/region=fr",
-      "verdict": "gone"
-    },
-    {
-      "id": "tt1307064",
-      "type": "movie",
-      "ytId": "X5ABxUdb100",
-      "rank": 0,
-      "root": "docs/region=gb",
-      "verdict": "gone"
-    },
-    {
-      "id": "tt1307064",
-      "type": "movie",
-      "ytId": "X5ABxUdb100",
-      "rank": 0,
-      "root": "docs/region=hr",
-      "verdict": "gone"
-    },
-    {
-      "id": "tt1307064",
-      "type": "movie",
-      "ytId": "X5ABxUdb100",
-      "rank": 0,
-      "root": "docs/region=ie",
-      "verdict": "gone"
-    },
-    {
-      "id": "tt1307064",
-      "type": "movie",
-      "ytId": "X5ABxUdb100",
-      "rank": 0,
-      "root": "docs/region=in",
-      "verdict": "gone"
-    },
-    {
-      "id": "tt1307064",
-      "type": "movie",
-      "ytId": "X5ABxUdb100",
-      "rank": 0,
-      "root": "docs/region=it",
-      "verdict": "gone"
-    },
-    {
-      "id": "tt1307064",
-      "type": "movie",
-      "ytId": "X5ABxUdb100",
-      "rank": 0,
-      "root": "docs/region=jp",
-      "verdict": "gone"
-    },
-    {
-      "id": "tt1307064",
-      "type": "movie",
-      "ytId": "X5ABxUdb100",
-      "rank": 0,
-      "root": "docs/region=mx",
-      "verdict": "gone"
-    },
-    {
-      "id": "tt1307064",
-      "type": "movie",
-      "ytId": "X5ABxUdb100",
-      "rank": 0,
-      "root": "docs/region=nl",
-      "verdict": "gone"
-    },
-    {
-      "id": "tt1307064",
-      "type": "movie",
-      "ytId": "X5ABxUdb100",
-      "rank": 0,
-      "root": "docs/region=nz",
-      "verdict": "gone"
-    },
-    {
-      "id": "tt1307064",
-      "type": "movie",
-      "ytId": "X5ABxUdb100",
-      "rank": 0,
-      "root": "docs/region=pl",
-      "verdict": "gone"
-    },
-    {
-      "id": "tt1307064",
-      "type": "movie",
-      "ytId": "X5ABxUdb100",
-      "rank": 0,
-      "root": "docs/region=rs",
-      "verdict": "gone"
-    },
-    {
-      "id": "tt1307064",
-      "type": "movie",
-      "ytId": "X5ABxUdb100",
-      "rank": 0,
-      "root": "docs/region=se",
-      "verdict": "gone"
-    },
-    {
-      "id": "tt1307064",
-      "type": "movie",
-      "ytId": "X5ABxUdb100",
-      "rank": 0,
-      "root": "docs/region=tr",
-      "verdict": "gone"
-    },
-    {
-      "id": "tt1307064",
-      "type": "movie",
-      "ytId": "X5ABxUdb100",
-      "rank": 0,
-      "root": "docs/region=us",
-      "verdict": "gone"
-    },
-    {
-      "id": "tt13149036",
-      "type": "movie",
-      "ytId": "XYVVRHyK0bg",
-      "rank": 0,
-      "root": "docs",
-      "verdict": "gone"
-    },
-    {
-      "id": "tt13149036",
-      "type": "movie",
-      "ytId": "XYVVRHyK0bg",
-      "rank": 0,
-      "root": "docs/region=au",
-      "verdict": "gone"
-    },
-    {
-      "id": "tt13149036",
-      "type": "movie",
-      "ytId": "XYVVRHyK0bg",
-      "rank": 0,
-      "root": "docs/region=br",
-      "verdict": "gone"
-    },
-    {
-      "id": "tt13149036",
-      "type": "movie",
-      "ytId": "XYVVRHyK0bg",
-      "rank": 0,
-      "root": "docs/region=ca",
-      "verdict": "gone"
-    },
-    {
-      "id": "tt13149036",
-      "type": "movie",
-      "ytId": "XYVVRHyK0bg",
-      "rank": 0,
-      "root": "docs/region=de",
-      "verdict": "gone"
-    },
-    {
-      "id": "tt13149036",
-      "type": "movie",
-      "ytId": "XYVVRHyK0bg",
-      "rank": 0,
-      "root": "docs/region=es",
-      "verdict": "gone"
-    },
-    {
-      "id": "tt13149036",
-      "type": "movie",
-      "ytId": "XYVVRHyK0bg",
-      "rank": 0,
-      "root": "docs/region=fr",
-      "verdict": "gone"
-    },
-    {
-      "id": "tt13149036",
-      "type": "movie",
-      "ytId": "XYVVRHyK0bg",
-      "rank": 0,
-      "root": "docs/region=gb",
-      "verdict": "gone"
-    },
-    {
-      "id": "tt13149036",
-      "type": "movie",
-      "ytId": "XYVVRHyK0bg",
-      "rank": 0,
-      "root": "docs/region=hr",
-      "verdict": "gone"
-    },
-    {
-      "id": "tt13149036",
-      "type": "movie",
-      "ytId": "XYVVRHyK0bg",
-      "rank": 0,
-      "root": "docs/region=ie",
-      "verdict": "gone"
-    },
-    {
-      "id": "tt13149036",
-      "type": "movie",
-      "ytId": "XYVVRHyK0bg",
-      "rank": 0,
-      "root": "docs/region=in",
-      "verdict": "gone"
-    },
-    {
-      "id": "tt13149036",
-      "type": "movie",
-      "ytId": "XYVVRHyK0bg",
-      "rank": 0,
-      "root": "docs/region=it",
-      "verdict": "gone"
-    },
-    {
-      "id": "tt13149036",
-      "type": "movie",
-      "ytId": "XYVVRHyK0bg",
-      "rank": 0,
-      "root": "docs/region=jp",
-      "verdict": "gone"
-    },
-    {
-      "id": "tt13149036",
-      "type": "movie",
-      "ytId": "XYVVRHyK0bg",
-      "rank": 0,
-      "root": "docs/region=mx",
-      "verdict": "gone"
-    },
-    {
-      "id": "tt13149036",
-      "type": "movie",
-      "ytId": "XYVVRHyK0bg",
-      "rank": 0,
-      "root": "docs/region=nl",
-      "verdict": "gone"
-    },
-    {
-      "id": "tt13149036",
-      "type": "movie",
-      "ytId": "XYVVRHyK0bg",
-      "rank": 0,
-      "root": "docs/region=nz",
-      "verdict": "gone"
-    },
-    {
-      "id": "tt13149036",
-      "type": "movie",
-      "ytId": "XYVVRHyK0bg",
-      "rank": 0,
-      "root": "docs/region=pl",
-      "verdict": "gone"
-    },
-    {
-      "id": "tt13149036",
-      "type": "movie",
-      "ytId": "XYVVRHyK0bg",
-      "rank": 0,
-      "root": "docs/region=rs",
-      "verdict": "gone"
-    },
-    {
-      "id": "tt13149036",
-      "type": "movie",
-      "ytId": "XYVVRHyK0bg",
-      "rank": 0,
-      "root": "docs/region=se",
-      "verdict": "gone"
-    },
-    {
-      "id": "tt13149036",
-      "type": "movie",
-      "ytId": "XYVVRHyK0bg",
-      "rank": 0,
-      "root": "docs/region=tr",
-      "verdict": "gone"
-    },
-    {
-      "id": "tt13149036",
-      "type": "movie",
-      "ytId": "XYVVRHyK0bg",
-      "rank": 0,
-      "root": "docs/region=us",
-      "verdict": "gone"
-    },
-    {
-      "id": "tt15367558",
-      "type": "movie",
-      "ytId": "HKmeRbjOIl8",
+      "ytId": "hLnu8xcikb0",
       "rank": 0,
       "root": "docs",
       "verdict": "region:restricted"
     },
     {
+      "id": "tt1241329",
+      "type": "movie",
+      "ytId": "hLnu8xcikb0",
+      "rank": 0,
+      "root": "docs/region=de",
+      "verdict": "region:blocked"
+    },
+    {
+      "id": "tt1241329",
+      "type": "movie",
+      "ytId": "hLnu8xcikb0",
+      "rank": 0,
+      "root": "docs/region=us",
+      "verdict": "region:blocked"
+    },
+    {
+      "id": "tt13149036",
+      "type": "movie",
+      "ytId": "XYVVRHyK0bg",
+      "rank": 0,
+      "root": "docs",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt13149036",
+      "type": "movie",
+      "ytId": "XYVVRHyK0bg",
+      "rank": 0,
+      "root": "docs/region=au",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt13149036",
+      "type": "movie",
+      "ytId": "XYVVRHyK0bg",
+      "rank": 0,
+      "root": "docs/region=br",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt13149036",
+      "type": "movie",
+      "ytId": "XYVVRHyK0bg",
+      "rank": 0,
+      "root": "docs/region=ca",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt13149036",
+      "type": "movie",
+      "ytId": "XYVVRHyK0bg",
+      "rank": 0,
+      "root": "docs/region=de",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt13149036",
+      "type": "movie",
+      "ytId": "XYVVRHyK0bg",
+      "rank": 0,
+      "root": "docs/region=es",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt13149036",
+      "type": "movie",
+      "ytId": "XYVVRHyK0bg",
+      "rank": 0,
+      "root": "docs/region=fr",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt13149036",
+      "type": "movie",
+      "ytId": "XYVVRHyK0bg",
+      "rank": 0,
+      "root": "docs/region=gb",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt13149036",
+      "type": "movie",
+      "ytId": "XYVVRHyK0bg",
+      "rank": 0,
+      "root": "docs/region=hr",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt13149036",
+      "type": "movie",
+      "ytId": "XYVVRHyK0bg",
+      "rank": 0,
+      "root": "docs/region=ie",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt13149036",
+      "type": "movie",
+      "ytId": "XYVVRHyK0bg",
+      "rank": 0,
+      "root": "docs/region=in",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt13149036",
+      "type": "movie",
+      "ytId": "XYVVRHyK0bg",
+      "rank": 0,
+      "root": "docs/region=it",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt13149036",
+      "type": "movie",
+      "ytId": "XYVVRHyK0bg",
+      "rank": 0,
+      "root": "docs/region=jp",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt13149036",
+      "type": "movie",
+      "ytId": "XYVVRHyK0bg",
+      "rank": 0,
+      "root": "docs/region=mx",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt13149036",
+      "type": "movie",
+      "ytId": "XYVVRHyK0bg",
+      "rank": 0,
+      "root": "docs/region=nl",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt13149036",
+      "type": "movie",
+      "ytId": "XYVVRHyK0bg",
+      "rank": 0,
+      "root": "docs/region=nz",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt13149036",
+      "type": "movie",
+      "ytId": "XYVVRHyK0bg",
+      "rank": 0,
+      "root": "docs/region=pl",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt13149036",
+      "type": "movie",
+      "ytId": "XYVVRHyK0bg",
+      "rank": 0,
+      "root": "docs/region=rs",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt13149036",
+      "type": "movie",
+      "ytId": "XYVVRHyK0bg",
+      "rank": 0,
+      "root": "docs/region=se",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt13149036",
+      "type": "movie",
+      "ytId": "XYVVRHyK0bg",
+      "rank": 0,
+      "root": "docs/region=tr",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt13149036",
+      "type": "movie",
+      "ytId": "XYVVRHyK0bg",
+      "rank": 0,
+      "root": "docs/region=us",
+      "verdict": "gone"
+    },
+    {
       "id": "tt1631783",
       "type": "movie",
       "ytId": "J83C0FKx3ls",
@@ -3145,6 +4433,174 @@
       "id": "tt1631783",
       "type": "movie",
       "ytId": "J83C0FKx3ls",
+      "rank": 0,
+      "root": "docs/region=us",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt16899324",
+      "type": "movie",
+      "ytId": "OKThMLlvstI",
+      "rank": 0,
+      "root": "docs",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt16899324",
+      "type": "movie",
+      "ytId": "OKThMLlvstI",
+      "rank": 0,
+      "root": "docs/region=au",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt16899324",
+      "type": "movie",
+      "ytId": "OKThMLlvstI",
+      "rank": 0,
+      "root": "docs/region=br",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt16899324",
+      "type": "movie",
+      "ytId": "OKThMLlvstI",
+      "rank": 0,
+      "root": "docs/region=ca",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt16899324",
+      "type": "movie",
+      "ytId": "OKThMLlvstI",
+      "rank": 0,
+      "root": "docs/region=de",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt16899324",
+      "type": "movie",
+      "ytId": "OKThMLlvstI",
+      "rank": 0,
+      "root": "docs/region=es",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt16899324",
+      "type": "movie",
+      "ytId": "OKThMLlvstI",
+      "rank": 0,
+      "root": "docs/region=fr",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt16899324",
+      "type": "movie",
+      "ytId": "OKThMLlvstI",
+      "rank": 0,
+      "root": "docs/region=gb",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt16899324",
+      "type": "movie",
+      "ytId": "OKThMLlvstI",
+      "rank": 0,
+      "root": "docs/region=hr",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt16899324",
+      "type": "movie",
+      "ytId": "OKThMLlvstI",
+      "rank": 0,
+      "root": "docs/region=ie",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt16899324",
+      "type": "movie",
+      "ytId": "OKThMLlvstI",
+      "rank": 0,
+      "root": "docs/region=in",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt16899324",
+      "type": "movie",
+      "ytId": "OKThMLlvstI",
+      "rank": 0,
+      "root": "docs/region=it",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt16899324",
+      "type": "movie",
+      "ytId": "OKThMLlvstI",
+      "rank": 0,
+      "root": "docs/region=jp",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt16899324",
+      "type": "movie",
+      "ytId": "OKThMLlvstI",
+      "rank": 0,
+      "root": "docs/region=mx",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt16899324",
+      "type": "movie",
+      "ytId": "OKThMLlvstI",
+      "rank": 0,
+      "root": "docs/region=nl",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt16899324",
+      "type": "movie",
+      "ytId": "OKThMLlvstI",
+      "rank": 0,
+      "root": "docs/region=nz",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt16899324",
+      "type": "movie",
+      "ytId": "OKThMLlvstI",
+      "rank": 0,
+      "root": "docs/region=pl",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt16899324",
+      "type": "movie",
+      "ytId": "OKThMLlvstI",
+      "rank": 0,
+      "root": "docs/region=rs",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt16899324",
+      "type": "movie",
+      "ytId": "OKThMLlvstI",
+      "rank": 0,
+      "root": "docs/region=se",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt16899324",
+      "type": "movie",
+      "ytId": "OKThMLlvstI",
+      "rank": 0,
+      "root": "docs/region=tr",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt16899324",
+      "type": "movie",
+      "ytId": "OKThMLlvstI",
       "rank": 0,
       "root": "docs/region=us",
       "verdict": "gone"
@@ -3625,6 +5081,174 @@
       "id": "tt27486288",
       "type": "movie",
       "ytId": "CUDUo63UYBg",
+      "rank": 0,
+      "root": "docs/region=us",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt27717191",
+      "type": "movie",
+      "ytId": "k4NIInYfiJ8",
+      "rank": 0,
+      "root": "docs",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt27717191",
+      "type": "movie",
+      "ytId": "k4NIInYfiJ8",
+      "rank": 0,
+      "root": "docs/region=au",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt27717191",
+      "type": "movie",
+      "ytId": "k4NIInYfiJ8",
+      "rank": 0,
+      "root": "docs/region=br",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt27717191",
+      "type": "movie",
+      "ytId": "k4NIInYfiJ8",
+      "rank": 0,
+      "root": "docs/region=ca",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt27717191",
+      "type": "movie",
+      "ytId": "k4NIInYfiJ8",
+      "rank": 0,
+      "root": "docs/region=de",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt27717191",
+      "type": "movie",
+      "ytId": "k4NIInYfiJ8",
+      "rank": 0,
+      "root": "docs/region=es",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt27717191",
+      "type": "movie",
+      "ytId": "k4NIInYfiJ8",
+      "rank": 0,
+      "root": "docs/region=fr",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt27717191",
+      "type": "movie",
+      "ytId": "k4NIInYfiJ8",
+      "rank": 0,
+      "root": "docs/region=gb",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt27717191",
+      "type": "movie",
+      "ytId": "k4NIInYfiJ8",
+      "rank": 0,
+      "root": "docs/region=hr",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt27717191",
+      "type": "movie",
+      "ytId": "k4NIInYfiJ8",
+      "rank": 0,
+      "root": "docs/region=ie",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt27717191",
+      "type": "movie",
+      "ytId": "k4NIInYfiJ8",
+      "rank": 0,
+      "root": "docs/region=in",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt27717191",
+      "type": "movie",
+      "ytId": "k4NIInYfiJ8",
+      "rank": 0,
+      "root": "docs/region=it",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt27717191",
+      "type": "movie",
+      "ytId": "k4NIInYfiJ8",
+      "rank": 0,
+      "root": "docs/region=jp",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt27717191",
+      "type": "movie",
+      "ytId": "k4NIInYfiJ8",
+      "rank": 0,
+      "root": "docs/region=mx",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt27717191",
+      "type": "movie",
+      "ytId": "k4NIInYfiJ8",
+      "rank": 0,
+      "root": "docs/region=nl",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt27717191",
+      "type": "movie",
+      "ytId": "k4NIInYfiJ8",
+      "rank": 0,
+      "root": "docs/region=nz",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt27717191",
+      "type": "movie",
+      "ytId": "k4NIInYfiJ8",
+      "rank": 0,
+      "root": "docs/region=pl",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt27717191",
+      "type": "movie",
+      "ytId": "k4NIInYfiJ8",
+      "rank": 0,
+      "root": "docs/region=rs",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt27717191",
+      "type": "movie",
+      "ytId": "k4NIInYfiJ8",
+      "rank": 0,
+      "root": "docs/region=se",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt27717191",
+      "type": "movie",
+      "ytId": "k4NIInYfiJ8",
+      "rank": 0,
+      "root": "docs/region=tr",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt27717191",
+      "type": "movie",
+      "ytId": "k4NIInYfiJ8",
       "rank": 0,
       "root": "docs/region=us",
       "verdict": "gone"
@@ -3982,6 +5606,38 @@
       "verdict": "gone"
     },
     {
+      "id": "tt5431284",
+      "type": "movie",
+      "ytId": "YMnf3daGYRY",
+      "rank": 0,
+      "root": "docs/region=jp",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt5431284",
+      "type": "movie",
+      "ytId": "YMnf3daGYRY",
+      "rank": 0,
+      "root": "docs/region=nl",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt5431284",
+      "type": "movie",
+      "ytId": "YMnf3daGYRY",
+      "rank": 0,
+      "root": "docs/region=se",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt5431284",
+      "type": "movie",
+      "ytId": "YMnf3daGYRY",
+      "rank": 0,
+      "root": "docs/region=us",
+      "verdict": "gone"
+    },
+    {
       "id": "tt5617310",
       "type": "movie",
       "ytId": "3yT3rvQYvCI",
@@ -4313,6 +5969,174 @@
       "id": "tt7326608",
       "type": "movie",
       "ytId": "LmUNQGf0T1Y",
+      "rank": 0,
+      "root": "docs/region=us",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt9464000",
+      "type": "movie",
+      "ytId": "zwrCvX0rKw4",
+      "rank": 0,
+      "root": "docs",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt9464000",
+      "type": "movie",
+      "ytId": "zwrCvX0rKw4",
+      "rank": 0,
+      "root": "docs/region=au",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt9464000",
+      "type": "movie",
+      "ytId": "zwrCvX0rKw4",
+      "rank": 0,
+      "root": "docs/region=br",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt9464000",
+      "type": "movie",
+      "ytId": "zwrCvX0rKw4",
+      "rank": 0,
+      "root": "docs/region=ca",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt9464000",
+      "type": "movie",
+      "ytId": "zwrCvX0rKw4",
+      "rank": 0,
+      "root": "docs/region=de",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt9464000",
+      "type": "movie",
+      "ytId": "zwrCvX0rKw4",
+      "rank": 0,
+      "root": "docs/region=es",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt9464000",
+      "type": "movie",
+      "ytId": "zwrCvX0rKw4",
+      "rank": 0,
+      "root": "docs/region=fr",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt9464000",
+      "type": "movie",
+      "ytId": "zwrCvX0rKw4",
+      "rank": 0,
+      "root": "docs/region=gb",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt9464000",
+      "type": "movie",
+      "ytId": "zwrCvX0rKw4",
+      "rank": 0,
+      "root": "docs/region=hr",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt9464000",
+      "type": "movie",
+      "ytId": "zwrCvX0rKw4",
+      "rank": 0,
+      "root": "docs/region=ie",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt9464000",
+      "type": "movie",
+      "ytId": "zwrCvX0rKw4",
+      "rank": 0,
+      "root": "docs/region=in",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt9464000",
+      "type": "movie",
+      "ytId": "zwrCvX0rKw4",
+      "rank": 0,
+      "root": "docs/region=it",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt9464000",
+      "type": "movie",
+      "ytId": "zwrCvX0rKw4",
+      "rank": 0,
+      "root": "docs/region=jp",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt9464000",
+      "type": "movie",
+      "ytId": "zwrCvX0rKw4",
+      "rank": 0,
+      "root": "docs/region=mx",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt9464000",
+      "type": "movie",
+      "ytId": "zwrCvX0rKw4",
+      "rank": 0,
+      "root": "docs/region=nl",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt9464000",
+      "type": "movie",
+      "ytId": "zwrCvX0rKw4",
+      "rank": 0,
+      "root": "docs/region=nz",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt9464000",
+      "type": "movie",
+      "ytId": "zwrCvX0rKw4",
+      "rank": 0,
+      "root": "docs/region=pl",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt9464000",
+      "type": "movie",
+      "ytId": "zwrCvX0rKw4",
+      "rank": 0,
+      "root": "docs/region=rs",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt9464000",
+      "type": "movie",
+      "ytId": "zwrCvX0rKw4",
+      "rank": 0,
+      "root": "docs/region=se",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt9464000",
+      "type": "movie",
+      "ytId": "zwrCvX0rKw4",
+      "rank": 0,
+      "root": "docs/region=tr",
+      "verdict": "gone"
+    },
+    {
+      "id": "tt9464000",
+      "type": "movie",
+      "ytId": "zwrCvX0rKw4",
       "rank": 0,
       "root": "docs/region=us",
       "verdict": "gone"
